@@ -5,8 +5,30 @@ date: "11/11/2020"
 output: html_document
 ---
 
-Set up
+#Set up
 ```{r}
+setwd("/Users/c-rod/Documents/R_data/VitalRates/")
+#load in .rdata file
+load(file = "/Users/c-rod/Documents/R_data/VitalRates/Patch_And_Colony_Data_20201103.rdata")
+#View both tables saved in the .rdata
+View(ColonyLevel)
+View(PatchLevel)
+
+```
+
+
+#Subset by Site
+Going to use ColonyLevel data to avoid all the fission/fusion confusion
+```{r}
+MAISIOK01 <- subset(ColonyLevel, Site=="MAI_SIO_K01")
+View(MAISIOK01)
+
+KUROCC010 <- subset(ColonyLevel, Site=="KUR_OCC_010")
+View(KUROCC010)
+
+PHROCC016 <- subset(ColonyLevel, Site=="PHR_OCC_016")
+View(PHROCC016)
+
 
 ```
 
