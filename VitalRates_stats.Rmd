@@ -1,0 +1,19 @@
+---
+title: "VitalRates_stats"
+author: "Caroline Rodriguez"
+date: "11/11/2020"
+output: html_document
+---
+
+Set up
+```{r}
+
+```
+
+
+
+
+
+
+
+
