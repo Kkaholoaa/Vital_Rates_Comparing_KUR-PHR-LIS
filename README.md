@@ -15,16 +15,38 @@ The VitalRates_stats.Rmd code takes the vital rates dataset to reproduce the ana
 | ColonyID | Unique identifer for each colony (Site_SpecCode_C_UniquePatchID_Annotator) |
 | Spec_Code | Species code (PMEA, PGRA, MCAP, MPAT, PLIC, PLOB, PLUT) |
 | Genus_Code | Genus code (POCS, MOSP, POSP) |
-| StartingDate | Year the oldest colony was delineated |
-| EndingDate | Year the colony was delineated |
+| StartingDate | Date the older colony was delineated (YYYY-MM-DD) |
+| EndingDate | Date the colony was delineated in the next time point (YYYY-MM-DD) |
 | Interval_Years | Time interval between patches (older colony date - younger colony date / 365.25) |
 | N_t0 | # of fragments in the oldest time point |
 | N_t1 | # of fragments in the newer time point |
-| StartingSize | Size of oldest colony (cm^2) |
+| StartingSize | Size of older colony (cm^2) |
 | EndingSize | Size of newer colony (cm^2) |
 | TransitionMagnitude | Change in Area in cm^2 (Area of newer-older colony * 10^4) |
 | TransitionType | Growth, Shrink, Mortality, Recruitment, Fission, Fusion, and combinations of Growth, Shrink, Fission and Fusion |
-| PercentChange | |
-| Log2Ratio_Change | |
-| TransitionTypeSimple | |
+| PercentChange | Percent change, growth or shrinkage, for each colony (100 * TransitionMagnitude/StartingSize) |
+| Log2Ratio_Change | The log transformed amount of change from the ending size to the starting size of the colony (log2(EndingSize/StartingSize)) |
+| TransitionTypeSimple | Overall positive change in area = GROWTH, overall negative change in area = SHRINK, and RECR or MORT |
+| Fragmented | Whether or not coral broke into pieces (if N_t0 or N_t1 are >1, return TRUE to signify fragmentation) |
+| Genus | Genus (Pocillopora sp., Montipora sp., Porites sp.) |
+| Recruit | Indicates whether there was a recruitment event, 1 = recruitment |
+| Mortality | Indicates whether there was a mortality event, 1 = mortality |
+| Fragmentation | Indicates whether a colony fragmented, 1 = fragmentation |
+| ln_SS | Log starting colony size |
+| ln_ES | Log ending colony size |
+| StartingYear | Year the oldest colony was delineated |
+| Ending Year | Year the colony was delineated in the next time point |
+| Interval | Older and newer time point for the colony (YY-YY) |
+| SiteInterval | Site and interval (Site YY-YY) |
+| Island | Island where imagery was collected |
+| PropMagnitude | (EndingSize/StartingSize) |
+| AnnualPropRate_E | (PropMagnitude^(1/IntervalYears)) |
+| TransitionRate_L | (TransitionMagnitude/Interval_Years) |
+| AnnualEndingSize_E | (StartingSize*AnnualPropRate_E) |
+| TriennialEndingSize_E | (StartingSize*AnnualPropRate_E^3) |
+| ln_AES | |
+| ln_3ES | |
+
+
+
 
