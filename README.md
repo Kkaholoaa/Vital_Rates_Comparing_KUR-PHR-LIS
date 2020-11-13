@@ -6,7 +6,7 @@ The Patch_And_Colony_Data_20201103.rdata is the vital rates dataset created in p
 The VitalRates_stats.Rmd code takes the vital rates dataset to reproduce the analyses and figures for analyzing site-level and year-interval vital rate data.
 
 
-**Data dictionary**
+**Data Dictionary**
 
 | Variable | Description |
 |---|---|
@@ -39,13 +39,13 @@ The VitalRates_stats.Rmd code takes the vital rates dataset to reproduce the ana
 | Interval | Older and newer time point for the colony (YY-YY) |
 | SiteInterval | Site and interval (Site YY-YY) |
 | Island | Island where imagery was collected |
-| PropMagnitude | (EndingSize/StartingSize) |
-| AnnualPropRate_E | (PropMagnitude^(1/IntervalYears)) |
-| TransitionRate_L | (TransitionMagnitude/Interval_Years) |
+| PropMagnitude | Magnitude of change (EndingSize/StartingSize) |
+| AnnualPropRate_E | Magnitude of change for each time interval (PropMagnitude^(1/IntervalYears)) |
+| TransitionRate_L | Change in area per time interval (TransitionMagnitude/Interval_Years) |
 | AnnualEndingSize_E | (StartingSize*AnnualPropRate_E) |
 | TriennialEndingSize_E | (StartingSize*AnnualPropRate_E^3) |
-| ln_AES | |
-| ln_3ES | |
+| ln_AES | Log AnnualEndingSize |
+| ln_3ES | Log TriennialEndingSize |
 
 
 
