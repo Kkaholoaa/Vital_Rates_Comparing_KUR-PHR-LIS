@@ -5,6 +5,13 @@ date: "11/11/2020"
 output: html_document
 ---
 
+```{r}
+library(ggplot2)
+library(dplyr)
+library(plyr)
+```
+
+
 #Set up
 ```{r}
 setwd("/Users/c-rod/Documents/R_data/VitalRates/")
@@ -29,9 +36,55 @@ View(KUROCC010)
 PHROCC016 <- subset(ColonyLevel, Site=="PHR_OCC_016")
 View(PHROCC016)
 
-
 ```
 
+
+
+#plots not working rn
+```{r}
+basepath="/Users/c-rod/Documents/R_data/VitalRates/"
+#dev.off()
+gT0_T1= ggplot(subset(MAISIOK01,Genus_Code%in%c("POCS","POSP")),
+              aes(x=StartingSize,y=EndingSize,color=TransitionType,shape=TransitionType,group=ColonyID))+
+  geom_point()+
+  geom_line(alpha=.15,color="black")+
+  geom_abline(slope=1)+
+  scale_x_sqrt(breaks=c(10,50,100,250,500,1000,2000))+
+  scale_y_sqrt(breaks=c(10,50,100,250,500,1000,2000))+
+  scale_shape_manual(values=c(3,4,1,0,6,2,11))+
+  facet_wrap(c("Genus_Code","Site"),scales="free",nrow = 2)+
+  theme_bw()+
+  xlab("Colony Size at Time T (cm^2)")+
+  ylab("Colony Size at Time T+1 (cm^2)")
+
+scale=2
+gT0_T1
+
+ggsave(filename = paste0(basepath,"Figures/TransitionTypeBySize_ByYear.png"),plot=gT0_T1,width=23,height=9,dpi=72, limitsize = FALSE)
+
+
+
+
+
+gT0_T1z=ggplot(subset(ColonyLevel,Genus_Code%in%c("POCS","POSP")),
+               aes(x=StartingSize,y=EndingSize,color=TransitionType,shape=TransitionType))+
+  geom_point()+
+  geom_abline(slope=1)+
+  scale_x_sqrt(breaks=c(10,50,100,250,500,1000,2000),limits=c(0,400))+
+  scale_y_sqrt(breaks=c(10,50,100,250,500,1000,2000),limits=c(0,400))+
+  scale_shape_manual(values=c(3,4,1,0,6,2,11))+
+  facet_grid(c("Genus_Code","Site"))+theme_bw()+
+  xlab("Colony Size at Time T (cm^2)")+
+  ylab("Colony Size at Time T+1 (cm^2)")
+scale=3
+ggsave(filename = paste0(basepath,"Figures/TransitionTypeSizeTSizeTp1_ZOOMv3.png"),
+       plot=gT0_T1z,width=6*scale,height=scale*3)
+
+gT0_T1z
+
+
+
+```
 
 
 
