@@ -5,12 +5,12 @@ date: "11/11/2020"
 output: html_document
 ---
 
+#Libraries
 ```{r}
 library(ggplot2)
 library(dplyr)
 library(plyr)
 ```
-
 
 #Set up
 ```{r}
@@ -39,7 +39,6 @@ View(PHROCC016)
 ```
 
 
-
 #Plot by Colony Level (growth, shrink, mort, recruit)
 ```{r}
 #change this basepath to your working directory on your computer
@@ -55,15 +54,16 @@ T0T1 = ggplot(data = MAISIOK01, aes(x=StartingSize, y=EndingSize,color=Transitio
   xlab("Colony Size at Time T (cm^2)") + ylab("Colony Size at Time T+1 (cm^2)")
 T0T1
 scale=3
+#save the plot
 ggsave(filename = paste0(basepath,"Figures/TransitionTypeT0T1ByGenus_MAIK01.png"),
        plot=T0T1,width=6*scale,height=scale*3)
 
 #same plot as above but adds lines
 T0T1_lin = ggplot(data = MAISIOK01, aes(x=StartingSize, y=EndingSize,color=TransitionTypeSimple,shape=TransitionTypeSimple,group=ColonyID)) + 
   geom_point() + 
-  geom_line(alpha=.15,color="black")+
+  geom_line(alpha=.15,color="black")+ #adds line connecting some patches
   geom_abline(slope = 1)+
-  scale_x_sqrt(breaks=c(10,50,100,250,500,1000,2000),limits=c(0,400))+ #log transform x axis
+  scale_x_sqrt(breaks=c(10,50,100,250,500,1000,2000),limits=c(0,400))+ 
   scale_y_sqrt(breaks=c(10,50,100,250,500,1000,2000),limits=c(0,400))+
   scale_shape_manual(values=0:4)+
   facet_grid(c("Genus_Code","Site"),scales="free")+theme_bw()+
@@ -94,10 +94,44 @@ T0T1P = ggplot(data = PHROCC016, aes(x=StartingSize, y=EndingSize,color=Transiti
 T0T1P
 #ggsave(filename = paste0(basepath,"Figures/TransitionTypeT0T1ByGenus_PHR.png"),plot=T0T1P,width=6*scale,height=scale*3)
 
-
 ```
 #Plot by Colony Level (growth, shrink, mort, recruit) and Transition
 ```{r}
+#MAISIOK01
+#By adding in interval in the facet_wrap, makes a plot for each time interval
+T0T1y = ggplot(data = MAISIOK01, aes(x=StartingSize, y=EndingSize,color=TransitionTypeSimple,shape=TransitionTypeSimple)) + 
+  geom_point() + geom_abline(slope = 1)+
+  scale_x_sqrt(breaks=c(10,50,100,250,500,1000,2000),limits=c(0,400))+ #log transform x axis
+  scale_y_sqrt(breaks=c(10,50,100,250,500,1000,2000),limits=c(0,400))+
+  scale_shape_manual(values=0:4)+
+  facet_wrap(c("Spec_Code","Site","Interval"),scales="free")+ 
+  xlab("Colony Size at Time T (cm^2)") + ylab("Colony Size at Time T+1 (cm^2)")
+T0T1y
+ggsave(filename = paste0(basepath,"Figures/TransitionTypeT0T1ByGenus_ByYear_MAI.png"),plot=T0T1y,width=8*scale,height=scale*5)
+
+############################
+#KUR
+T0T1y_KUR = ggplot(data = KUROCC010, aes(x=StartingSize, y=EndingSize,color=TransitionTypeSimple,shape=TransitionTypeSimple)) + 
+  geom_point() + geom_abline(slope = 1)+
+  scale_x_sqrt(breaks=c(10,50,100,250,500,1000,2000),limits=c(0,400))+ #log transform x axis
+  scale_y_sqrt(breaks=c(10,50,100,250,500,1000,2000),limits=c(0,400))+
+  scale_shape_manual(values=0:4)+
+  facet_wrap(c("Spec_Code","Site","Interval"),scales="free")+
+  xlab("Colony Size at Time T (cm^2)") + ylab("Colony Size at Time T+1 (cm^2)")
+T0T1y_KUR
+ggsave(filename = paste0(basepath,"Figures/TransitionTypeT0T1ByGenus_ByYear_KUR.png"),plot=T0T1y_KUR,width=8*scale,height=scale*5)
+
+############################
+#PHR
+T0T1y_PHR = ggplot(data = PHROCC016, aes(x=StartingSize, y=EndingSize,color=TransitionTypeSimple,shape=TransitionTypeSimple)) + 
+  geom_point() + geom_abline(slope = 1)+
+  scale_x_sqrt(breaks=c(10,50,100,250,500,1000,2000),limits=c(0,400))+ #log transform x axis
+  scale_y_sqrt(breaks=c(10,50,100,250,500,1000,2000),limits=c(0,400))+
+  scale_shape_manual(values=0:4)+
+  facet_wrap(c("Spec_Code","Site","Interval"),scales="free")+
+  xlab("Colony Size at Time T (cm^2)") + ylab("Colony Size at Time T+1 (cm^2)")
+T0T1y_PHR
+ggsave(filename = paste0(basepath,"Figures/TransitionTypeT0T1ByGenus_ByYear_PHR.png"),plot=T0T1y_PHR,width=8*scale,height=scale*5)
 
 ```
 
