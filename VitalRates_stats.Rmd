@@ -95,19 +95,22 @@ T0T1P
 #ggsave(filename = paste0(basepath,"Figures/TransitionTypeT0T1ByGenus_PHR.png"),plot=T0T1P,width=6*scale,height=scale*3)
 
 ```
+
 #Plot by Colony Level (growth, shrink, mort, recruit) and Transition
 ```{r}
 #MAISIOK01
 #By adding in interval in the facet_wrap, makes a plot for each time interval
-T0T1y = ggplot(data = MAISIOK01, aes(x=StartingSize, y=EndingSize,color=TransitionTypeSimple,shape=TransitionTypeSimple)) + 
-  geom_point() + geom_abline(slope = 1)+
+#only included Montipora and Porites
+T0T1y = ggplot(subset(MAISIOK01, Genus_Code%in%c("MOSP","POSP")), aes(x=StartingSize, y=EndingSize,color=TransitionTypeSimple,shape=TransitionTypeSimple)) + 
+  geom_point(size=4) + geom_abline(slope = 1)+
   scale_x_sqrt(breaks=c(10,50,100,250,500,1000,2000),limits=c(0,400))+ #log transform x axis
   scale_y_sqrt(breaks=c(10,50,100,250,500,1000,2000),limits=c(0,400))+
   scale_shape_manual(values=0:4)+
   facet_wrap(c("Spec_Code","Site","Interval"),scales="free")+ 
+  theme(axis.text = element_text(size = 20))+ theme(axis.title = element_text(size = 20))+ theme(legend.text = element_text(size = 20))+ theme(legend.title = element_text(size = 26))+
   xlab("Colony Size at Time T (cm^2)") + ylab("Colony Size at Time T+1 (cm^2)")
 T0T1y
-ggsave(filename = paste0(basepath,"Figures/TransitionTypeT0T1ByGenus_ByYear_MAI.png"),plot=T0T1y,width=8*scale,height=scale*5)
+ggsave(filename = paste0(basepath,"Figures/TransitionTypeT0T1ByGenus_ByYear_MAI2.png"),plot=T0T1y,width=8*scale,height=scale*5)
 
 ############################
 #KUR
