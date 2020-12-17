@@ -50,7 +50,7 @@ The VitalRates_stats.Rmd code takes the vital rates dataset to reproduce the ana
 
 **To Do List**
 - [ ] ANCOVA to compare growth rates b/w 2 species. Use avg growth in ANCOVA test.
-- [ ] Re-plot at colony level
+- [X] Re-plot at colony level
 - [ ] Calculate the # of growth, recruitment, and mortality events per year and per species
 - [X] Set-up GitHub page
 
