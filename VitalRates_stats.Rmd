@@ -10,6 +10,7 @@ output: html_document
 library(ggplot2)
 library(dplyr)
 library(plyr)
+library(tidyr)
 ```
 
 #Set up
@@ -139,6 +140,150 @@ ggsave(filename = paste0(basepath,"Figures/TransitionTypeT0T1ByGenus_ByYear_PHR.
 ```
 
 
+
+#Counting
+```{r}
+#Count the total number of transitions in the ENTIRE dataset that fit into the POCS, POSP, or MOSP genus category
+total_POCS <- sum(with(ColonyLevel, Genus_Code=="POCS"))
+total_POCS #331
+total_MOSP <- sum(with(ColonyLevel, Genus_Code=="MOSP"))
+total_MOSP #341
+total_POSP <- sum(with(ColonyLevel, Genus_Code=="POSP"))
+total_POSP #2014
+
+#to count the # of each genus in the first year at the Maui site
+POCS_MAI_2014 <- sum(with(MAISIOK01, Genus_Code=="POCS" & StartingYear==2014))
+POCS_MAI_2014 #4 in 2014
+POCS_MAI_2015 <- sum(with(MAISIOK01, Genus_Code=="POCS" & StartingYear==2015))
+POCS_MAI_2015 #3 in 2014
+MOSP_MAI14 <- sum(with(MAISIOK01, Genus_Code=="MOSP" & StartingYear==2014))
+MOSP_MAI14 #88 in 2014
+POSP_MAI14 <- sum(with(MAISIOK01, Genus_Code=="POSP" & StartingYear==2014))
+POSP_MAI14 #107 in 2014
+
+
+ 
+MOSP <- sum(with(MAISIOK01, Genus_Code=="MOSP"))
+MOSP #214
+POCS <- sum(with(MAISIOK01, Genus_Code=="POCS"))
+POCS #10
+POSP <- sum(with(MAISIOK01, Genus_Code=="POSP"))
+POSP #288
+
+table(MAI_SIO_K01$Genus_Code,useNA="always")
+#MOSP 497, POCS 14, POSP 605
+
+table(MAI_SIO_K01$TransitionTypeSimple,useNA="always")
+
+
+
+
+
+#Count the number of mortality events in each transition
+MAImort_1415 <- sum(with(MAISIOK01, TransitionTypeSimple=="MORT" & EndingYear==2015))
+MAImort_1415 #26
+MAImort_1516 <- sum(with(MAISIOK01, TransitionTypeSimple=="MORT" & EndingYear==2016))
+MAImort_1516 #27
+MAImort_1618 <- sum(with(MAISIOK01, TransitionTypeSimple=="MORT" & EndingYear==2018))
+MAImort_1618 #36
+#recruitment events
+MAIrecr_1415 <- sum(with(MAISIOK01, TransitionTypeSimple=="RECR" & EndingYear==2015))
+MAIrecr_1415 #8
+MAIrecr_1516 <- sum(with(MAISIOK01, TransitionTypeSimple=="RECR" & EndingYear==2016))
+MAIrecr_1516 #2
+MAIrecr_1618 <- sum(with(MAISIOK01, TransitionTypeSimple=="RECR" & EndingYear==2018))
+MAIrecr_1618 #34
+#growth events
+MAIgro_1415 <- sum(with(MAISIOK01, TransitionTypeSimple=="RECR" & EndingYear==2015))
+MAIgro_1415 #8
+MAIgro_1516 <- sum(with(MAISIOK01, TransitionTypeSimple=="RECR" & EndingYear==2016))
+MAIgro_1516 #2
+MAIshrin_1618 <- sum(with(MAISIOK01, TransitionTypeSimple=="RECR" & EndingYear==2018))
+MAIshrin_1618 #34
+
+
+
+
+
+####Playing around with raw data files to count # of colonies in each genus in each year. Above ^^ is transitions
+library(stringr)
+MAI_SIO_K01_1 = read.csv("2014_MAI_SIO_k01_09022020.csv")
+#View(MAI_SIO_K01_1)
+MAI_SIO_K01_2 =read.csv("201507_201606_2018_MAI_SIO_K01_09022020.csv")
+#View(MAI_SIO_K01_1)
+names(MAI_SIO_K01_2)[names(MAI_SIO_K01_2) == "FID"] <- "OBJECTID"
+setdiff(names(MAI_SIO_K01_1),names(MAI_SIO_K01_2)) 
+MAI_SIO_K01_1$Id <- NULL
+MAI_SIO_K01_1$Shape_Length <- NULL
+MAI_SIO_K01_2$Shape_Leng <- NULL
+MAI_SIO_K01=rbind(MAI_SIO_K01_1,MAI_SIO_K01_2)
+
+GenusCodeLUnames=c("PMEA","PGRA","POSP","PLUT", "PLIC","MFLA","MPAT", "MOSP","POCS","POSP","PLOB","MCAP")
+GenusCodeLU=c("POCS","POCS","POSP","POSP","POSP", "MOSP","MOSP", "MOSP","POCS","POSP","POSP","MOSP")
+names(GenusCodeLU)=GenusCodeLUnames
+MAI_SIO_K01$Spec_Code=str_trim(MAI_SIO_K01$Spec_Code)
+drop_SpBlank=which(MAI_SIO_K01$Spec_Code=="")
+if(length(drop_SpBlank)>0){MAI_SIO_K01=MAI_SIO_K01[-drop_SpBlank,]}
+MAI_SIO_K01$Genus_Code=GenusCodeLU[MAI_SIO_K01$Spec_Code]
+#table shows total # of colonies from each genus 
+table(MAI_SIO_K01$Genus_Code,useNA="always")
+#MOSP=497, POCS=14, POSP=606
+
+#break this into each year
+POCS_MAI_2014o <- sum(with(MAI_SIO_K01, Genus_Code=="POCS"& Date=='07/21/2014'))
+POCS_MAI_2014o #5 POCS colonies
+MOSP_MAI_2014o <- sum(with(MAI_SIO_K01, Genus_Code=="MOSP" & Date=='07/21/2014'))
+MOSP_MAI_2014o #189 MOSP colonies
+POSP_MAI_2014o <- sum(with(MAI_SIO_K01, Genus_Code=="POSP" & Date=='07/21/2014'))
+POSP_MAI_2014o #162 POSP colonies
+POCS_MAI_2015o <- sum(with(MAI_SIO_K01, Genus_Code=="POCS"& Date=='07/10/2015'))
+POCS_MAI_2015o #4 POCS colonies  2in015
+
+
+PHR = read.csv("PHR_OCC_016_100920.csv")
+GenusCodeLUnames=c("PMEA","PGRA","POSP","PLUT", "PLIC","MFLA","MPAT", "MOSP","POCS","POSP","PLOB","MCAP")
+GenusCodeLU=c("POCS","POCS","POSP","POSP","POSP", "MOSP","MOSP", "MOSP","POCS","POSP","POSP","MOSP")
+names(GenusCodeLU)=GenusCodeLUnames
+PHR$Spec_Code=str_trim(PHR$Spec_Code)
+drop_SpBlank=which(PHR$Spec_Code=="")
+if(length(drop_SpBlank)>0){PHR=PHR[-drop_SpBlank,]}
+PHR$Genus_Code=GenusCodeLU[PHR$Spec_Code]
+#table shows total # of colonies from each genus 
+table(PHR$Genus_Code,useNA="always")
+#216 POSP colonies
+
+```
+
+
+```{r}
+#TO DO
+#need to log transform TransitionRate_L and StartingSize? then re run my fit model ^
+#need to remove the NAs from the TransitionRate_L column
+#subset by growth and species 
+#make sure not including error data
+#should we restrict data to colonies > 20cm2?
+
+growth <- subset(ColonyLevel, TransitionTypeSimple == "GROWTH")
+growth[!is.na(growth$TransitionRate_L)]
+View(growth)
+
+plo <- ggplot(growth, aes(x=ln_SS, y=TransitionRate_L, shape=TransitionTypeSimple)) + 
+  geom_point(size=1) +
+    ylim(1,5)
+plo
+
+his <- hist(growth$StartingSize, breaks = 1000, xlim = c(0,50) )
+
+#log(growth$TransitionRate_L)
+fit <- lm(TransitionRate_L ~ ln_SS ,data = growth)
+fit
+summary(fit)
+
+
+plot(TransitionRate_L ~ ln_SS ,data = growth)
+abline(fit)
+
+```
 
 
 
