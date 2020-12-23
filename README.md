@@ -57,3 +57,4 @@ The VitalRates_stats.Rmd code takes the vital rates dataset to reproduce the ana
  Leta Practice
  
 
+does git comminacet with R
