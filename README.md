@@ -54,7 +54,4 @@ The VitalRates_stats.Rmd code takes the vital rates dataset to reproduce the ana
 - [ ] Calculate the # of growth, recruitment, and mortality events per year and per species
 - [X] Set-up GitHub page
 
- Leta Practice
- 
 
-does git comminacet with R
