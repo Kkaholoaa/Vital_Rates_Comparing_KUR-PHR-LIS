@@ -4,6 +4,7 @@ Measuring vital rates from fixed-site photomosaics.
 The Patch_And_Colony_Data_20201103.rdata is the vital rates dataset created in partnership with the Logan Lab at CSUMB and NOAA PIFSC. This file contains the ColonyLevel dataframe and PatchLevel dataframe.
 
 The VitalRates_stats.Rmd code takes the vital rates dataset to reproduce the analyses and figures for analyzing site-level and year-interval vital rate data.
+The VitalRateFunctions_CR.Rmd script uses the vital rates dataset to model different vital rate functions, which is the first step in building an Integral Projection Model
 
 
 **Data Dictionary**
