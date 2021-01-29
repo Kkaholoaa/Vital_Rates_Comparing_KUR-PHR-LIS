@@ -8,8 +8,8 @@ output: html_document
 #Libraries
 ```{r}
 library(ggplot2)
-library(dplyr)
 library(plyr)
+library(dplyr)
 library(tidyr)
 ```
 
@@ -57,7 +57,7 @@ OAHOCC010 <- subset(ColonyLevel, Site=="OAH_OCC_010")
 
 growth <- subset(ColonyLevel, TransitionTypeSimple == "GROWTH")
 #growth[!is.na(growth$TransitionRate_L)]
-#View(growth)
+View(growth)
 
 plo <- ggplot(growth, aes(x=ln_SS, y=TransitionRate_L, shape=TransitionTypeSimple)) + 
   geom_point(size=1) +
@@ -120,13 +120,13 @@ growth_POCS <- subset(growth, Genus_Code == "POCS")
 fit_POCS <- lm(ln_ES ~ ln_SS ,data = growth_POCS)
 fit_POCS
 summary(fit_POCS)
-plot(ln_ES ~ ln_SS ,data = growth_POCS ,xlim=c(-3,10), ylim=c(-3,10) )  #the final index of the ln_ES aka the largest size
+#linear model for growth function
+#y = 0.6516999x + 2.2245910
+plot(ln_ES ~ ln_SS ,data = growth_POCS ,xlim=c(-3,10), ylim=c(-3,10), main="All Pocillopora growth at all sites" )  #the final index of the ln_ES aka the largest size
 abline(fit_POCS)
 abline(a=0, b=1,col="red")
 #everyone's growing and smaller sizes grow supa faster and the larger sizes are right at the 1:1
-coef(fit_POCS) #get the slope and transition
-#linear model for growth function
-#y = 0.6516999x + 2.2245910
+
 
 ####################
 #Porites
@@ -139,7 +139,7 @@ fit_POSP
 #linear model for growth function
 #y = 0.8462x + 1.0236
 summary(fit_POSP)
-plot(ln_ES ~ ln_SS ,data = growth_POSP ,xlim=c(-3,10), ylim=c(-3,10) )  #the final index of the ln_ES aka the largest size
+plot(ln_ES ~ ln_SS ,data = growth_POSP ,xlim=c(-3,10), ylim=c(-3,10) , main="All Porites growth at all sites")  #the final index of the ln_ES aka the largest size
 abline(fit_POSP)
 abline(a=0, b=1,col="red")
 #smaller sizes grow faster and the larger sizes are right at the 1:1
@@ -156,15 +156,44 @@ fit_MOSP
 #linear model for growth function
 #y = 0.8559x + 0.9507
 summary(fit_MOSP)
-plot(ln_ES ~ ln_SS ,data = growth_MOSP ,xlim=c(-3,10), ylim=c(-3,10), xlab )  #the final index of the ln_ES aka the largest size
+#legend isn't working
+plot(ln_ES ~ ln_SS ,data = growth_MOSP ,xlim=c(-3,10), ylim=c(-3,10), main="All Montipora growth at all sites",
+     legend("topleft", legend = c("Line1","Line2")) )  #the final index of the ln_ES aka the largest size
 abline(fit_MOSP)
 abline(a=0, b=1,col="red")
+#need to plot linear model
+ggplot(growth_MOSP, aes(x=ln_SS, y=ln_ES))+ geom_point() + geom_abline()
 #smaller sizes grow faster and the larger sizes are right at the 1:1
 
 ```
 
 #Growth function: separate by site, all genera
 ```{r}
+#MAISIOK01
+growth_MAISIOK01 <- subset(MAISIOK01, TransitionTypeSimple == "GROWTH")
+#function
+fit_MAISIOK01 <- lm(ln_ES ~ ln_SS ,data = growth_MAISIOK01)
+fit_MAISIOK01
+#linear model for growth function:  y = 0.8826x + 0.7377
+#plot
+summary(fit_MAISIOK01)
+plot(ln_ES ~ ln_SS ,data = growth_MAISIOK01 ,xlim=c(-3,10), ylim=c(-3,10))  #the final index of the ln_ES aka the largest size
+abline(fit_MAISIOK01)
+abline(a=0, b=1,col="red")
+
+
+#KUROCC010
+#PHROCC016
+#HAWOCC002 
+#HAWOCC003
+#HAWOCC010
+#HAWSIOK08
+#HAWSIOK10
+#MAIOCC002
+#OAH022
+#OAHOCC010
+
+
 
 ```
 
