@@ -1,0 +1,178 @@
+---
+title: "VitalRateFunctions"
+author: "Caroline Rodriguez"
+date: "1/25/2021"
+output: html_document
+---
+
+#Libraries
+```{r}
+library(ggplot2)
+library(dplyr)
+library(plyr)
+library(tidyr)
+```
+
+#Set up
+```{r}
+setwd("/Users/c-rod/Documents/R_data/VitalRates/")
+#load in .rdata file
+load(file = "/Users/c-rod/Documents/R_data/VitalRates/Patch_And_Colony_Data_20201103.rdata")
+
+View(ColonyLevel)
+#View(PatchLevel)
+
+```
+
+#Subset by Site
+Going to use ColonyLevel data to avoid all the fission/fusion confusion
+```{r}
+MAISIOK01 <- subset(ColonyLevel, Site=="MAI_SIO_K01")
+#View(MAISIOK01)
+KUROCC010 <- subset(ColonyLevel, Site=="KUR_OCC_010")
+#View(KUROCC010)
+PHROCC016 <- subset(ColonyLevel, Site=="PHR_OCC_016")
+#View(PHROCC016)
+HAWOCC002 <- subset(ColonyLevel, Site=="HAW_OCC_002")
+HAWOCC003 <- subset(ColonyLevel, Site=="HAW_OCC_003")
+HAWOCC010 <- subset(ColonyLevel, Site=="HAW_OCC_010")
+HAWSIOK08 <- subset(ColonyLevel, Site=="HAW_SIO_K08")
+HAWSIOK10 <- subset(ColonyLevel, Site=="HAW_SIO_K10")
+MAIOCC002 <- subset(ColonyLevel, Site=="MAI_OCC_002")
+OAH022 <- subset(ColonyLevel, Site=="OAH_XXX_022")
+OAHOCC010 <- subset(ColonyLevel, Site=="OAH_OCC_010")
+
+```
+
+#Combined Growth Function
+```{r}
+#TO DO
+#need to log transform TransitionRate_L and StartingSize? then re run my fit model ^
+#need to remove the NAs from the TransitionRate_L column
+#subset by growth and genus (DONE)
+#make sure not including error data (DONE)
+#should we restrict data to colonies > 20cm2?
+
+#plot starting size and ending size for growth. Get a best fit line for that data
+
+growth <- subset(ColonyLevel, TransitionTypeSimple == "GROWTH")
+#growth[!is.na(growth$TransitionRate_L)]
+#View(growth)
+
+plo <- ggplot(growth, aes(x=ln_SS, y=TransitionRate_L, shape=TransitionTypeSimple)) + 
+  geom_point(size=1) +
+    ylim(1,5)
+plo
+his <- hist(growth$StartingSize, breaks = 1000, xlim = c(0,50) )
+
+#log(growth$TransitionRate_L)
+#fit <- lm(TransitionRate_L ~ ln_SS ,data = growth)
+#fit
+#summary(fit)
+#plot(TransitionRate_L ~ ln_SS ,data = growth)
+#abline(fit)
+
+
+
+#For growth function, will fit using starting vs ending size, log transformed because to exaggerate small differences (b/c I have so many little pieces and lots of instances of little growth)
+growth_plot = ggplot(data = growth, aes(x=ln_SS, y=ln_ES,color=TransitionTypeSimple,shape=TransitionTypeSimple)) + 
+  geom_point() + geom_abline(slope = 1)+
+  ggtitle("Growth: All Genera and All Species") +
+  #scale_x_sqrt(breaks=c(10,50,100,250,500,1000,2000),limits=c(0,400))+ #log transform x axis
+  #scale_y_sqrt(breaks=c(10,50,100,250,500,1000,2000),limits=c(0,400))+
+  scale_shape_manual(values=0:4)+
+  theme_bw()+ #facet_grid separates by Genus Code (makes 3 verticle plots) and Site (makes horizontal plots)
+  xlab("Colony Size at Time T (cm^2)") + ylab("Colony Size at Time T+1 (cm^2)")
+growth_plot
+
+
+fit_allgrowth <- lm(ln_ES ~ ln_SS ,data = growth)
+fit_allgrowth
+summary(fit_allgrowth)
+#linear model for growth function
+#y = 0.8480942x + 1.0746995
+plot(ln_ES ~ ln_SS ,data = growth, xlim=c(-3,10), ylim=c(-3,10), main = "Growth: All Genera and All Species", xlab = "Log Starting Size", ylab = "Log Ending Size", legend(x=9, y=4) )
+abline(fit_allgrowth)
+abline(a=0, b=1,col="red")
+#smaller sizes grow faster and the larger sizes are right at the 1:1
+
+
+```
+
+#Growth function: separate by Genus
+```{r}
+#plot based on Genus
+growth_plot_genus = ggplot(data = growth, aes(x=ln_SS, y=ln_ES,color=TransitionTypeSimple,shape=TransitionTypeSimple)) + 
+  geom_point() + geom_abline(slope = 1)+
+  #scale_x_sqrt(breaks=c(10,50,100,250,500,1000,2000),limits=c(0,400))+ #log transform x axis
+  #scale_y_sqrt(breaks=c(10,50,100,250,500,1000,2000),limits=c(0,400))+
+  scale_shape_manual(values=0:4)+
+  facet_grid(c("Genus_Code"))+theme_bw()+ #facet_grid separates by Genus Code (makes 3 verticle plots) and Site (makes horizontal plots)
+  xlab("Colony Size at Time T (cm^2)") + ylab("Colony Size at Time T+1 (cm^2)")
+growth_plot_genus
+
+
+#Pocillopora
+growth_POCS <- subset(growth, Genus_Code == "POCS")
+#View(growth_POCS)
+
+#function
+fit_POCS <- lm(ln_ES ~ ln_SS ,data = growth_POCS)
+fit_POCS
+summary(fit_POCS)
+plot(ln_ES ~ ln_SS ,data = growth_POCS ,xlim=c(-3,10), ylim=c(-3,10) )  #the final index of the ln_ES aka the largest size
+abline(fit_POCS)
+abline(a=0, b=1,col="red")
+#everyone's growing and smaller sizes grow supa faster and the larger sizes are right at the 1:1
+coef(fit_POCS) #get the slope and transition
+#linear model for growth function
+#y = 0.6516999x + 2.2245910
+
+####################
+#Porites
+growth_POSP <- subset(growth, Genus_Code == "POSP")
+#View(growth_POSP)
+
+#function
+fit_POSP <- lm(ln_ES ~ ln_SS ,data = growth_POSP)
+fit_POSP
+#linear model for growth function
+#y = 0.8462x + 1.0236
+summary(fit_POSP)
+plot(ln_ES ~ ln_SS ,data = growth_POSP ,xlim=c(-3,10), ylim=c(-3,10) )  #the final index of the ln_ES aka the largest size
+abline(fit_POSP)
+abline(a=0, b=1,col="red")
+#smaller sizes grow faster and the larger sizes are right at the 1:1
+
+
+####################
+#Montipora
+growth_MOSP <- subset(growth, Genus_Code == "MOSP")
+#View(growth_MOSP)
+
+#function
+fit_MOSP <- lm(ln_ES ~ ln_SS ,data = growth_MOSP)
+fit_MOSP
+#linear model for growth function
+#y = 0.8559x + 0.9507
+summary(fit_MOSP)
+plot(ln_ES ~ ln_SS ,data = growth_MOSP ,xlim=c(-3,10), ylim=c(-3,10), xlab )  #the final index of the ln_ES aka the largest size
+abline(fit_MOSP)
+abline(a=0, b=1,col="red")
+#smaller sizes grow faster and the larger sizes are right at the 1:1
+
+```
+
+Next separate by site, all genera
+Then do one site, separate by genera
+Compare r2 values
+Do a likliehood or AIC comparison to compare model fit and determine the best one?
+
+
+
+Mortality function
+Use binomial to fit (logit function)
+
+
+
+
