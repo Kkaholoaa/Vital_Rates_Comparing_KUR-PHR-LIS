@@ -163,7 +163,13 @@ abline(a=0, b=1,col="red")
 
 ```
 
-Next separate by site, all genera
+#Growth function: separate by site, all genera
+```{r}
+
+```
+
+
+
 Then do one site, separate by genera
 Compare r2 values
 Do a likliehood or AIC comparison to compare model fit and determine the best one?
