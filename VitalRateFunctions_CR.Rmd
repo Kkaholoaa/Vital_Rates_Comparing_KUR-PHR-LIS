@@ -22,6 +22,7 @@ load(file = "/Users/c-rod/Documents/R_data/VitalRates/Patch_And_Colony_Data_2020
 View(ColonyLevel)
 #View(PatchLevel)
 
+
 ```
 
 #Subset by Site
@@ -236,6 +237,38 @@ Do a likliehood or AIC comparison to compare model fit and determine the best on
 Mortality function
 Use binomial to fit (logit function)
 
+```{r Survival, cache=FALSE}
+## Starting with suvival/mortality of all (genera + site + year)
 
+# s.mod <- glm(surv ~ area + area_2, family="binomial", data)
+
+# genera <- # Particular genus name we care about
+# genz <- ColonyLevel[ColonyLevel$Genus_Code == genera]
+# d_site <- # site name
+# sitez <- ColonyLevel
+# a_data_mort <- subset(ColonyLevel, TransitionTypeSimple == "MORT") 
+# ps <- subset(a_data_mort, Genus_Code == "POSP")
+
+surv <- 1 - ColonyLevel$Mortality
+
+bad <- which(ColonyLevel$ln_SS == "-Inf")
+ColonyLevel$ln_SS[bad] <- 'NA'
+
+bad2 <- which(ColonyLevel$ln_SS == "-Inf")
+ColonyLevel$ln_SS[bad2] <- 'NA'
+
+gn <- glm(Mortality ~ ln_SS, family = "binomial", data = ColonyLevel, 
+          na.action = na.pass)
+
+inv.logit <- function(x){
+  exp(x)/(1+exp(x))
+}
+
+plot(ColonyLevel$ln_SS, surv, xlab = 'Area (ln of area)', ylab = 'Survival')
+plot(jitter(surv, 0.1) ~ ln_SS, ColonyLevel)
+points(ColonyLevel$ln_SS, inv.logit(predict(gn)), pch=8)
+
+
+```
 
 
