@@ -47,11 +47,6 @@ OAHOCC010 <- subset(ColonyLevel, Site=="OAH_OCC_010")
 
 #Combined Growth Function
 ```{r}
-#TO DO
-#need to log transform TransitionRate_L and StartingSize? then re run my fit model (don't need to do...using ln_SS and ln_ES)
-#need to remove the NAs from the TransitionRate_L column (not using)
-#subset by growth and genus (DONE)
-#make sure not including error data (DONE)
 #should we restrict data to colonies > 20cm2?
 
 #plot starting size and ending size for growth. Get a best fit line for that data
@@ -59,17 +54,11 @@ growth <- subset(ColonyLevel, TransitionTypeSimple == "GROWTH")
 #growth[!is.na(growth$TransitionRate_L)]
 View(growth)
 
-plo <- ggplot(growth, aes(x=ln_SS, y=TransitionRate_L, shape=TransitionTypeSimple)) + 
-  geom_point(size=1) +
-    ylim(1,5)
-plo
-his <- hist(growth$StartingSize, breaks = 1000, xlim = c(0,50) )
-#log(growth$TransitionRate_L)
-#fit <- lm(TransitionRate_L ~ ln_SS ,data = growth)
-#fit
-#summary(fit)
-#plot(TransitionRate_L ~ ln_SS ,data = growth)
-#abline(fit)
+#plo <- ggplot(growth, aes(x=ln_SS, y=TransitionRate_L, shape=TransitionTypeSimple)) + 
+  #geom_point(size=1) +
+    #ylim(1,5)
+#plo
+#his <- hist(growth$StartingSize, breaks = 1000, xlim = c(0,50) )
 
 
 
@@ -195,7 +184,7 @@ growth_KUROCC010 <- subset(KUROCC010, TransitionTypeSimple == "GROWTH")
 #function
 fit_KUROCC010 <- lm(ln_ES ~ ln_SS ,data = growth_KUROCC010)
 fit_KUROCC010
-#linear model for growth function:  y = 0.8826x + 0.7377
+#linear model for growth function:  y = 0.8024x + 1.6121
 #plot
 summary(fit_KUROCC010)
 plot(ln_ES ~ ln_SS ,data = growth_KUROCC010 ,xlim=c(-3,10), ylim=c(-3,10), main="All genera growth at KUROCC010") 
@@ -208,29 +197,206 @@ plot(fit_KUROCC010)
 anova(fit_KUROCC010)
 
 
-
-
-
-
-
+###################
 #PHROCC016
-#HAWOCC002 
-#HAWOCC003
-#HAWOCC010
-#HAWSIOK08
-#HAWSIOK10
-#MAIOCC002
-#OAH022
-#OAHOCC010
+growth_PHROCC016 <- subset(PHROCC016, TransitionTypeSimple == "GROWTH")
+#function
+fit_PHROCC016 <- lm(ln_ES ~ ln_SS ,data = growth_PHROCC016)
+fit_PHROCC016
+#linear model for growth function:  y = 0.7812x + 1.4363
+#plot
+summary(fit_PHROCC016)
+plot(ln_ES ~ ln_SS ,data = growth_PHROCC016 ,xlim=c(-3,10), ylim=c(-3,10), main="All genera growth at PHROCC016") 
+abline(fit_PHROCC016)
+abline(a=0, b=1,col="red")
+#plot residuals
+par(mfrow=c(2,2))
+plot(fit_PHROCC016)
+#interpret results
+anova(fit_PHROCC016)
 
+###################
+#HAWOCC002 
+growth_HAWOCC002 <- subset(HAWOCC002, TransitionTypeSimple == "GROWTH")
+#function
+fit_HAWOCC002 <- lm(ln_ES ~ ln_SS ,data = growth_HAWOCC002)
+fit_HAWOCC002
+#linear model for growth function:  y = 0.7677x + 1.0998
+#plot
+summary(fit_HAWOCC002)
+plot(ln_ES ~ ln_SS ,data = growth_HAWOCC002 ,xlim=c(-3,10), ylim=c(-3,10), main="All genera growth at HAWOCC002") 
+abline(fit_HAWOCC002)
+abline(a=0, b=1,col="red")
+#plot residuals
+par(mfrow=c(2,2))
+plot(fit_HAWOCC002)
+#interpret results
+anova(fit_HAWOCC002)
+
+###################
+#HAWOCC003
+growth_HAWOCC003 <- subset(HAWOCC003, TransitionTypeSimple == "GROWTH")
+#function
+fit_HAWOCC003 <- lm(ln_ES ~ ln_SS ,data = growth_HAWOCC003)
+fit_HAWOCC003
+#linear model for growth function:  y = 0.8936x + 0.8542
+#plot
+summary(fit_HAWOCC003)
+plot(ln_ES ~ ln_SS ,data = growth_HAWOCC003 ,xlim=c(-3,10), ylim=c(-3,10), main="All genera growth at HAWOCC003") 
+abline(fit_HAWOCC003)
+abline(a=0, b=1,col="red")
+#plot residuals
+par(mfrow=c(2,2))
+plot(fit_HAWOCC003)
+#interpret results
+anova(fit_HAWOCC003)
+
+###################
+#HAWOCC010
+growth_HAWOCC010 <- subset(HAWOCC010, TransitionTypeSimple == "GROWTH")
+#function
+fit_HAWOCC010 <- lm(ln_ES ~ ln_SS ,data = growth_HAWOCC010)
+fit_HAWOCC010
+#linear model for growth function:  y = 0.8041x + 1.1056
+#plot
+summary(fit_HAWOCC010)
+plot(ln_ES ~ ln_SS ,data = growth_HAWOCC010 ,xlim=c(-3,10), ylim=c(-3,10), main="All genera growth at HAWOCC010") 
+abline(fit_HAWOCC010)
+abline(a=0, b=1,col="red")
+#plot residuals
+par(mfrow=c(2,2))
+plot(fit_HAWOCC010)
+#interpret results
+anova(fit_HAWOCC010)
+
+###################
+#HAWSIOK08
+growth_HAWSIOK08 <- subset(HAWSIOK08, TransitionTypeSimple == "GROWTH")
+#function
+fit_HAWSIOK08 <- lm(ln_ES ~ ln_SS ,data = growth_HAWSIOK08)
+fit_HAWSIOK08
+#linear model for growth function:  y = 0.8201x + 1.3385
+#plot
+summary(fit_HAWSIOK08)
+plot(ln_ES ~ ln_SS ,data = growth_HAWSIOK08 ,xlim=c(-3,10), ylim=c(-3,10), main="All genera growth at HAWSIOK08") 
+abline(fit_HAWSIOK08)
+abline(a=0, b=1,col="red")
+#plot residuals
+par(mfrow=c(2,2))
+plot(fit_HAWSIOK08)
+#interpret results
+anova(fit_HAWSIOK08)
+
+###################
+#HAWSIOK10
+growth_HAWSIOK10 <- subset(HAWSIOK10, TransitionTypeSimple == "GROWTH")
+#function
+fit_HAWSIOK10 <- lm(ln_ES ~ ln_SS ,data = growth_HAWSIOK10)
+fit_HAWSIOK10
+#linear model for growth function:  y = 0.7471x + 1.6589
+#plot
+summary(fit_HAWSIOK10)
+plot(ln_ES ~ ln_SS ,data = growth_HAWSIOK08 ,xlim=c(-3,10), ylim=c(-3,10), main="All genera growth at HAWSIOK10") 
+abline(fit_HAWSIOK10)
+abline(a=0, b=1,col="red")
+#plot residuals
+par(mfrow=c(2,2))
+plot(fit_HAWSIOK10)
+#interpret results
+anova(fit_HAWSIOK10)
+
+###################
+#MAIOCC002
+growth_MAIOCC002 <- subset(MAIOCC002, TransitionTypeSimple == "GROWTH")
+#function
+fit_MAIOCC002 <- lm(ln_ES ~ ln_SS ,data = growth_MAIOCC002)
+fit_MAIOCC002
+#linear model for growth function:  y = 0.813x + 1.422
+#plot
+summary(fit_MAIOCC002)
+plot(ln_ES ~ ln_SS ,data = growth_MAIOCC002 ,xlim=c(-3,10), ylim=c(-3,10), main="All genera growth at MAIOCC002") 
+abline(fit_MAIOCC002)
+abline(a=0, b=1,col="red")
+#plot residuals
+par(mfrow=c(2,2))
+plot(fit_MAIOCC002)
+#interpret results
+anova(fit_MAIOCC002)
+
+###################
+#OAH022
+growth_OAH022 <- subset(OAH022, TransitionTypeSimple == "GROWTH")
+#function
+fit_OAH022 <- lm(ln_ES ~ ln_SS ,data = growth_OAH022)
+fit_OAH022
+#linear model for growth function:  y = 0.7992x + 1.4419
+#plot
+summary(fit_OAH022)
+plot(ln_ES ~ ln_SS ,data = growth_OAH022 ,xlim=c(-3,10), ylim=c(-3,10), main="All genera growth at OAH022") 
+abline(fit_OAH022)
+abline(a=0, b=1,col="red")
+#plot residuals
+par(mfrow=c(2,2))
+plot(fit_OAH022)
+#interpret results
+anova(fit_OAH022)
+
+###################
+#OAHOCC010
+growth_OAHOCC010 <- subset(OAHOCC010, TransitionTypeSimple == "GROWTH")
+#function
+fit_OAHOCC010 <- lm(ln_ES ~ ln_SS ,data = growth_OAHOCC010)
+fit_OAHOCC010
+#linear model for growth function:  y = 0.9324x + 0.6625
+#plot
+summary(fit_OAH022)
+plot(ln_ES ~ ln_SS ,data = growth_OAH022 ,xlim=c(-3,10), ylim=c(-3,10), main="All genera growth at OAHOCC010") 
+abline(fit_OAH022)
+abline(a=0, b=1,col="red")
+#plot residuals
+par(mfrow=c(2,2))
+plot(fit_OAH022)
+#interpret results
+anova(fit_OAH022)
 
 
 ```
 
+#Growth by Site and Genus
+one site, separate by genera
+```{r}
+#MAISIOK01
+gro_MAISIOK01_POSP <- subset(growth_MAISIOK01, Genus_Code == "POSP")
+#function
+fit_MAISIOK01_POSP <- lm(ln_ES ~ ln_SS ,data = gro_MAISIOK01_POSP)
+fit_MAISIOK01_POSP
+#linear model for growth function:  y = 0.9182x + 0.5546
+#plot
+summary(fit_MAISIOK01_POSP)
+plot(ln_ES ~ ln_SS ,data = gro_MAISIOK01_POSP ,xlim=c(-3,10), ylim=c(-3,10), main="Porites growth at MAISIOK01")
+abline(fit_MAISIOK01_POSP)
+abline(a=0, b=1,col="red")
+#plot residuals
+par(mfrow=c(2,2))
+plot(fit_MAISIOK01_POSP)
+#interpret results
+anova(fit_MAISIOK01_POSP)
+ 
 
-Then do one site, separate by genera
+```
+
+
 Compare r2 values
 Do a likliehood or AIC comparison to compare model fit and determine the best one?
+#AIC comparison
+https://www.scribbr.com/statistics/akaike-information-criterion/
+```{r}
+#Going to compare genus model vs. site model vs. site+genus
+fit_POCS
+fit_MAISIOK01
+fit_MAISIOK01_POSP
+
+```
 
 
 
