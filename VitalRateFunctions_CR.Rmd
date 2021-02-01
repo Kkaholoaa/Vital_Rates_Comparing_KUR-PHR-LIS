@@ -47,14 +47,13 @@ OAHOCC010 <- subset(ColonyLevel, Site=="OAH_OCC_010")
 #Combined Growth Function
 ```{r}
 #TO DO
-#need to log transform TransitionRate_L and StartingSize? then re run my fit model ^
-#need to remove the NAs from the TransitionRate_L column
+#need to log transform TransitionRate_L and StartingSize? then re run my fit model (don't need to do...using ln_SS and ln_ES)
+#need to remove the NAs from the TransitionRate_L column (not using)
 #subset by growth and genus (DONE)
 #make sure not including error data (DONE)
 #should we restrict data to colonies > 20cm2?
 
 #plot starting size and ending size for growth. Get a best fit line for that data
-
 growth <- subset(ColonyLevel, TransitionTypeSimple == "GROWTH")
 #growth[!is.na(growth$TransitionRate_L)]
 View(growth)
@@ -64,7 +63,6 @@ plo <- ggplot(growth, aes(x=ln_SS, y=TransitionRate_L, shape=TransitionTypeSimpl
     ylim(1,5)
 plo
 his <- hist(growth$StartingSize, breaks = 1000, xlim = c(0,50) )
-
 #log(growth$TransitionRate_L)
 #fit <- lm(TransitionRate_L ~ ln_SS ,data = growth)
 #fit
@@ -122,7 +120,7 @@ fit_POCS
 summary(fit_POCS)
 #linear model for growth function
 #y = 0.6516999x + 2.2245910
-plot(ln_ES ~ ln_SS ,data = growth_POCS ,xlim=c(-3,10), ylim=c(-3,10), main="All Pocillopora growth at all sites" )  #the final index of the ln_ES aka the largest size
+plot(ln_ES ~ ln_SS ,data = growth_POCS ,xlim=c(-3,10), ylim=c(-3,10), main="All Pocillopora growth at all sites" )  
 abline(fit_POCS)
 abline(a=0, b=1,col="red")
 #everyone's growing and smaller sizes grow supa faster and the larger sizes are right at the 1:1
@@ -139,7 +137,7 @@ fit_POSP
 #linear model for growth function
 #y = 0.8462x + 1.0236
 summary(fit_POSP)
-plot(ln_ES ~ ln_SS ,data = growth_POSP ,xlim=c(-3,10), ylim=c(-3,10) , main="All Porites growth at all sites")  #the final index of the ln_ES aka the largest size
+plot(ln_ES ~ ln_SS ,data = growth_POSP ,xlim=c(-3,10), ylim=c(-3,10), main="All Porites growth at all sites")
 abline(fit_POSP)
 abline(a=0, b=1,col="red")
 #smaller sizes grow faster and the larger sizes are right at the 1:1
@@ -157,12 +155,16 @@ fit_MOSP
 #y = 0.8559x + 0.9507
 summary(fit_MOSP)
 #legend isn't working
-plot(ln_ES ~ ln_SS ,data = growth_MOSP ,xlim=c(-3,10), ylim=c(-3,10), main="All Montipora growth at all sites",
-     legend("topleft", legend = c("Line1","Line2")) )  #the final index of the ln_ES aka the largest size
+plot(ln_ES ~ ln_SS ,data = growth_MOSP ,xlim=c(-3,10), ylim=c(-3,10), main="All Montipora growth at all sites")
+#legend("topleft", legend = c("Line1","Line2"))
 abline(fit_MOSP)
 abline(a=0, b=1,col="red")
-#need to plot linear model
-ggplot(growth_MOSP, aes(x=ln_SS, y=ln_ES))+ geom_point() + geom_abline()
+
+#another way to plot all montipora
+ggplot(growth_MOSP, aes(x=ln_SS, y=ln_ES))+ geom_point() + geom_smooth(method = lm)+
+  ggtitle("All Montipora growth at all sites")+
+  annotate("rect", xmin =-.5, xmax = .5, ymin = 4.5, ymax = 5.5, fill="white", colour="red") +
+  annotate("text", x=0, y=5, label = "R^2=0.93") 
 #smaller sizes grow faster and the larger sizes are right at the 1:1
 
 ```
@@ -177,12 +179,39 @@ fit_MAISIOK01
 #linear model for growth function:  y = 0.8826x + 0.7377
 #plot
 summary(fit_MAISIOK01)
-plot(ln_ES ~ ln_SS ,data = growth_MAISIOK01 ,xlim=c(-3,10), ylim=c(-3,10))  #the final index of the ln_ES aka the largest size
+plot(ln_ES ~ ln_SS ,data = growth_MAISIOK01 ,xlim=c(-3,10), ylim=c(-3,10), main="All genera growth at MAISIOK01")
 abline(fit_MAISIOK01)
 abline(a=0, b=1,col="red")
+#plot residuals
+par(mfrow=c(2,2))
+plot(fit_MAISIOK01)
+#interpret results
+anova(fit_MAISIOK01)
 
-
+###################
 #KUROCC010
+growth_KUROCC010 <- subset(KUROCC010, TransitionTypeSimple == "GROWTH")
+#function
+fit_KUROCC010 <- lm(ln_ES ~ ln_SS ,data = growth_KUROCC010)
+fit_KUROCC010
+#linear model for growth function:  y = 0.8826x + 0.7377
+#plot
+summary(fit_KUROCC010)
+plot(ln_ES ~ ln_SS ,data = growth_KUROCC010 ,xlim=c(-3,10), ylim=c(-3,10), main="All genera growth at KUROCC010") 
+abline(fit_KUROCC010)
+abline(a=0, b=1,col="red")
+#plot residuals
+par(mfrow=c(2,2))
+plot(fit_KUROCC010)
+#interpret results
+anova(fit_KUROCC010)
+
+
+
+
+
+
+
 #PHROCC016
 #HAWOCC002 
 #HAWOCC003
@@ -196,7 +225,6 @@ abline(a=0, b=1,col="red")
 
 
 ```
-
 
 
 Then do one site, separate by genera
