@@ -236,7 +236,8 @@ inv.logit <- function(x){
   exp(x)/(1+exp(x))
 }
 
-plot(ColonyLevel$ln_SS, surv, xlab = 'Area (ln of area)', ylab = 'Survival')
+# plot(ColonyLevel$ln_SS, surv, xlab = 'Area (ln of area)', ylab = 'Survival')
+# This isn't really showing anything...
 plot(jitter(surv, 0.1) ~ ln_SS, ColonyLevel)
 points(ColonyLevel$ln_SS, inv.logit(predict(gn)), pch=8)
 
