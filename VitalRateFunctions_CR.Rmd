@@ -417,22 +417,22 @@ Use binomial to fit (logit function)
 
 surv <- 1 - ColonyLevel$Mortality
 
-bad <- which(ColonyLevel$ln_SS == "-Inf")
-ColonyLevel$ln_SS[bad] <- 'NA'
+ColonyLevel$ln_SS <- as.numeric(ColonyLevel$ln_SS)
+ColonyLevel$ln_SS[ColonyLevel$ln_SS == -Inf] <-NA
 
-bad2 <- which(ColonyLevel$ln_SS == "-Inf")
-ColonyLevel$ln_SS[bad2] <- 'NA'
-
-gn <- glm(Mortality ~ ln_SS, family = "binomial", data = ColonyLevel, 
-          na.action = na.pass)
+gn <- glm(surv ~ ln_SS, family = "binomial", data = ColonyLevel)
 
 inv.logit <- function(x){
   exp(x)/(1+exp(x))
 }
 
-plot(ColonyLevel$ln_SS, surv, xlab = 'Area (ln of area)', ylab = 'Survival')
+#plot(ColonyLevel$ln_SS, surv, xlab = 'Area (ln of area)', ylab = 'Survival')
+# This isn't really showing anything...
 plot(jitter(surv, 0.1) ~ ln_SS, ColonyLevel)
-points(ColonyLevel$ln_SS, inv.logit(predict(gn)), pch=8)
+ss <- seq(-3, 9, 0.1)
+lines(ss, predict(gn, list(ln_SS = ss), type="response"), pch=8)
+# this will give the original response variable -- don't need to do the reverse transform, works for any type of glm.
+
 
 
 ```
