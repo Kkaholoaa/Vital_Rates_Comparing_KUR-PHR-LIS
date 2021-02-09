@@ -202,9 +202,10 @@ MAIshrin_1618 <- sum(with(MAISIOK01, TransitionTypeSimple=="RECR" & EndingYear==
 MAIshrin_1618 #34
 
 
+```
 
-
-
+#ignore this
+```{r}
 ####Playing around with raw data files to count # of colonies in each genus in each year. Above ^^ is transitions
 library(stringr)
 MAI_SIO_K01_1 = read.csv("2014_MAI_SIO_k01_09022020.csv")
@@ -251,39 +252,23 @@ PHR$Genus_Code=GenusCodeLU[PHR$Spec_Code]
 #table shows total # of colonies from each genus 
 table(PHR$Genus_Code,useNA="always")
 #216 POSP colonies
-
 ```
 
-
+#ANCOVA 
+We will run an ANCOVA because there are 2 independent/predictor variables: 1 categorial (species) and 1 continuous variable (growth). 
+Assumptions: equal variance, the data are normal, the residuals are normal, independence of covariate and treatment effect
 ```{r}
-#TO DO
-#need to log transform TransitionRate_L and StartingSize? then re run my fit model ^
-#need to remove the NAs from the TransitionRate_L column
-#subset by growth and species 
-#make sure not including error data
-#should we restrict data to colonies > 20cm2?
+#Compare growth rates between two species
 
-growth <- subset(ColonyLevel, TransitionTypeSimple == "GROWTH")
-growth[!is.na(growth$TransitionRate_L)]
-View(growth)
-
-plo <- ggplot(growth, aes(x=ln_SS, y=TransitionRate_L, shape=TransitionTypeSimple)) + 
-  geom_point(size=1) +
-    ylim(1,5)
-plo
-
-his <- hist(growth$StartingSize, breaks = 1000, xlim = c(0,50) )
-
-#log(growth$TransitionRate_L)
-fit <- lm(TransitionRate_L ~ ln_SS ,data = growth)
-fit
-summary(fit)
+#first plot the growth rates for the two species (growth/shrink only, no recruitment or mortality)
 
 
-plot(TransitionRate_L ~ ln_SS ,data = growth)
-abline(fit)
+#test for equal variance
+
+
 
 ```
+
 
 
 
