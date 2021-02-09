@@ -255,17 +255,19 @@ table(PHR$Genus_Code,useNA="always")
 ```
 
 #ANCOVA 
-We will run an ANCOVA because there are 2 independent/predictor variables: 1 categorial (species) and 1 continuous variable (growth). 
+We will run an ANCOVA because there are 2 independent/predictor variables: 1 categorial (species) and 1 continuous variable (????). <<<What variable is this?
 Assumptions: equal variance, the data are normal, the residuals are normal, independence of covariate and treatment effect
 ```{r}
 #Compare growth rates between two species
 
 #first plot the growth rates for the two species (growth/shrink only, no recruitment or mortality)
-
+growthshrink <- subset(ColonyLevel, TransitionTypeSimple == "GROWTH" & TransitionTypeSimple == "SHRINK")
+#View(growthshrink)
+#^^^this is not working correctly. Google how to subset two things at once
 
 #test for equal variance
-
-
+leveneTest(MAISIOK01$TransitionRate_L, MAISIOK01$)
+#this may not run. Need to install one of these packages (google to figure out which one: ggpubr,sjstats,car,multcomp)
 
 ```
 
