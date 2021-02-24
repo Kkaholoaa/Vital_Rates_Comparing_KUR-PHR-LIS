@@ -508,7 +508,7 @@ lines(ss, predict(gn_MOSP, list(ln_SS = ss), type="response"), pch=8)
 
 
 #Reproduction
-The # of recruits
+Size specific recruit rate (# of recruits/area of parent corals)
 ```{r}
 recruitment <- subset(ColonyLevel, TransitionTypeSimple == "RECR")
 #View(recruitment)
@@ -565,25 +565,26 @@ recr_MOSP <- subset(recruitment, Genus_Code == "MOSP")
 
 
 
-Caroline's to-do list:
-  -separate whole dataset by genus
-  -clean up
+**Caroline's to-do list:**
+- [X] separate whole dataset by genus
+- [ ] clean up script
+- [ ] create dataframe: slope and intercept for each genus for each demographic parameter
 growth:
-  -slope and intercept for each genus
+- [X] slope and intercept for each genus
 survival:
-  -slope and intercept for each genus 
+- [X] slope and intercept for each genus
 reproduction: 
-  -calculate total coral area from previous timepoint. Then take # recruits/total area. Take yearish/previous area
-  -separate by each genus
-create dataframe: 
-  -slope and intercept for each genus for each demographic parameter
+- [ ] calculate total coral area from previous timepoint
+- [ ] Then take # recruits/total area (AKA take yearish/previous area)
+- [ ] separate by each genus
 
 
-Devynn's To do list:
--Change parameterization of enviro variance so it depends on pheno variance (so model will only depend on )
--Start powerpoint
--Run through scenarios that we care about (ideas: AGF, supportive breeding, outplanting, outcrossing, algal symbiont manipulation)
--Once have Caroline's data, check lambda values for each taxa
--If lambda <1, boost recruitment
+
+**Devynn's To do list:**
+- [ ] Change parameterization of enviro variance so it depends on pheno variance (so model will only depend on pheno variance)
+- [ ] Start powerpoint
+- [ ] Run through scenarios that we care about (ideas: AGF, supportive breeding, outplanting, outcrossing, algal symbiont manipulation)
+- [ ] Once have Caroline's data, check lambda values for each taxa
+- [ ] If lambda <1, boost recruitment
 
 
