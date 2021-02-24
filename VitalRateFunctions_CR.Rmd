@@ -25,7 +25,7 @@ View(ColonyLevel)
 
 ```
 
-#Subset by Site
+#Subset by Site and Genus
 Going to use ColonyLevel data to avoid all the fission/fusion confusion
 ```{r}
 MAISIOK01 <- subset(ColonyLevel, Site=="MAI_SIO_K01")
@@ -43,6 +43,12 @@ MAIOCC002 <- subset(ColonyLevel, Site=="MAI_OCC_002")
 OAH022 <- subset(ColonyLevel, Site=="OAH_XXX_022")
 OAHOCC010 <- subset(ColonyLevel, Site=="OAH_OCC_010")
 
+
+#separate by Genus
+Poc <- subset(ColonyLevel, Genus_Code == "POCS")
+Porites <- subset(ColonyLevel, Genus_Code == "POSP")
+Montip <- subset(ColonyLevel, Genus_Code == "MOSP")
+
 ```
 
 #Combined Growth Function
@@ -50,9 +56,8 @@ OAHOCC010 <- subset(ColonyLevel, Site=="OAH_OCC_010")
 #should we restrict data to colonies > 20cm2?
 
 #plot starting size and ending size for growth. Get a best fit line for that data
-growth <- subset(ColonyLevel, TransitionTypeSimple == "GROWTH")
-#growth[!is.na(growth$TransitionRate_L)]
-View(growth)
+allgrowth <- subset(ColonyLevel, TransitionTypeSimple == "GROWTH" | TransitionTypeSimple == "SHRINK")
+#View(allgrowth)
 
 #plo <- ggplot(growth, aes(x=ln_SS, y=TransitionRate_L, shape=TransitionTypeSimple)) + 
   #geom_point(size=1) +
@@ -63,9 +68,9 @@ View(growth)
 
 
 #For growth function, will fit using starting vs ending size, log transformed because to exaggerate small differences (b/c I have so many little pieces and lots of instances of little growth)
-growth_plot = ggplot(data = growth, aes(x=ln_SS, y=ln_ES,color=TransitionTypeSimple,shape=TransitionTypeSimple)) + 
+growth_plot = ggplot(data = allgrowth, aes(x=ln_SS, y=ln_ES,color=TransitionTypeSimple,shape=TransitionTypeSimple)) + 
   geom_point() + geom_abline(slope = 1)+
-  ggtitle("Growth: All Genera and All Species") +
+  ggtitle("Growth: All Genera and All Sites") +
   #scale_x_sqrt(breaks=c(10,50,100,250,500,1000,2000),limits=c(0,400))+ #log transform x axis
   #scale_y_sqrt(breaks=c(10,50,100,250,500,1000,2000),limits=c(0,400))+
   scale_shape_manual(values=0:4)+
@@ -74,23 +79,24 @@ growth_plot = ggplot(data = growth, aes(x=ln_SS, y=ln_ES,color=TransitionTypeSim
 growth_plot
 
 
-fit_allgrowth <- lm(ln_ES ~ ln_SS ,data = growth)
+fit_allgrowth <- lm(ln_ES ~ ln_SS ,data = allgrowth)
 fit_allgrowth
 summary(fit_allgrowth)
-#linear model for growth function
-#y = 0.8480942x + 1.0746995
-plot(ln_ES ~ ln_SS ,data = growth, xlim=c(-3,10), ylim=c(-3,10), main = "Growth: All Genera and All Species", xlab = "Log Starting Size", ylab = "Log Ending Size", legend(x=9, y=4) )
+#linear model for just growth function y = 0.8846x + 0.3253
+#linear model w/ growth & shrink y= 0.8846x + 0.3253
+plot(ln_ES ~ ln_SS ,data = allgrowth, xlim=c(-3,10), ylim=c(-3,10), main = "Growth/Shrink: All Genera and All Sites", xlab = "Log Starting Size", ylab = "Log Ending Size")
 abline(fit_allgrowth)
 abline(a=0, b=1,col="red")
+legend("topleft", bty = "n", lty = c(1,1), col = c("black","red"),
+       legend=c("model fit", "1:1"), cex = 0.8)
 #smaller sizes grow faster and the larger sizes are right at the 1:1
-
 
 ```
 
 #Growth function: separate by Genus
 ```{r}
 #plot based on Genus
-growth_plot_genus = ggplot(data = growth, aes(x=ln_SS, y=ln_ES,color=TransitionTypeSimple,shape=TransitionTypeSimple)) + 
+growth_plot_genus = ggplot(data = allgrowth, aes(x=ln_SS, y=ln_ES,color=TransitionTypeSimple,shape=TransitionTypeSimple)) + 
   geom_point() + geom_abline(slope = 1)+
   #scale_x_sqrt(breaks=c(10,50,100,250,500,1000,2000),limits=c(0,400))+ #log transform x axis
   #scale_y_sqrt(breaks=c(10,50,100,250,500,1000,2000),limits=c(0,400))+
@@ -101,62 +107,63 @@ growth_plot_genus
 
 
 #Pocillopora
-growth_POCS <- subset(growth, Genus_Code == "POCS")
-#View(growth_POCS)
+growth_POCS <- subset(Poc, TransitionTypeSimple == "GROWTH" | TransitionTypeSimple == "SHRINK")
+#View(growth_POCS) #202
 
 #function
 fit_POCS <- lm(ln_ES ~ ln_SS ,data = growth_POCS)
 fit_POCS
 summary(fit_POCS)
-#linear model for growth function
-#y = 0.6516999x + 2.2245910
+#linear model for growth function y = 0.6136 x + 2.2894
 plot(ln_ES ~ ln_SS ,data = growth_POCS ,xlim=c(-3,10), ylim=c(-3,10), main="All Pocillopora growth at all sites" )  
 abline(fit_POCS)
 abline(a=0, b=1,col="red")
+legend("topleft", bty = "n", lty = c(1,1), col = c("black","red"),
+       legend=c("model fit", "1:1"), cex = 0.8)
 #everyone's growing and smaller sizes grow supa faster and the larger sizes are right at the 1:1
 
 
 ####################
 #Porites
-growth_POSP <- subset(growth, Genus_Code == "POSP")
+growth_POSP <- subset(Porites, TransitionTypeSimple == "GROWTH" | TransitionTypeSimple == "SHRINK")
 #View(growth_POSP)
 
 #function
 fit_POSP <- lm(ln_ES ~ ln_SS ,data = growth_POSP)
 fit_POSP
-#linear model for growth function
-#y = 0.8462x + 1.0236
+#linear model for growth function y = 0.8527x + 0.3080
 summary(fit_POSP)
 plot(ln_ES ~ ln_SS ,data = growth_POSP ,xlim=c(-3,10), ylim=c(-3,10), main="All Porites growth at all sites")
 abline(fit_POSP)
 abline(a=0, b=1,col="red")
+legend("topleft", bty = "n", lty = c(1,1), col = c("black","red"),
+       legend=c("model fit", "1:1"), cex = 0.8)
 #smaller sizes grow faster and the larger sizes are right at the 1:1
 
 
 ####################
 #Montipora
-growth_MOSP <- subset(growth, Genus_Code == "MOSP")
+growth_MOSP <- subset(Montip, TransitionTypeSimple == "GROWTH" | TransitionTypeSimple == "SHRINK")
 #View(growth_MOSP)
 
 #function
 fit_MOSP <- lm(ln_ES ~ ln_SS ,data = growth_MOSP)
 fit_MOSP
 #linear model for growth function
-#y = 0.8559x + 0.9507
+#y = 0.8960x + 0.2839
 summary(fit_MOSP)
-#legend isn't working
 plot(ln_ES ~ ln_SS ,data = growth_MOSP ,xlim=c(-3,10), ylim=c(-3,10), main="All Montipora growth at all sites")
-#legend("topleft", legend = c("Line1","Line2"))
 abline(fit_MOSP)
 abline(a=0, b=1,col="red")
+legend("topleft", bty = "n", lty = c(1,1), col = c("black","red"),
+       legend=c("model fit", "1:1"), cex = 0.8)
 
-#another way to plot all montipora
+#another way to plot (all montipora)
 ggplot(growth_MOSP, aes(x=ln_SS, y=ln_ES))+ geom_point() + geom_smooth(method = lm)+
   ggtitle("All Montipora growth at all sites")+
   annotate("rect", xmin =-.5, xmax = .5, ymin = 4.5, ymax = 5.5, fill="white", colour="red") +
   annotate("text", x=0, y=5, label = "R^2=0.93") 
 #smaller sizes grow faster and the larger sizes are right at the 1:1
-
 ```
 
 #Growth function: separate by site, all genera
@@ -415,13 +422,15 @@ Use binomial to fit (logit function)
 # a_data_mort <- subset(ColonyLevel, TransitionTypeSimple == "MORT") 
 # ps <- subset(a_data_mort, Genus_Code == "POSP")
 
+#all mortality (all sites all genera)
+#to separate by genus, change ColonyLevel
 surv <- 1 - ColonyLevel$Mortality
 
 ColonyLevel$ln_SS <- as.numeric(ColonyLevel$ln_SS)
 ColonyLevel$ln_SS[ColonyLevel$ln_SS == -Inf] <-NA
 
 gn <- glm(surv ~ ln_SS, family = "binomial", data = ColonyLevel)
-
+gn
 inv.logit <- function(x){
   exp(x)/(1+exp(x))
 }
@@ -435,6 +444,106 @@ lines(ss, predict(gn, list(ln_SS = ss), type="response"), pch=8)
 
 
 
+#survival by genus
+#POCS
+surv <- 1 - ColonyLevel$Mortality
+
+ColonyLevel$ln_SS <- as.numeric(ColonyLevel$ln_SS)
+ColonyLevel$ln_SS[ColonyLevel$ln_SS == -Inf] <-NA
+
+gn <- glm(surv ~ ln_SS, family = "binomial", data = ColonyLevel)
+gn
+inv.logit <- function(x){
+  exp(x)/(1+exp(x))
+}
+
+#plot(ColonyLevel$ln_SS, surv, xlab = 'Area (ln of area)', ylab = 'Survival')
+# This isn't really showing anything...
+plot(jitter(surv, 0.1) ~ ln_SS, ColonyLevel)
+ss <- seq(-3, 9, 0.1)
+lines(ss, predict(gn, list(ln_SS = ss), type="response"), pch=8)
+
+
 ```
+
+
+#Reproduction
+The # of recruits
+```{r}
+recruitment <- subset(ColonyLevel, TransitionTypeSimple == "RECR")
+#View(recruitment)
+recrhist <- hist(recruitment$ln_ES, breaks = 100)
+
+
+#number of recruits per transition (number recruits/interval year)
+#plot(recruitment, xlab = Interval_Years, ylab = Recruit)
+#sum the recruits
+#total
+sumrecruit<- sum(recruitment$Recruit)
+
+iy <- unique(recruitment$Interval_Years)
+iy
+
+yearish <- rep(0,length(iy)) #initalize vector
+#for every interval year, get the sum of recruits for that interval year
+for (v in 1:length(iy)) {
+  yearish[v] <- sum(recruitment$Recruit[which(recruitment$Interval_Years== iy[v])])
+}
+yearish <- round(yearish/iy) #normalizes by year (# of recruits/year)
+yearish
+
+#separate by genus
+
+#Pocillopora
+recr_POCS <- subset(recruitment, Genus_Code == "POCS")
+#POCS_recr_hist <- hist(recr_POCS$ln_ES, breaks = 100)
+iy <- unique(recr_POCS$Interval_Years)
+iy
+yearish_POCS <- rep(0,length(iy)) #initalize vector
+#for every interval year, get the sum of recruits for that interval year
+for (v in 1:length(iy)) {
+  yearish_POCS[v] <- sum(recr_POCS$Recruit[which(recr_POCS$Interval_Years== iy[v])])
+}
+yearish_POCS <- round(yearish_POCS/iy) #normalizes by year (# of recruits/year)
+yearish_POCS
+
+avg_rPOCS <- round(mean(yearish_POCS))
+#4
+
+#porites
+recr_POSP <- subset(recruitment, Genus_Code == "POSP")
+#POSP_recr_hist <- hist(recr_POSP$ln_ES, breaks = 100)
+
+
+#montipora
+recr_MOSP <- subset(recruitment, Genus_Code == "MOSP")
+#MOSP_recr_hist <- hist(recr_MOSP$ln_ES, breaks = 100)
+
+
+
+```
+
+
+
+Caroline's to-do list:
+  -separate whole dataset by genus
+  -clean up
+growth:
+  -slope and intercept for each genus
+survival:
+  -slope and intercept for each genus 
+reproduction: 
+  -calculate total coral area from previous timepoint. Then take # recruits/total area. Take yearish/previous area
+  -separate by each genus
+create dataframe: 
+  -slope and intercept for each genus for each demographic parameter
+
+
+Devynn's To do list:
+-Change parameterization of enviro variance so it depends on pheno variance (so model will only depend on )
+-Start powerpoint
+-Run through scenarios that we care about (ideas: AGF, supportive breeding, outplanting, outcrossing, algal symbiont manipulation)
+-Once have Caroline's data, check lambda values for each taxa
+-If lambda <1, boost recruitment
 
 
