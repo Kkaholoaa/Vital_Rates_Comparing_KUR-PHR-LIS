@@ -417,7 +417,7 @@ fit_MAISIOK01_POSP
 
 
 
-#Mortality (Survival) function
+#Survival (Mortality) function
 Use binomial to fit
 ```{r Survival, cache=FALSE}
 ## Starting with suvival/mortality of all (genera + site + year)
@@ -431,13 +431,11 @@ Use binomial to fit
 # a_data_mort <- subset(ColonyLevel, TransitionTypeSimple == "MORT") 
 # ps <- subset(a_data_mort, Genus_Code == "POSP")
 
-#all mortality (all sites all genera)
-#to separate by genus, change ColonyLevel
+#all survival (all sites all genera)
 surv <- 1 - ColonyLevel$Mortality
-
 ColonyLevel$ln_SS <- as.numeric(ColonyLevel$ln_SS)
 ColonyLevel$ln_SS[ColonyLevel$ln_SS == -Inf] <-NA
-
+#fit
 gn <- glm(surv ~ ln_SS, family = "binomial", data = ColonyLevel)
 gn
 inv.logit <- function(x){
@@ -446,6 +444,8 @@ inv.logit <- function(x){
 
 #plot(ColonyLevel$ln_SS, surv, xlab = 'Area (ln of area)', ylab = 'Survival')
 # This isn't really showing anything...
+
+#better plot
 plot(jitter(surv, 0.1) ~ ln_SS, ColonyLevel)
 ss <- seq(-3, 9, 0.1)
 lines(ss, predict(gn, list(ln_SS = ss), type="response"), pch=8)
@@ -454,24 +454,55 @@ lines(ss, predict(gn, list(ln_SS = ss), type="response"), pch=8)
 
 
 #survival by genus
-#POCS
-surv <- 1 - ColonyLevel$Mortality
-
-ColonyLevel$ln_SS <- as.numeric(ColonyLevel$ln_SS)
-ColonyLevel$ln_SS[ColonyLevel$ln_SS == -Inf] <-NA
-
-gn <- glm(surv ~ ln_SS, family = "binomial", data = ColonyLevel)
-gn
+####################
+#Pocillopora
+surv_POCS <- 1 - Poc$Mortality
+Poc$ln_SS <- as.numeric(Poc$ln_SS)
+Poc$ln_SS[Poc$ln_SS == -Inf] <-NA
+#fit
+gn_POCS <- glm(surv_POCS ~ ln_SS, family = "binomial", data = Poc)
+gn_POCS
 inv.logit <- function(x){
   exp(x)/(1+exp(x))
 }
-
-#plot(ColonyLevel$ln_SS, surv, xlab = 'Area (ln of area)', ylab = 'Survival')
-# This isn't really showing anything...
-plot(jitter(surv, 0.1) ~ ln_SS, ColonyLevel)
+#plot
+plot(jitter(surv_POCS, 0.1) ~ ln_SS, Poc)
 ss <- seq(-3, 9, 0.1)
-lines(ss, predict(gn, list(ln_SS = ss), type="response"), pch=8)
+lines(ss, predict(gn_POCS, list(ln_SS = ss), type="response"), pch=8)
 
+
+####################
+#Porites
+surv_POSP <- 1 - Porites$Mortality
+Porites$ln_SS <- as.numeric(Porites$ln_SS)
+Porites$ln_SS[Porites$ln_SS == -Inf] <-NA
+#fit
+gn_POSP <- glm(surv_POSP ~ ln_SS, family = "binomial", data = Porites)
+gn_POSP
+inv.logit <- function(x){
+  exp(x)/(1+exp(x))
+}
+#plot
+plot(jitter(surv_POSP, 0.1) ~ ln_SS, Porites)
+ss <- seq(-3, 9, 0.1)
+lines(ss, predict(gn_POSP, list(ln_SS = ss), type="response"), pch=8)
+
+
+####################
+#Montipora
+surv_MOSP <- 1 - Montip$Mortality
+Montip$ln_SS <- as.numeric(Montip$ln_SS)
+Montip$ln_SS[Montip$ln_SS == -Inf] <-NA
+#fit
+gn_MOSP <- glm(surv_MOSP ~ ln_SS, family = "binomial", data = Montip)
+gn_MOSP
+inv.logit <- function(x){
+  exp(x)/(1+exp(x))
+}
+#plot
+plot(jitter(surv_MOSP, 0.1) ~ ln_SS, Montip)
+ss <- seq(-3, 9, 0.1)
+lines(ss, predict(gn_MOSP, list(ln_SS = ss), type="response"), pch=8)
 
 ```
 
