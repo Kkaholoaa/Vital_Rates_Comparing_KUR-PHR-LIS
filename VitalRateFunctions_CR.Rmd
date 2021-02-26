@@ -508,58 +508,218 @@ lines(ss, predict(gn_MOSP, list(ln_SS = ss), type="response"), pch=8)
 
 
 #Reproduction
-Size specific recruit rate (# of recruits/area of parent corals)
+Size specific recruit rate= (# of recruits/area of parent corals)
+First calculate the total patch area for each interval year
+Then calculate the # of recruits per interval year
+Divide two vectors (# recruits per interval year / total parent area)
 ```{r}
 recruitment <- subset(ColonyLevel, TransitionTypeSimple == "RECR")
 #View(recruitment)
 recrhist <- hist(recruitment$ln_ES, breaks = 100)
+#area of ALL corals
+sumcoralarea <- sum(ColonyLevel$StartingSize)
 
+#total coral area per interval year:
+#first calc all unique time intervals
+yearint <- unique(ColonyLevel$Interval_Years)
+yearint
+#for every interval year, get the sum of the previous's years coral area (StartingSize)
+coralarea <- rep(0,length(yearint)) #initialize vector
+for (w in 1:length(yearint)) {
+  coralarea[w] <- sum(ColonyLevel$StartingSize[which(ColonyLevel$Interval_Years== yearint[w])])
+}
+coralarea #sum of patch areas for every time interval
+log(coralarea) #log transformed total patch area/time interval
+
+
+#have area value for each time interval now calculate # recruits per time interval
+#sumrecruit<- sum(recruitment$Recruit) #total number of recruits
 
 #number of recruits per transition (number recruits/interval year)
-#plot(recruitment, xlab = Interval_Years, ylab = Recruit)
-#sum the recruits
-#total
-sumrecruit<- sum(recruitment$Recruit)
-
-iy <- unique(recruitment$Interval_Years)
-iy
-
-yearish <- rep(0,length(iy)) #initalize vector
+#iy <- unique(recruitment$Interval_Years)
+#iy 
+yearish <- rep(0,length(yearint)) #initalize vector
 #for every interval year, get the sum of recruits for that interval year
-for (v in 1:length(iy)) {
-  yearish[v] <- sum(recruitment$Recruit[which(recruitment$Interval_Years== iy[v])])
+for (v in 1:length(yearint)) {
+  yearish[v] <- sum(recruitment$Recruit[which(recruitment$Interval_Years== yearint[v])])
 }
-yearish <- round(yearish/iy) #normalizes by year (# of recruits/year)
+yearish <- round(yearish/yearint) #normalizes by time interval (# of recruits/time interval)
 yearish
+
+#size specific recruitment rate (# of recruits/area of parent corals)
+sizespecrec <- yearish/coralarea
+sizespecrec #log transformed size specific recruitment rate
+mean(sizespecrec)
+
+
 
 #separate by genus
 
+#############
 #Pocillopora
-recr_POCS <- subset(recruitment, Genus_Code == "POCS")
+recr_POCS <- subset(Poc, TransitionTypeSimple == "RECR")
 #POCS_recr_hist <- hist(recr_POCS$ln_ES, breaks = 100)
-iy <- unique(recr_POCS$Interval_Years)
-iy
-yearish_POCS <- rep(0,length(iy)) #initalize vector
-#for every interval year, get the sum of recruits for that interval year
-for (v in 1:length(iy)) {
-  yearish_POCS[v] <- sum(recr_POCS$Recruit[which(recr_POCS$Interval_Years== iy[v])])
+
+#total coral area per interval year
+#first calc all unique time intervals
+yearPoc <- unique(Poc$Interval_Years)
+yearPoc
+#for every interval year, get the sum of the previous's years coral area (StartingSize)
+area_POCS <- rep(0,length(yearPoc)) #initialize vector
+for (w in 1:length(yearPoc)) {
+  area_POCS[w] <- sum(Poc$StartingSize[which(Poc$Interval_Years== yearPoc[w])])
 }
-yearish_POCS <- round(yearish_POCS/iy) #normalizes by year (# of recruits/year)
-yearish_POCS
+area_POCS #sum of patch areas for every time interval
+log(area_POCS) #log transformed total patch area/time interval
 
-avg_rPOCS <- round(mean(yearish_POCS))
-#4
+#number of recruits per transition (number recruits/interval year)
+recr_POCS <- rep(0,length(yearPoc)) #initalize vector
+#for every interval year, get the sum of recruits for that interval year
+for (v in 1:length(yearPoc)) {
+  recr_POCS[v] <- sum(Poc$Recruit[which(Poc$Interval_Years== yearPoc[v])])
+}
+recr_POCS <- round(recr_POCS/yearPoc) #normalizes by time interval (# of recruits/time interval)
+recr_POCS
 
+#size specific recruitment rate (# of recruits/area of parent corals)
+sizespecrec_POCS <- recr_POCS/area_POCS
+sizespecrec_POCS #log transformed size specific recruitment rate
+avg_rPOCS <- mean(na.omit(sizespecrec_POCS))
+avg_rPOCS
+
+
+#############
 #porites
-recr_POSP <- subset(recruitment, Genus_Code == "POSP")
-#POSP_recr_hist <- hist(recr_POSP$ln_ES, breaks = 100)
+recr_POSP <- subset(Porites, TransitionTypeSimple == "RECR")
+#POCS_recr_hist <- hist(recr_POCS$ln_ES, breaks = 100)
+
+#total coral area per interval year
+#first calc all unique time intervals
+yearPosp <- unique(Porites$Interval_Years)
+yearPosp
+#for every interval year, get the sum of the previous's years coral area (StartingSize)
+area_POSP <- rep(0,length(yearPosp)) #initialize vector
+for (w in 1:length(yearPosp)) {
+  area_POSP[w] <- sum(Porites$StartingSize[which(Porites$Interval_Years== yearPosp[w])])
+}
+area_POSP #sum of patch areas for every time interval
+log(area_POSP) #log transformed total patch area/time interval
+
+#number of recruits per transition (number recruits/interval year)
+recr_POSP <- rep(0,length(yearPosp)) #initalize vector
+#for every interval year, get the sum of recruits for that interval year
+for (v in 1:length(yearPosp)) {
+  recr_POSP[v] <- sum(Porites$Recruit[which(Porites$Interval_Years== yearPosp[v])])
+}
+recr_POSP <- round(recr_POSP/yearPosp) #normalizes by time interval (# of recruits/time interval)
+recr_POSP
+
+#size specific recruitment rate (# of recruits/area of parent corals)
+sizespecrec_POSP <- recr_POSP/area_POSP
+sizespecrec_POSP #log transformed size specific recruitment rate
+avg_rPOSP <- mean(na.omit(sizespecrec_POSP))
+avg_rPOSP
 
 
+
+#############
 #montipora
-recr_MOSP <- subset(recruitment, Genus_Code == "MOSP")
-#MOSP_recr_hist <- hist(recr_MOSP$ln_ES, breaks = 100)
+recr_MOSP <- subset(Montip, TransitionTypeSimple == "RECR")
+#POCS_recr_hist <- hist(recr_POCS$ln_ES, breaks = 100)
+
+#total coral area per interval year
+#first calc all unique time intervals
+yearMosp <- unique(Montip$Interval_Years)
+yearMosp
+#for every interval year, get the sum of the previous's years coral area (StartingSize)
+area_MOSP <- rep(0,length(yearMosp)) #initialize vector
+for (w in 1:length(yearMosp)) {
+  area_MOSP[w] <- sum(Montip$StartingSize[which(Montip$Interval_Years== yearMosp[w])])
+}
+area_MOSP #sum of patch areas for every time interval
+log(area_MOSP) #log transformed total patch area/time interval
+
+#number of recruits per transition (number recruits/interval year)
+recr_MOSP <- rep(0,length(yearMosp)) #initalize vector
+#for every interval year, get the sum of recruits for that interval year
+for (v in 1:length(yearMosp)) {
+  recr_MOSP[v] <- sum(Montip$Recruit[which(Montip$Interval_Years== yearMosp[v])])
+}
+recr_MOSP <- round(recr_MOSP/yearMosp) #normalizes by time interval (# of recruits/time interval)
+recr_MOSP
+
+#size specific recruitment rate (# of recruits/area of parent corals)
+sizespecrec_MOSP <- recr_MOSP/area_MOSP
+sizespecrec_MOSP #log transformed size specific recruitment rate
+avg_rMOSP <- mean(na.omit(sizespecrec_MOSP))
+avg_rMOSP
 
 
+#############
+#Recruitment probability
+#logistic regression (maybe Poisson GLM?)
+
+#all recruitment (all sites all genera)
+repro <- 1 - ColonyLevel$Recruit
+ColonyLevel$ln_ES <- as.numeric(ColonyLevel$ln_ES)
+ColonyLevel$ln_ES[ColonyLevel$ln_ES == -Inf] <-NA
+#fit
+allreprofit <- glm(repro ~ ln_ES, family = "binomial", data = ColonyLevel)
+allreprofit
+summary(allreprofit)
+
+
+#Pocillopora recruitment 
+repro <- 1 - Poc$Recruit
+Poc$ln_ES <- as.numeric(Poc$ln_ES)
+Poc$ln_ES[Poc$ln_ES == -Inf] <-NA
+#fit
+reprofit_POCS <- glm(repro ~ ln_ES, family = "binomial", data = Poc)
+reprofit_POCS
+summary(reprofit_POCS)
+
+
+#Porites recruitment 
+repro <- 1 - Porites$Recruit
+Porites$ln_ES <- as.numeric(Porites$ln_ES)
+Porites$ln_ES[Porites$ln_ES == -Inf] <-NA
+#fit
+reprofit_POSP <- glm(repro ~ ln_ES, family = "binomial", data = Porites)
+reprofit_POSP
+summary(reprofit_POSP)
+
+#Montipora recruitment 
+repro <- 1 - Montip$Recruit
+Montip$ln_ES <- as.numeric(Montip$ln_ES)
+Montip$ln_ES[Montip$ln_ES == -Inf] <-NA
+#fit
+reprofit_MOSP <- glm(repro ~ ln_ES, family = "binomial", data = Montip)
+reprofit_MOSP
+summary(reprofit_MOSP)
+
+```
+
+#Create dataframe
+```{r}
+
+POCSgro <- coef(fit_POCS)
+MOSPgro <- coef(fit_MOSP)
+POSPgro <- coef(fit_POSP)
+POCSsurv <- coef(gn_POCS)
+MOSPsurv <- coef(gn_MOSP)
+POSPsurv <- coef(gn_POSP)
+allreprod <- coef(allreprofit)
+reprofit_POCS <- coef(reprofit_POCS)
+reprofit_POSP <- coef(reprofit_POSP)
+reprofit_MOSP <- coef(reprofit_MOSP)
+
+#allreprofit is slope and intercept from logistic regression for ALL taxa
+#recruitment parameters avg_rPOCS,avg_rPOSP,avg_rMOSP are probs messed up. They are NOT slope/intercept; they are size specific recruitment rate (# of recruits/area of parent corals)
+VR_slpint <- data.frame(POCSgro,MOSPgro,POSPgro,POCSsurv,MOSPsurv,POSPsurv,allreprod,reprofit_POCS,reprofit_POSP,reprofit_MOSP,avg_rPOCS,avg_rPOSP,avg_rMOSP)
+rownames(VR_slpint) <- c('Intercept','Slope')
+VR_slpint
+
+#names(tester)
 
 ```
 
@@ -568,15 +728,15 @@ recr_MOSP <- subset(recruitment, Genus_Code == "MOSP")
 **Caroline's to-do list:**
 - [X] separate whole dataset by genus
 - [ ] clean up script
-- [ ] create dataframe: slope and intercept for each genus for each demographic parameter
+- [X] create dataframe: slope and intercept for each genus for each demographic parameter
 growth:
 - [X] slope and intercept for each genus
 survival:
 - [X] slope and intercept for each genus
 reproduction: 
-- [ ] calculate total coral area from previous timepoint
-- [ ] Then take # recruits/total area (AKA take yearish/previous area)
-- [ ] separate by each genus
+- [X] calculate total coral area from previous timepoint
+- [X] Then take # recruits/total area (AKA take yearish/previous area)
+- [X] separate by each genus
 
 
 
