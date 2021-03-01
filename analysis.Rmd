@@ -43,13 +43,13 @@ Individual models: (the more realistic models that we are more interested in)
 (2) Each Genera by site, interval years are not separated
 (3) Each genera by site and interval year (we will have parameter values that equal site * interval years * genera)
 
-```{r FULLmodGROWTH, eval = FALSE}
+```{r FULLmodGROWTH, eval = TRUE}
 # initializing the data runs for the growth analysis
 
 # define the parms for model loop
-Focus <- IntervalYears
+Focus <- GeneraNames #change this each run
 LoopLength <- length(Focus)
-Spec_selection <- ColonyLevel$Interval_Years
+Spec_selection <- ColonyLevel$Genus_Code #change this each run
 
 # defining the matrix which holds the slope/int for each model run in the loop
 growth <- matrix(0, nrow = 2, ncol = LoopLength)
@@ -60,7 +60,7 @@ for (i in 1:LoopLength){
   subset1 <- subset(ColonyLevel, Spec_selection == Focus[i])
   
   # subsetting for growth & shrinkage
-  subset2 <- subset(genz, TransitionTypeSimple == "GROWTH" | 
+  subset2 <- subset(subset1, TransitionTypeSimple == "GROWTH" | 
                    TransitionTypeSimple == "SHRINK")
   
   # running the linear regression model
@@ -77,9 +77,82 @@ Glist <- list(g.int = growth[1,], g.slp = growth[2,])
 
 # for each model grouping: 
 # Comment out before new run
+ Glist_genera <- Glist # Full model 1
+# Glist_site <- Glist # Full model 2
+# Glist_years <- Glist # Full model 3
+ 
+```
+
+```{r Plotting full growth models, }
+plot(ln_ES ~ ln_SS ,data = ColonyLevel)
+abline(a=Glist_genera$g.int[1], b=Glist_genera$g.slp[1], col='red', lwd=2)
+abline(a=Glist_genera$g.int[2], b=Glist_genera$g.slp[2], col='blue', lwd=2)
+abline(a=Glist_genera$g.int[3], b=Glist_genera$g.slp[3], col='green', lwd=2)
+legend("topleft", bty = "n", lty = c(1,1), col = c("red","blue","green"),
+       legend= GeneraNames , cex = 0.8)
+
+#plot each genus separately
+#use par(mfrow)
+
+
+```
+
+
+
+
+Each Genera by interval year, sites are not separated
+Growth (line 116) is messed up
+```{r IndividualGrowthMods, eval=TRUE}
+# initializing the data runs for the growth analysis
+
+# define the parms for model loop
+Focus <- GeneraNames
+subFocus <- IntervalYears
+LoopLength <- length(Focus)
+LoopLengthSF <- length(subFocus)
+Spec_selection <- ColonyLevel$Genus_Code
+Spec_selectionSF <- ColonyLevel$Interval_Years
+# defining the matrix which holds the slope/int for each model run in the loop
+growth <- matrix(0, nrow = 2, ncol = (LoopLength * LoopLengthSF))
+
+
+for (i in 1:LoopLength){
+  # subsetting to specifiy which interactions (genera/site/year) we care about
+  subset1 <- subset(ColonyLevel, Spec_selection == Focus[i])
+  for (v in 1:LoopLengthSF) {
+    subset2 <- subset(subset1, Spec_selectionSF == subFocus[v])
+    # subsetting for growth & shrinkage
+    subset3 <- subset(subset2, TransitionTypeSimple == "GROWTH" | 
+                   TransitionTypeSimple == "SHRINK")
+  
+  # running the linear regression model
+    modG <- lm(ln_ES ~ ln_SS ,data = subset3)
+  
+  # saving the model
+    growth[,i] <- coef(modG)
+  }
+}
+
+# moving model coefs into a list
+# need to define the column names
+Glist <- list(g.int = growth[1,], g.slp = growth[2,])
+
+# for each model grouping: 
+# Comment out before new run
 # Glist_genera <- Glist # Full model 1
 # Glist_site <- Glist # Full model 2
 # Glist_years <- Glist # Full model 3
 
-
 ```
+
+#TO DO
+Fix growth line
+Then run individual models 2 & 3
+Plot each genus separately (full model)
+Plot each full model
+Plot each individual model
+Figure out how to save into dataframe
+Repeat for survival
+Repeat for reproduction
+
+
