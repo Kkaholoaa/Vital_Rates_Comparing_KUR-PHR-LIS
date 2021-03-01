@@ -1,0 +1,48 @@
+---
+title: "analysis"
+author: "Devynn M Wulstein"
+date: "3/1/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(cache = FALSE)
+```
+
+```{r}
+## Loading libraries
+library(ggplot2)
+library(plyr)
+library(dplyr)
+library(tidyr)
+```
+
+
+```{r}
+# Loading dataframe(s)
+AllDataFrame <- load("data/Patch_And_Colony_Data_20201103.rdata")
+```
+
+```{r}
+# Defining site IDs, genera names, and transition intervals (years) as lists
+SiteNames <- as.character(unique(ColonyLevel$Site))
+GeneraNames <- as.character(unique(ColonyLevel$Genus_Code))
+IntervalYears <- unique(ColonyLevel$Interval_Years)
+```
+
+The aim of this analysis is to calculate the kernel fits (growth, survival, & reproduction) for each combination of genera-site-year and then each separately. 
+
+Full models:
+(1) Each Genera for all sites & years
+(2) Each Site for all genera & years
+(3) Each Year for all sites & genera
+
+Individual models: (the more realistic models that we are more interested in)
+(1) Each Genera by year, sites are not seperated
+(2) Each Genera by site, years are not seperated
+(3) Each genera by site and year (we will have parameter values that equal site * years * genera)
+
+```{r GROWTH,}
+# initializing the 
+```
