@@ -34,15 +34,52 @@ IntervalYears <- unique(ColonyLevel$Interval_Years)
 The aim of this analysis is to calculate the kernel fits (growth, survival, & reproduction) for each combination of genera-site-year and then each separately. 
 
 Full models:
-(1) Each Genera for all sites & years
-(2) Each Site for all genera & years
-(3) Each Year for all sites & genera
+(1) Each Genera for all sites & interval years
+(2) Each Site for all genera & interval years
+(3) Each Interval Year for all sites & genera
 
 Individual models: (the more realistic models that we are more interested in)
-(1) Each Genera by year, sites are not seperated
-(2) Each Genera by site, years are not seperated
-(3) Each genera by site and year (we will have parameter values that equal site * years * genera)
+(1) Each Genera by interval year, sites are not separated
+(2) Each Genera by site, interval years are not separated
+(3) Each genera by site and interval year (we will have parameter values that equal site * interval years * genera)
 
-```{r GROWTH,}
-# initializing the 
+```{r FULLmodGROWTH, eval = FALSE}
+# initializing the data runs for the growth analysis
+
+# define the parms for model loop
+Focus <- IntervalYears
+LoopLength <- length(Focus)
+Spec_selection <- ColonyLevel$Interval_Years
+
+# defining the matrix which holds the slope/int for each model run in the loop
+growth <- matrix(0, nrow = 2, ncol = LoopLength)
+
+
+for (i in 1:LoopLength){
+  # subsetting to specifiy which interactions (genera/site/year) we care about
+  subset1 <- subset(ColonyLevel, Spec_selection == Focus[i])
+  
+  # subsetting for growth & shrinkage
+  subset2 <- subset(genz, TransitionTypeSimple == "GROWTH" | 
+                   TransitionTypeSimple == "SHRINK")
+  
+  # running the linear regression model
+  modG <- lm(ln_ES ~ ln_SS ,data = subset2)
+  
+  # saving the model
+  growth[,i] <- coef(modG)
+  
+}
+
+# moving model coefs into a list
+# need to define the column names
+Glist <- list(g.int = growth[1,], g.slp = growth[2,])
+
+# for each model grouping: 
+# Comment out before new run
+# Glist_genera <- Glist # Full model 1
+# Glist_site <- Glist # Full model 2
+# Glist_years <- Glist # Full model 3
+
+
 ```
