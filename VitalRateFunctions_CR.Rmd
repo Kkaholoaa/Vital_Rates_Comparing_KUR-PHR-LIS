@@ -438,9 +438,6 @@ ColonyLevel$ln_SS[ColonyLevel$ln_SS == -Inf] <-NA
 #fit
 gn <- glm(surv ~ ln_SS, family = "binomial", data = ColonyLevel)
 gn
-inv.logit <- function(x){
-  exp(x)/(1+exp(x))
-}
 
 #plot(ColonyLevel$ln_SS, surv, xlab = 'Area (ln of area)', ylab = 'Survival')
 # This isn't really showing anything...
@@ -462,9 +459,6 @@ Poc$ln_SS[Poc$ln_SS == -Inf] <-NA
 #fit
 gn_POCS <- glm(surv_POCS ~ ln_SS, family = "binomial", data = Poc)
 gn_POCS
-inv.logit <- function(x){
-  exp(x)/(1+exp(x))
-}
 #plot
 plot(jitter(surv_POCS, 0.1) ~ ln_SS, Poc)
 ss <- seq(-3, 9, 0.1)
@@ -479,9 +473,7 @@ Porites$ln_SS[Porites$ln_SS == -Inf] <-NA
 #fit
 gn_POSP <- glm(surv_POSP ~ ln_SS, family = "binomial", data = Porites)
 gn_POSP
-inv.logit <- function(x){
-  exp(x)/(1+exp(x))
-}
+
 #plot
 plot(jitter(surv_POSP, 0.1) ~ ln_SS, Porites)
 ss <- seq(-3, 9, 0.1)
@@ -529,15 +521,13 @@ for (w in 1:length(yearint)) {
   coralarea[w] <- sum(ColonyLevel$StartingSize[which(ColonyLevel$Interval_Years== yearint[w])])
 }
 coralarea #sum of patch areas for every time interval
-log(coralarea) #log transformed total patch area/time interval
+#log(coralarea) #log transformed total patch area/time interval
 
 
 #have area value for each time interval now calculate # recruits per time interval
 #sumrecruit<- sum(recruitment$Recruit) #total number of recruits
 
 #number of recruits per transition (number recruits/interval year)
-#iy <- unique(recruitment$Interval_Years)
-#iy 
 yearish <- rep(0,length(yearint)) #initalize vector
 #for every interval year, get the sum of recruits for that interval year
 for (v in 1:length(yearint)) {
@@ -547,9 +537,9 @@ yearish <- round(yearish/yearint) #normalizes by time interval (# of recruits/ti
 yearish
 
 #size specific recruitment rate (# of recruits/area of parent corals)
-sizespecrec <- yearish/coralarea
-sizespecrec #log transformed size specific recruitment rate
-mean(sizespecrec)
+areaspecrec <- yearish/coralarea
+areaspecrec #size specific recruitment rate
+mean(areaspecrec)
 
 
 
@@ -570,7 +560,7 @@ for (w in 1:length(yearPoc)) {
   area_POCS[w] <- sum(Poc$StartingSize[which(Poc$Interval_Years== yearPoc[w])])
 }
 area_POCS #sum of patch areas for every time interval
-log(area_POCS) #log transformed total patch area/time interval
+#log(area_POCS) #log transformed total patch area/time interval
 
 #number of recruits per transition (number recruits/interval year)
 recr_POCS <- rep(0,length(yearPoc)) #initalize vector
@@ -603,7 +593,7 @@ for (w in 1:length(yearPosp)) {
   area_POSP[w] <- sum(Porites$StartingSize[which(Porites$Interval_Years== yearPosp[w])])
 }
 area_POSP #sum of patch areas for every time interval
-log(area_POSP) #log transformed total patch area/time interval
+#log(area_POSP) #log transformed total patch area/time interval
 
 #number of recruits per transition (number recruits/interval year)
 recr_POSP <- rep(0,length(yearPosp)) #initalize vector
@@ -637,7 +627,7 @@ for (w in 1:length(yearMosp)) {
   area_MOSP[w] <- sum(Montip$StartingSize[which(Montip$Interval_Years== yearMosp[w])])
 }
 area_MOSP #sum of patch areas for every time interval
-log(area_MOSP) #log transformed total patch area/time interval
+#log(area_MOSP) #log transformed total patch area/time interval
 
 #number of recruits per transition (number recruits/interval year)
 recr_MOSP <- rep(0,length(yearMosp)) #initalize vector
@@ -655,7 +645,8 @@ avg_rMOSP <- mean(na.omit(sizespecrec_MOSP))
 avg_rMOSP
 
 
-#############
+################
+#probably not going to use
 #Recruitment probability
 #logistic regression (maybe Poisson GLM?)
 
