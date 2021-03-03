@@ -17,9 +17,9 @@ library(tidyr)
 ```{r}
 setwd("/Users/c-rod/Documents/R_data/VitalRates/")
 #load in .rdata file
-load(file = "/Users/c-rod/Documents/R_data/VitalRates/Patch_And_Colony_Data_20201103.rdata")
+load("/Users/c-rod/Documents/R_data/VitalRates/data/Patch_And_Colony_Data_20201103.rdata")
 
-View(ColonyLevel)
+#View(ColonyLevel)
 #View(PatchLevel)
 
 
@@ -364,18 +364,18 @@ growth_OAHOCC010 <- subset(OAHOCC010, TransitionTypeSimple == "GROWTH" | Transit
 #function
 fit_OAHOCC010 <- lm(ln_ES ~ ln_SS ,data = growth_OAHOCC010)
 fit_OAHOCC010
-summary(fit_OAH022)
+summary(fit_OAHOCC010)
 #plot
-plot(ln_ES ~ ln_SS ,data = growth_OAH022 ,xlim=c(-3,10), ylim=c(-3,10), main="All genera growth at OAHOCC010") 
-abline(fit_OAH022)
+plot(ln_ES ~ ln_SS ,data = growth_OAHOCC010 ,xlim=c(-3,10), ylim=c(-3,10), main="All genera growth at OAHOCC010") 
+abline(fit_OAHOCC010)
 abline(a=0, b=1,col="red")
 legend("topleft", bty = "n", lty = c(1,1), col = c("black","red"),
        legend=c("model fit", "1:1"), cex = 0.8)
 #plot residuals
 par(mfrow=c(2,2))
-plot(fit_OAH022)
+plot(fit_OAHOCC010)
 #interpret results
-anova(fit_OAH022)
+anova(fit_OAHOCC010)
 
 ```
 
