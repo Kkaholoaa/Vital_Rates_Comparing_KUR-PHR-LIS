@@ -48,9 +48,9 @@ Individual models: (the more realistic models that we are more interested in)
 # initializing the data runs for the growth analysis
 
 # define the parms for model loop
-Focus <- SiteNames #change this each run
+Focus <- GeneraNames #change this each run
 LoopLength <- length(Focus)
-Spec_selection <- ColonyLevel$Site #change this each run
+Spec_selection <- ColonyLevel$Genus_Code #change this each run
 
 # defining the matrix which holds the slope/int for each model run in the loop
 growth <- matrix(0, nrow = 2, ncol = LoopLength)
@@ -78,10 +78,13 @@ Glist <- list(g.int = growth[1,], g.slp = growth[2,])
 
 # for each model grouping: 
 # Comment out before new run
-# Glist_genera <- Glist # Full model 1
- Glist_site <- Glist # Full model 2
+ Glist_genera <- Glist # Full model 1
+# Glist_site <- Glist # Full model 2
 # Glist_years <- Glist # Full model 3
- 
+
+#doesn't work yet...trying to name cols in list
+#dimnames(Glist_genera) <- list("POCS", "POSP", "MOSP" )
+
 ```
 #Plot full growth model1
 ```{r Plotting full growth model 1, }
