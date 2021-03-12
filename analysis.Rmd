@@ -172,45 +172,92 @@ Growth (line 116) is messed up
 # initializing the data runs for the growth analysis
 
 # define the parms for model loop
+minTrans <- 1
 Focus <- GeneraNames
 subFocus <- IntervalYears
 LoopLength <- length(Focus)
-LoopLengthSF <- length(subFocus)
+LoopLengthSF <-  length(subFocus)
 Spec_selection <- ColonyLevel$Genus_Code
 Spec_selectionSF <- ColonyLevel$Interval_Years
-# defining the matrix which holds the slope/int for each model run in the loop
-growth <- matrix(0, nrow = 2, ncol = (LoopLength * LoopLengthSF))
 
+# defining the matrix which holds the slope/int for each model run in the loop
+AllList_g2 <- list(Focus)
 
 for (i in 1:LoopLength){
+  growth <- matrix(0, nrow = 2, ncol = (LoopLengthSF))
   # subsetting to specifiy which interactions (genera/site/year) we care about
   subset1 <- subset(ColonyLevel, Spec_selection == Focus[i])
-  for (v in 1:LoopLengthSF) {
-    subset2 <- subset(subset1, Spec_selectionSF == subFocus[v])
-    # subsetting for growth & shrinkage
-    subset3 <- subset(subset2, TransitionTypeSimple == "GROWTH" | 
-                   TransitionTypeSimple == "SHRINK")
   
-  # running the linear regression model
-    modG <- lm(ln_ES ~ ln_SS ,data = subset3)
+  for (v in 1:LoopLengthSF){
+    subset2 <- subset(subset1, TransitionTypeSimple == "GROWTH" | 
+                 TransitionTypeSimple == "SHRINK")
   
-  # saving the model
-    growth[,i] <- coef(modG)
+  ln_SS <- subset2$ln_SS[Monty2$Interval_Years == subFocus[v]]
+  ln_ES <- subset2$ln_ES[Monty2$Interval_Years == subFocus[v]]
+  
+  if (length(ln_SS) > minTrans){
+    mod <- lm(ln_ES ~ ln_SS)
+    # saving the model
+    growth[,v] <- coef(mod)}
+  
+  if (length(ln_SS) <= minTrans){
+    #setting values to NaNs
+    growth[,v] <- NaN}
   }
+  gList <- list(g.int = growth[1,], g.slp = growth[2,])
+  AllList_g2[Focus[i]] <- list(gList)
 }
-
-# moving model coefs into a list
-# need to define the column names
-Glist <- list(g.int = growth[1,], g.slp = growth[2,])
-
-# for each model grouping: 
-# Comment out before new run
-# Glist_genera <- Glist # Full model 1
-# Glist_site <- Glist # Full model 2
-# Glist_years <- Glist # Full model 3
 
 ```
 
+
+```{r}
+NewLists <- list(Focus)
+
+List <- list(1:LoopLengthSF)
+
+for (i in 1:3){
+ # i = 1
+for (v in 1:LoopLengthSF){
+  #v = 1
+  subset1 <- subset(ColonyLevel, Spec_selection == Focus[i])
+  subset2 <- subset(subset1, TransitionTypeSimple == "GROWTH" | 
+                 TransitionTypeSimple == "SHRINK")
+  ss <- unique(subset2$Site)
+  glist1 <- list(SiteNames)
+  growth <- matrix(0, nrow = 2, ncol = 1)
+  for (s in 1:length(ss)){
+    #s = 2
+    ln_SS <- subset2$ln_SS[subset2$Interval_Years == subFocus[v] & 
+                             subset2$Site == ss[s]]
+    
+    ln_ES <- subset2$ln_ES[subset2$Interval_Years == subFocus[v] & 
+                             subset2$Site == ss[s]]
+    #subset3 <- subset(subset3, Spec_selectionSF == subFocus[v])
+    # subsetting for growth & shrinkage
+    ThisSite <- SiteNames[SiteNames == ss[s]]
+    
+    if (length(ln_SS) > 1){
+      mod <- lm(ln_ES ~ ln_SS)
+      # saving the model
+      growth <- coef(mod)}
+  
+    if (length(ln_SS) < 1){
+      #setting values to NaNs
+      growth[1] <- sprintf("Not enough data for site: %s", ThisSite)
+      growth[2] <- sprintf("Not enough data for site: %s", ThisSite)
+    }
+    
+      Sites <- list(g.int = growth[1], g.slp = growth[2])
+      glist1[ThisSite] <- list(Sites)
+  } 
+    #gListS <- list(g.int = growth[1,], g.slp = growth[2,])
+    List[v] <- list(glist1)
+}
+NewLists[Focus[i]] <- list(List)
+}
+# running the linear regression model$
+```
 #TO DO
 [ ] Fix growth line
 [ ] Then run individual models 2 & 3
@@ -220,5 +267,6 @@ Glist <- list(g.int = growth[1,], g.slp = growth[2,])
 [ ] Figure out how to save into dataframe
 [ ] Repeat for survival
 [ ] Repeat for reproduction
+
 
 
