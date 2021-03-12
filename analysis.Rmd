@@ -16,7 +16,6 @@ library(ggplot2)
 library(plyr)
 library(dplyr)
 library(tidyr)
-library(RColorBrewer)
 ```
 
 
@@ -48,9 +47,9 @@ Individual models: (the more realistic models that we are more interested in)
 # initializing the data runs for the growth analysis
 
 # define the parms for model loop
-Focus <- GeneraNames #change this each run
+Focus <- IntervalYears #change this each run
 LoopLength <- length(Focus)
-Spec_selection <- ColonyLevel$Genus_Code #change this each run
+Spec_selection <- ColonyLevel$Interval_Years #change this each run
 
 # defining the matrix which holds the slope/int for each model run in the loop
 growth <- matrix(0, nrow = 2, ncol = LoopLength)
@@ -78,9 +77,9 @@ Glist <- list(g.int = growth[1,], g.slp = growth[2,])
 
 # for each model grouping: 
 # Comment out before new run
- Glist_genera <- Glist # Full model 1
+# Glist_genera <- Glist # Full model 1
 # Glist_site <- Glist # Full model 2
-# Glist_years <- Glist # Full model 3
+ Glist_years <- Glist # Full model 3
 
 #doesn't work yet...trying to name cols in list
 #dimnames(Glist_genera) <- list("POCS", "POSP", "MOSP" )
@@ -116,23 +115,34 @@ legend("topleft", bty = "n", lty = c(1,1), col = c("green"),
 ```
 #Plotting full growth model 2
 ```{r Plotting full growth model 2,}
+
+#Plot full growth model2
+LoopLeng <- length(SiteNames)
 plot(ln_ES ~ ln_SS ,data = ColonyLevel, main="Each site growth fit for all genera + all interval years")
-abline(a=Glist_site$g.int[1], b=Glist_site$g.slp[1], col=1:12, lwd=2)
-abline(a=Glist_site$g.int[2], b=Glist_site$g.slp[2], col=2:12, lwd=2)
-abline(a=Glist_site$g.int[3], b=Glist_site$g.slp[3], col=3:12, lwd=2)
-abline(a=Glist_site$g.int[4], b=Glist_site$g.slp[4], col=4:12, lwd=2)
-abline(a=Glist_site$g.int[5], b=Glist_site$g.slp[5], col=5:12, lwd=2)
-abline(a=Glist_site$g.int[6], b=Glist_site$g.slp[6], col=6:12, lwd=2)
-abline(a=Glist_site$g.int[7], b=Glist_site$g.slp[7], col=7:12, lwd=2)
-abline(a=Glist_site$g.int[8], b=Glist_site$g.slp[8], col=8:12, lwd=2)
-abline(a=Glist_site$g.int[9], b=Glist_site$g.slp[9], col=9:12, lwd=2)
-abline(a=Glist_site$g.int[10], b=Glist_site$g.slp[10], col=10:12, lwd=2)
-abline(a=Glist_site$g.int[11], b=Glist_site$g.slp[11], col=11:12, lwd=2)
+for (i in 1:LoopLeng) {
+  abline(a=Glist_site$g.int[i], b=Glist_site$g.slp[i], col=i , lwd=2)
+}
 legend("topleft", bty = "n", lty = c(1,1), col = 1:11,
        legend= SiteNames , cex = 0.8, pt.cex = .7)
 
-#plot each site separately
-par(mfrow=c(2,2))
+
+#plot each site's growth model separately
+LoopLeng <- length(SiteNames)
+par(mfrow=c(4,3))
+for (h in 1:LoopLeng) {
+  plot(ln_ES ~ ln_SS ,data = ColonyLevel)
+    abline(a=Glist_site$g.int[i], b=Glist_site$g.slp[i], col=i , lwd=2)
+    for (i in 1:LoopLeng) {
+      abline(a=Glist_site$g.int[i], b=Glist_site$g.slp[i], col=i , lwd=2)
+  legend("topleft", bty = "n", lty = c(1,1), col = 1:11,
+       legend= SiteNames , cex = 0.6, pt.cex = .5)
+  }
+}
+
+
+
+
+
 #MAISIOK01
 plot(ln_ES ~ ln_SS ,data = ColonyLevel, main="MAISIOK01 growth fit for all genera + all interval years")
 abline(a=Glist_site$g.int[1], b=Glist_site$g.slp[1], col=1:11, lwd=2)
@@ -143,23 +153,41 @@ plot(ln_ES ~ ln_SS ,data = ColonyLevel, main="HAWOCC002 growth fit for all gener
 abline(a=Glist_site$g.int[2], b=Glist_site$g.slp[2], col=2:11, lwd=2)
 legend("topleft", bty = "n", lty = c(1,1), col = 2:11,
        legend= 'HAWOCC002' , cex = 0.8)
-#HAWOCC003
-plot(ln_ES ~ ln_SS ,data = ColonyLevel, main="HAWOCC003 growth fit for all genera + all interval years")
-abline(a=Glist_site$g.int[3], b=Glist_site$g.slp[3], col=3:11, lwd=2)
-legend("topleft", bty = "n", lty = c(1,1), col = 3:11,
-       legend= 'HAWOCC003' , cex = 0.8)
-#HAWOCC010
-plot(ln_ES ~ ln_SS ,data = ColonyLevel, main="HAWOCC010 growth fit for all genera + all interval years")
-abline(a=Glist_site$g.int[4], b=Glist_site$g.slp[4], col=4:11, lwd=2)
-legend("topleft", bty = "n", lty = c(1,1), col = 4:11,
-       legend= 'HAWOCC010' , cex = 0.8)
-#etc. Should I keep plotting these?
 
-#HAWSIOK08
 
 ```
 #Plot full growth model 3
+Each Interval Year for all sites & genera
 ```{r Plotting full growth model 2,}
+#silly way
+plot(ln_ES ~ ln_SS ,data = ColonyLevel, main="Each interval growth fit for all genera + all sites")
+abline(a=Glist_years$g.int[1], b=Glist_years$g.slp[1], col=1:12, lwd=2)
+abline(a=Glist_years$g.int[2], b=Glist_years$g.slp[2], col=2:12, lwd=2)
+abline(a=Glist_years$g.int[3], b=Glist_years$g.slp[3], col=3:12, lwd=2)
+abline(a=Glist_years$g.int[4], b=Glist_years$g.slp[4], col=4:12, lwd=2)
+abline(a=Glist_years$g.int[5], b=Glist_years$g.slp[5], col=5:12, lwd=2)
+abline(a=Glist_years$g.int[6], b=Glist_years$g.slp[6], col=6:12, lwd=2)
+abline(a=Glist_years$g.int[7], b=Glist_years$g.slp[7], col=7:12, lwd=2)
+abline(a=Glist_years$g.int[8], b=Glist_years$g.slp[8], col=8:12, lwd=2)
+abline(a=Glist_years$g.int[9], b=Glist_years$g.slp[9], col=9:12, lwd=2)
+abline(a=Glist_years$g.int[10], b=Glist_years$g.slp[10], col=10:12, lwd=2)
+abline(a=Glist_years$g.int[11], b=Glist_years$g.slp[11], col=11:12, lwd=2)
+legend("topleft", bty = "n", lty = c(1,1), col = 1:11,
+       legend= IntervalYears , cex = 0.8, pt.cex = .7)
+
+#why does interval year 4.26557 have a negative slope?
+ColonyLevel$Site[ColonyLevel$Interval_Years == IntervalYears[10]] #ID the site that is in the 10th position in IntervalYears
+
+#attempt
+LoopLength <- length(IntervalYears)
+plot(ln_ES ~ ln_SS ,data = ColonyLevel, main="Each interval growth fit for all genera + all sites")
+for (i in 1:LoopLength) {
+  abline(a=Glist_years$g.int[i], b=Glist_years$g.slp[i], col=i, lwd=2)
+}
+legend("topleft", bty = "n", lty = c(1,1), col = 1:21,
+       legend= IntervalYears , cex = 0.8, pt.cex = .7)
+
+
 
 ```
 
@@ -214,7 +242,7 @@ Glist <- list(g.int = growth[1,], g.slp = growth[2,])
 #TO DO
 [ ] Fix growth line
 [ ] Then run individual models 2 & 3
-[ ] Plot each genus separately (full model)
+[X] Plot each genus separately (full model)
 [ ] Plot each full model
 [ ] Plot each individual model
 [ ] Figure out how to save into dataframe
