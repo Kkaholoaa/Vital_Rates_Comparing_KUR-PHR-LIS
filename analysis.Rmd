@@ -47,9 +47,9 @@ Individual models: (the more realistic models that we are more interested in)
 # initializing the data runs for the growth analysis
 
 # define the parms for model loop
-Focus <- IntervalYears #change this each run
+Focus <- SiteNames #change this each run
 LoopLength <- length(Focus)
-Spec_selection <- ColonyLevel$Interval_Years #change this each run
+Spec_selection <- ColonyLevel$Site #change this each run
 
 # defining the matrix which holds the slope/int for each model run in the loop
 growth <- matrix(0, nrow = 2, ncol = LoopLength)
@@ -78,8 +78,8 @@ Glist <- list(g.int = growth[1,], g.slp = growth[2,])
 # for each model grouping: 
 # Comment out before new run
 # Glist_genera <- Glist # Full model 1
-# Glist_site <- Glist # Full model 2
- Glist_years <- Glist # Full model 3
+ Glist_site <- Glist # Full model 2
+# Glist_years <- Glist # Full model 3
 
 #doesn't work yet...trying to name cols in list
 #dimnames(Glist_genera) <- list("POCS", "POSP", "MOSP" )
@@ -131,29 +131,10 @@ LoopLeng <- length(SiteNames)
 par(mfrow=c(4,3))
 for (h in 1:LoopLeng) {
   plot(ln_ES ~ ln_SS ,data = ColonyLevel)
-    abline(a=Glist_site$g.int[i], b=Glist_site$g.slp[i], col=i , lwd=2)
-    for (i in 1:LoopLeng) {
-      abline(a=Glist_site$g.int[i], b=Glist_site$g.slp[i], col=i , lwd=2)
-  legend("topleft", bty = "n", lty = c(1,1), col = 1:11,
-       legend= SiteNames , cex = 0.6, pt.cex = .5)
-  }
+    abline(a=Glist_site$g.int[h], b=Glist_site$g.slp[h], col=h , lwd=2)
+  legend("topleft", bty = "n", lty = c(1,1), col = h,
+         legend= SiteNames[h], cex = 0.6, pt.cex = .5)
 }
-
-
-
-
-
-#MAISIOK01
-plot(ln_ES ~ ln_SS ,data = ColonyLevel, main="MAISIOK01 growth fit for all genera + all interval years")
-abline(a=Glist_site$g.int[1], b=Glist_site$g.slp[1], col=1:11, lwd=2)
-legend("topleft", bty = "n", lty = c(1,1), col = 1:11,
-       legend= 'MAISIOK01' , cex = 0.8)
-#HAWOCC002
-plot(ln_ES ~ ln_SS ,data = ColonyLevel, main="HAWOCC002 growth fit for all genera + all interval years")
-abline(a=Glist_site$g.int[2], b=Glist_site$g.slp[2], col=2:11, lwd=2)
-legend("topleft", bty = "n", lty = c(1,1), col = 2:11,
-       legend= 'HAWOCC002' , cex = 0.8)
-
 
 ```
 #Plot full growth model 3
