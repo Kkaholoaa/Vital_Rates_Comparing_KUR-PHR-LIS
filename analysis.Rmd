@@ -308,19 +308,18 @@ for (s in 1:SLoopLength){
   subset1 <- subset(ColonyLevel, Spec_selection == SFocus[s])
   
   # subsetting for survival
-  subset2 <- subset(subset1, TransitionTypeSimple == "GROWTH" | 
-                   TransitionTypeSimple == "SHRINK")
+  #subset2 <- subset(subset1, TransitionTypeSimple == "MORT")
+  surv <- 1 - ColonyLevel$Mortality
   
-  # running the linear regression model
-  modG <- lm(ln_ES ~ ln_SS ,data = subset2)
+  # running the generalized linear model
+  modS <- glm(surv ~ ln_SS, family = "binomial", data = subset2)
   
   # saving the model
-  survival[,s] <- coef(modG)
+  survival[,s] <- coef(modS)
   
 }
-
 # moving model coefs into a list
-Slist <- list(g.int = growth[1,], g.slp = growth[2,])
+Slist <- list(s.int = survival[1,], s.slp = survival[2,])
 
 # for each model grouping: 
 # Comment out before new run
