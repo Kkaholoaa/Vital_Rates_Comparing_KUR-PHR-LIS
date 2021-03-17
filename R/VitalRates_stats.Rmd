@@ -11,16 +11,17 @@ library(ggplot2)
 library(dplyr)
 library(plyr)
 library(tidyr)
+library(car) #used for ANCOVA
 ```
 
-#Set up
+#Set up (change path for your computer)
 ```{r}
 setwd("/Users/c-rod/Documents/R_data/VitalRates/")
 #load in .rdata file
-load(file = "/Users/c-rod/Documents/R_data/VitalRates/Patch_And_Colony_Data_20201103.rdata")
+load(file = "/Users/c-rod/Documents/R_data/VitalRates/data/Patch_And_Colony_Data_20201103.rdata")
 #View both tables saved in the .rdata
 View(ColonyLevel)
-View(PatchLevel)
+#View(PatchLevel)
 
 ```
 
@@ -29,13 +30,13 @@ View(PatchLevel)
 Going to use ColonyLevel data to avoid all the fission/fusion confusion
 ```{r}
 MAISIOK01 <- subset(ColonyLevel, Site=="MAI_SIO_K01")
-View(MAISIOK01)
+#View(MAISIOK01)
 
 KUROCC010 <- subset(ColonyLevel, Site=="KUR_OCC_010")
-View(KUROCC010)
+#View(KUROCC010)
 
 PHROCC016 <- subset(ColonyLevel, Site=="PHR_OCC_016")
-View(PHROCC016)
+#View(PHROCC016)
 
 ```
 
@@ -56,8 +57,7 @@ T0T1 = ggplot(data = MAISIOK01, aes(x=StartingSize, y=EndingSize,color=Transitio
 T0T1
 scale=3
 #save the plot
-ggsave(filename = paste0(basepath,"Figures/TransitionTypeT0T1ByGenus_MAIK01.png"),
-       plot=T0T1,width=6*scale,height=scale*3)
+#ggsave(filename = paste0(basepath,"Figures/TransitionTypeT0T1ByGenus_MAIK01.png"),plot=T0T1,width=6*scale,height=scale*3)
 
 #same plot as above but adds lines
 T0T1_lin = ggplot(data = MAISIOK01, aes(x=StartingSize, y=EndingSize,color=TransitionTypeSimple,shape=TransitionTypeSimple,group=ColonyID)) + 
@@ -111,7 +111,7 @@ T0T1y = ggplot(subset(MAISIOK01, Genus_Code%in%c("MOSP","POSP")), aes(x=Starting
   theme(axis.text = element_text(size = 20))+ theme(axis.title = element_text(size = 20))+ theme(legend.text = element_text(size = 20))+ theme(legend.title = element_text(size = 26))+
   xlab("Colony Size at Time T (cm^2)") + ylab("Colony Size at Time T+1 (cm^2)")
 T0T1y
-ggsave(filename = paste0(basepath,"Figures/TransitionTypeT0T1ByGenus_ByYear_MAI2.png"),plot=T0T1y,width=8*scale,height=scale*5)
+#ggsave(filename = paste0(basepath,"Figures/TransitionTypeT0T1ByGenus_ByYear_MAI2.png"),plot=T0T1y,width=8*scale,height=scale*5)
 
 ############################
 #KUR
@@ -135,10 +135,9 @@ T0T1y_PHR = ggplot(data = PHROCC016, aes(x=StartingSize, y=EndingSize,color=Tran
   facet_wrap(c("Spec_Code","Site","Interval"),scales="free")+
   xlab("Colony Size at Time T (cm^2)") + ylab("Colony Size at Time T+1 (cm^2)")
 T0T1y_PHR
-ggsave(filename = paste0(basepath,"Figures/TransitionTypeT0T1ByGenus_ByYear_PHR.png"),plot=T0T1y_PHR,width=8*scale,height=scale*5)
+#ggsave(filename = paste0(basepath,"Figures/TransitionTypeT0T1ByGenus_ByYear_PHR.png"),plot=T0T1y_PHR,width=8*scale,height=scale*5)
 
 ```
-
 
 
 #Counting
@@ -161,8 +160,7 @@ MOSP_MAI14 #88 in 2014
 POSP_MAI14 <- sum(with(MAISIOK01, Genus_Code=="POSP" & StartingYear==2014))
 POSP_MAI14 #107 in 2014
 
-
- 
+#count total colonies from each genus for MAISIOK01 site
 MOSP <- sum(with(MAISIOK01, Genus_Code=="MOSP"))
 MOSP #214
 POCS <- sum(with(MAISIOK01, Genus_Code=="POCS"))
@@ -170,10 +168,12 @@ POCS #10
 POSP <- sum(with(MAISIOK01, Genus_Code=="POSP"))
 POSP #288
 
-table(MAI_SIO_K01$Genus_Code,useNA="always")
+#faster way to count genera for MAISIOK01
+table(MAISIOK01$Genus_Code,useNA="always")
 #MOSP 497, POCS 14, POSP 605
 
-table(MAI_SIO_K01$TransitionTypeSimple,useNA="always")
+#count transition types
+table(MAISIOK01$TransitionTypeSimple,useNA="always")
 
 
 
@@ -201,58 +201,11 @@ MAIgro_1516 #2
 MAIshrin_1618 <- sum(with(MAISIOK01, TransitionTypeSimple=="RECR" & EndingYear==2018))
 MAIshrin_1618 #34
 
+#etc. Since this code involves a lot of repetition, we need to write a loop to make our script
+#simpler and more reproducible
 
 ```
 
-#ignore this
-```{r}
-####Playing around with raw data files to count # of colonies in each genus in each year. Above ^^ is transitions
-library(stringr)
-MAI_SIO_K01_1 = read.csv("2014_MAI_SIO_k01_09022020.csv")
-#View(MAI_SIO_K01_1)
-MAI_SIO_K01_2 =read.csv("201507_201606_2018_MAI_SIO_K01_09022020.csv")
-#View(MAI_SIO_K01_1)
-names(MAI_SIO_K01_2)[names(MAI_SIO_K01_2) == "FID"] <- "OBJECTID"
-setdiff(names(MAI_SIO_K01_1),names(MAI_SIO_K01_2)) 
-MAI_SIO_K01_1$Id <- NULL
-MAI_SIO_K01_1$Shape_Length <- NULL
-MAI_SIO_K01_2$Shape_Leng <- NULL
-MAI_SIO_K01=rbind(MAI_SIO_K01_1,MAI_SIO_K01_2)
-
-GenusCodeLUnames=c("PMEA","PGRA","POSP","PLUT", "PLIC","MFLA","MPAT", "MOSP","POCS","POSP","PLOB","MCAP")
-GenusCodeLU=c("POCS","POCS","POSP","POSP","POSP", "MOSP","MOSP", "MOSP","POCS","POSP","POSP","MOSP")
-names(GenusCodeLU)=GenusCodeLUnames
-MAI_SIO_K01$Spec_Code=str_trim(MAI_SIO_K01$Spec_Code)
-drop_SpBlank=which(MAI_SIO_K01$Spec_Code=="")
-if(length(drop_SpBlank)>0){MAI_SIO_K01=MAI_SIO_K01[-drop_SpBlank,]}
-MAI_SIO_K01$Genus_Code=GenusCodeLU[MAI_SIO_K01$Spec_Code]
-#table shows total # of colonies from each genus 
-table(MAI_SIO_K01$Genus_Code,useNA="always")
-#MOSP=497, POCS=14, POSP=606
-
-#break this into each year
-POCS_MAI_2014o <- sum(with(MAI_SIO_K01, Genus_Code=="POCS"& Date=='07/21/2014'))
-POCS_MAI_2014o #5 POCS colonies
-MOSP_MAI_2014o <- sum(with(MAI_SIO_K01, Genus_Code=="MOSP" & Date=='07/21/2014'))
-MOSP_MAI_2014o #189 MOSP colonies
-POSP_MAI_2014o <- sum(with(MAI_SIO_K01, Genus_Code=="POSP" & Date=='07/21/2014'))
-POSP_MAI_2014o #162 POSP colonies
-POCS_MAI_2015o <- sum(with(MAI_SIO_K01, Genus_Code=="POCS"& Date=='07/10/2015'))
-POCS_MAI_2015o #4 POCS colonies  2in015
-
-
-PHR = read.csv("PHR_OCC_016_100920.csv")
-GenusCodeLUnames=c("PMEA","PGRA","POSP","PLUT", "PLIC","MFLA","MPAT", "MOSP","POCS","POSP","PLOB","MCAP")
-GenusCodeLU=c("POCS","POCS","POSP","POSP","POSP", "MOSP","MOSP", "MOSP","POCS","POSP","POSP","MOSP")
-names(GenusCodeLU)=GenusCodeLUnames
-PHR$Spec_Code=str_trim(PHR$Spec_Code)
-drop_SpBlank=which(PHR$Spec_Code=="")
-if(length(drop_SpBlank)>0){PHR=PHR[-drop_SpBlank,]}
-PHR$Genus_Code=GenusCodeLU[PHR$Spec_Code]
-#table shows total # of colonies from each genus 
-table(PHR$Genus_Code,useNA="always")
-#216 POSP colonies
-```
 
 #ANCOVA 
 We will run an ANCOVA because there are 2 independent/predictor variables: 1 categorial (species) and 1 continuous variable (????). <<<What variable is this?
@@ -266,8 +219,9 @@ growthshrink <- subset(ColonyLevel, TransitionTypeSimple == "GROWTH" & Transitio
 #^^^this is not working correctly. Google how to subset two things at once
 
 #test for equal variance
-leveneTest(MAISIOK01$TransitionRate_L, MAISIOK01$)
+leveneTest(MAISIOK01$TransitionRate_L, MAISIOK01$) #<<<what variable goes here?
 #this may not run. Need to install one of these packages (google to figure out which one: ggpubr,sjstats,car,multcomp)
+#Kai figured out that it's the car package
 
 ```
 
