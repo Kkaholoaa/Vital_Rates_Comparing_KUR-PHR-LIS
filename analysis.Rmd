@@ -140,38 +140,31 @@ for (h in 1:LoopLeng) {
 #Plot full growth model 3
 Each Interval Year for all sites & genera
 ```{r Plotting full growth model 2,}
-#silly way
+#Plot full growth model3
+#mad right now bc of NA values
+LoopL <- length(IntervalYears)
 plot(ln_ES ~ ln_SS ,data = ColonyLevel, main="Each interval growth fit for all genera + all sites")
-abline(a=Glist_years$g.int[1], b=Glist_years$g.slp[1], col=1:12, lwd=2)
-abline(a=Glist_years$g.int[2], b=Glist_years$g.slp[2], col=2:12, lwd=2)
-abline(a=Glist_years$g.int[3], b=Glist_years$g.slp[3], col=3:12, lwd=2)
-abline(a=Glist_years$g.int[4], b=Glist_years$g.slp[4], col=4:12, lwd=2)
-abline(a=Glist_years$g.int[5], b=Glist_years$g.slp[5], col=5:12, lwd=2)
-abline(a=Glist_years$g.int[6], b=Glist_years$g.slp[6], col=6:12, lwd=2)
-abline(a=Glist_years$g.int[7], b=Glist_years$g.slp[7], col=7:12, lwd=2)
-abline(a=Glist_years$g.int[8], b=Glist_years$g.slp[8], col=8:12, lwd=2)
-abline(a=Glist_years$g.int[9], b=Glist_years$g.slp[9], col=9:12, lwd=2)
-abline(a=Glist_years$g.int[10], b=Glist_years$g.slp[10], col=10:12, lwd=2)
-abline(a=Glist_years$g.int[11], b=Glist_years$g.slp[11], col=11:12, lwd=2)
-legend("topleft", bty = "n", lty = c(1,1), col = 1:11,
-       legend= IntervalYears , cex = 0.8, pt.cex = .7)
-
-#why does interval year 4.26557 have a negative slope?
-ColonyLevel$Site[ColonyLevel$Interval_Years == IntervalYears[10]] #ID the site that is in the 10th position in IntervalYears
-
-#attempt
-LoopLength <- length(IntervalYears)
-plot(ln_ES ~ ln_SS ,data = ColonyLevel, main="Each interval growth fit for all genera + all sites")
-for (i in 1:LoopLength) {
-  abline(a=Glist_years$g.int[i], b=Glist_years$g.slp[i], col=i, lwd=2)
+for (m in 1:LoopL) {
+  abline(a=Glist_years$g.int[m], b=Glist_years$g.slp[m], col=m , lwd=2)
 }
-legend("topleft", bty = "n", lty = c(1,1), col = 1:21,
-       legend= IntervalYears , cex = 0.8, pt.cex = .7)
+legend("topleft", bty = "n", lty = c(1,1), col = 1:11,
+       legend= IntervalYears, cex = 0.8, pt.cex = .7)
 
 
+#which(is.na(Glist_years$g.slp)) #in which index is the glope NA?
+#why does interval year 4.26557 have a negative slope?
+#ColonyLevel$Site[ColonyLevel$Interval_Years == IntervalYears[10]] #ID the site that is in the 10th position in IntervalYears
+
+#plot each site's growth model separately
+par(mfrow=c(4,3))
+for (c in 1:LoopL) {
+  plot(ln_ES ~ ln_SS ,data = ColonyLevel, main="Each interval growth fit for all genera + all sites")
+    abline(a=Glist_years$g.int[c], b=Glist_years$g.slp[c], col=c , lwd=2)
+  legend("topleft", bty = "n", lty = c(1,1), col = c,
+         legend= IntervalYears[c], cex = 0.6, pt.cex = .5)
+}
 
 ```
-
 
 
 
@@ -321,15 +314,77 @@ for (i in 1:YNam){
 
 ```
 
+#Survival
+```{r SurvivalMods, eval=TRUE}
+#NOTES
+#all survival (all sites all genera)
+surv <- 1 - ColonyLevel$Mortality #if it dies it's a 0
+ColonyLevel$ln_SS <- as.numeric(ColonyLevel$ln_SS)
+ColonyLevel$ln_SS[ColonyLevel$ln_SS == -Inf] <-NA
+#fit
+gn <- glm(surv ~ ln_SS, family = "binomial", data = ColonyLevel)
+gn
+#Pocillopora
+surv_POCS <- 1 - Poc$Mortality
+Poc$ln_SS <- as.numeric(Poc$ln_SS)
+Poc$ln_SS[Poc$ln_SS == -Inf] <-NA
+#fit
+gn_POCS <- glm(surv_POCS ~ ln_SS, family = "binomial", data = Poc)
+gn_POCS
+
+
+#attempting loop
+# initializing the data runs for the survival analysis
+surv <- 1 - ColonyLevel$Mortality #if it dies it's a 0
+ColonyLevel$ln_SS <- as.numeric(ColonyLevel$ln_SS)
+ColonyLevel$ln_SS[ColonyLevel$ln_SS == -Inf] <-NA
+# define the parms for model loop
+SFocus <- GeneraNames #change this each run
+SLoopLength <- length(SFocus)
+Spec_selection <- ColonyLevel$Genus_Code #change this each run
+# defining the matrix which holds the slope/int for each model run in the loop
+survival <- matrix(0, nrow = 2, ncol = SLoopLength)
+for (s in 1:SLoopLength){
+  # subsetting to specifiy which interactions (genera/site/year) we care about
+  subset1 <- subset(ColonyLevel, Spec_selection == SFocus[s])
+  
+  # subsetting for survival
+  #subset2 <- subset(subset1, TransitionTypeSimple == "MORT")
+  surv <- 1 - ColonyLevel$Mortality
+  
+  # running the generalized linear model
+  modS <- glm(surv ~ ln_SS, family = "binomial", data = subset2)
+  
+  # saving the model
+  survival[,s] <- coef(modS)
+  
+}
+# moving model coefs into a list
+Slist <- list(s.int = survival[1,], s.slp = survival[2,])
+
+# for each model grouping: 
+# Comment out before new run
+ Slist_genera <- Slist # Full model 1
+# Slist_site <- Slist # Full model 2
+# Slist_years <- Slist # Full model 3
+```
+
+
+
+
 #TO DO
 [ ] Fix growth line
-[ ] Then run individual models 2 & 3
-[X] Plot each genus separately (full model)
-[ ] Plot each full model
-[ ] Plot each individual model
+[ ] Then run growth individual models 2 & 3
+[X] Plot each genus separately (full growth model)
+[X] Plot each full growth model
+[X] Plot each full growth model w/ specific data
+[ ] Plot each individual growth model
 [ ] Figure out how to save into dataframe
-[ ] Repeat for survival
-[ ] Repeat for reproduction
+[ ] Clean up script
+[ ] Operationalize survival script
+[ ] Plot survival models
+[ ] Operationalize reproducion script
+[ ] Plot reproduction models
 
 
 
