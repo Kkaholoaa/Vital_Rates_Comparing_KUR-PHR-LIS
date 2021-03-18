@@ -29,8 +29,70 @@ AllDataFrame <- load("data/Patch_And_Colony_Data_20201103.rdata")
 SiteNames <- as.character(unique(ColonyLevel$Site))
 GeneraNames <- as.character(unique(ColonyLevel$Genus_Code))
 IntervalYears <- unique(ColonyLevel$Interval_Years)
+
+# Ensuring that the log size values are numbers (I think they are numeric, but maybe not!)
+# And that the -Infs are NAs instead
+ColonyLevel$ln_ES <- as.numeric(ColonyLevel$ln_ES)
+ColonyLevel$ln_SS[ColonyLevel$ln_ES == -Inf] <-NA
+
+ColonyLevel$ln_SS <- as.numeric(ColonyLevel$ln_SS)
+ColonyLevel$ln_SS[ColonyLevel$ln_SS == -Inf] <-NA
 ```
 
+We are next creating all of the unique IDs for the models run. These correspond to the models that look at all genera together and those that look at each genera separately at separate sites and separate interval years. 
+
+```{r Creating the unique IDS,}
+# Unique IDs for all models
+#Prepping names
+RIntY <- as.character(sapply(IntervalYears, round, 3))
+TNam <- length(GeneraNames)
+SNam <- length(SiteNames)
+YNam <- length(RIntY)
+
+nums <- TNam + SNam + YNam + YNam*TNam +
+        SNam*TNam + YNam*TNam*SNam +1
+
+UniqueIDs <- rep(0, length=nums)
+UniqueIDs[1] <- "All_Genera_Site_Years"
+a <- 2
+b <- a + TNam -1
+rng <- a:b
+UniqueIDs[rng] <- sprintf("%s_All_Sites_Years",GeneraNames)
+
+a <- b + 1
+b <- a + SNam -1
+rng <- a:b
+UniqueIDs[rng] <- sprintf("%s_All_Taxa_Years", SiteNames)
+
+a <- b + 1
+b <- a + YNam -1
+rng <- a:b
+UniqueIDs[rng] <-sprintf("%s_All_Taxa_Sites", RIntY)
+
+for (g in 1:TNam){
+  a <- b+1
+  b <- a + SNam -1
+  rng <- a:b
+  UniqueIDs[rng] <-sprintf("%s_%s_All_Years", 
+                           rep(GeneraNames[g],length = SNam), 
+                           SiteNames)}
+
+
+# defining the name for the individual models! all 3x11x21 possible combos
+for (i in 1:YNam){
+  for (g in 1:TNam){
+    a <- b + 1
+    b <- a + SNam -1
+    rng <- a:b
+    UniqueIDs[rng] <- sprintf("%s_%s_%s", 
+                              rep(GeneraNames[g],length = SNam), 
+                              SiteNames,
+                              rep(RIntY[i],length = SNam))
+  }
+}
+
+
+```
 The aim of this analysis is to calculate the kernel fits (growth, survival, & reproduction) for each combination of genera-site-year and then each separately. 
 
 Full models:
@@ -44,45 +106,160 @@ Individual models: (the more realistic models that we are more interested in)
 (3) Each genera by site and interval year (we will have parameter values that equal site * interval years * genera)
 
 ```{r FULLmodGROWTH, eval = TRUE}
+################################################################################
+################### Model with no separation of terms ##########################
+################################################################################
+growth <- subset(ColonyLevel, TransitionTypeSimple == "GROWTH" | 
+                   TransitionTypeSimple == "SHRINK")
+
+mod <- lm(ln_ES ~ ln_SS, data = growth)
+
+# saving model coefficients and notes into dataframe with corresponding uniqueID
+GrowthDataFrame <- data.frame(Model_IDs = UniqueIDs[1], g.int = coef(mod)[1], 
+                              g.slp = coef(mod)[2], growth_notes = 
+                                sprintf("Num of transitions used equals %s", 
+                                        length(growth$ln_SS)))
+
+################################################################################
+################### Models Separated by Major Groupings ########################
+################# (1) Genera, (2) Site, and (3) Interval Year ##################
+################################################################################
+
+################################################################################
+###### 1. Genera models ########################################################
+################################################################################
+  
 # initializing the data runs for the growth analysis
-
 # define the parms for model loop
-Focus <- SiteNames #change this each run
+Focus <- GeneraNames 
 LoopLength <- length(Focus)
-Spec_selection <- ColonyLevel$Site #change this each run
+Spec_selection <- ColonyLevel$Genus_Code
+minTrans <- 4 # minimum number of transitions
 
-# defining the matrix which holds the slope/int for each model run in the loop
 growth <- matrix(0, nrow = 2, ncol = LoopLength)
-
-
+note <- c()
 for (i in 1:LoopLength){
-  # subsetting to specifiy which interactions (genera/site/year) we care about
   subset1 <- subset(ColonyLevel, Spec_selection == Focus[i])
   
   # subsetting for growth & shrinkage
   subset2 <- subset(subset1, TransitionTypeSimple == "GROWTH" | 
                    TransitionTypeSimple == "SHRINK")
   
-  # running the linear regression model
-  modG <- lm(ln_ES ~ ln_SS ,data = subset2)
+  ln_SS <- subset2$ln_SS
+  ln_ES <- subset2$ln_ES
   
-  # saving the model
-  growth[,i] <- coef(modG)
+  if (length(ln_SS) > minTrans){
+    mod <- lm(ln_ES ~ ln_SS)
+    note[i] <- sprintf("Num of transitions = %s", 
+                    length(ln_SS))
+    
+    growth[,i] <- coef(mod)}
   
-}
+  if (length(ln_SS) <= minTrans){
+    #setting values to NaNs
+    note[i] <- sprintf("Not enough data. Num transitions = %s", 
+                    length(ln_SS))
+    growth[,i] <- NaN}}
 
-# moving model coefs into a list
-# need to define the column names
-Glist <- list(g.int = growth[1,], g.slp = growth[2,])
+# save lists as dataframe and then column bind them into the growth dataframe
+a <- length(GrowthDataFrame$Model_IDs) + 1
+b <- a + length(Focus) - 1
 
-# for each model grouping: 
-# Comment out before new run
-# Glist_genera <- Glist # Full model 1
- Glist_site <- Glist # Full model 2
-# Glist_years <- Glist # Full model 3
+df <- data.frame(Model_IDs = UniqueIDs[a:b], 
+                 g.int = growth[1,], g.slp = growth[2,], 
+                 growth_notes = note)
 
-#doesn't work yet...trying to name cols in list
-#dimnames(Glist_genera) <- list("POCS", "POSP", "MOSP" )
+GrowthDataFrame <- rbind(GrowthDataFrame,df)
+
+################################################################################
+###### 2. Site models ##########################################################
+################################################################################
+
+# initializing the data runs for the growth analysis
+# define the parms for model loop
+Focus <- SiteNames 
+LoopLength <- length(Focus)
+Spec_selection <- ColonyLevel$Site
+minTrans <- 4 # minimum number of transitions
+
+growth <- matrix(0, nrow = 2, ncol = LoopLength)
+note <- c()
+for (i in 1:LoopLength){
+  subset1 <- subset(ColonyLevel, Spec_selection == Focus[i])
+  
+  # subsetting for growth & shrinkage
+  subset2 <- subset(subset1, TransitionTypeSimple == "GROWTH" | 
+                   TransitionTypeSimple == "SHRINK")
+  
+  ln_SS <- subset2$ln_SS
+  ln_ES <- subset2$ln_ES
+  
+  if (length(ln_SS) > minTrans){
+    mod <- lm(ln_ES ~ ln_SS)
+    note[i] <- sprintf("Num of transitions = %s", 
+                    length(ln_SS))
+    
+    growth[,i] <- coef(mod)}
+  
+  if (length(ln_SS) <= minTrans){
+    #setting values to NaNs
+    note[i] <- sprintf("Not enough data. Num transitions = %s", 
+                    length(ln_SS))
+    growth[,i] <- NaN}}
+
+# save lists as dataframe and then column bind them into the growth dataframe
+a <- length(GrowthDataFrame$Model_IDs) + 1
+b <- a + length(Focus) - 1
+df <- data.frame(Model_IDs = UniqueIDs[a:b], 
+                 g.int = growth[1,], g.slp = growth[2,], 
+                 growth_notes = note)
+
+GrowthDataFrame <- rbind(GrowthDataFrame,df)
+
+################################################################################
+###### 3. Interval Year models #################################################
+################################################################################
+
+# initializing the data runs for the growth analysis
+# define the parms for model loop
+Focus <- IntervalYears 
+LoopLength <- length(Focus)
+Spec_selection <- ColonyLevel$Interval_Years
+minTrans <- 4 # minimum number of transitions
+
+growth <- matrix(0, nrow = 2, ncol = LoopLength)
+note <- c()
+for (i in 1:LoopLength){
+  subset1 <- subset(ColonyLevel, Spec_selection == Focus[i])
+  
+  # subsetting for growth & shrinkage
+  subset2 <- subset(subset1, TransitionTypeSimple == "GROWTH" | 
+                   TransitionTypeSimple == "SHRINK")
+  
+  ln_SS <- subset2$ln_SS
+  ln_ES <- subset2$ln_ES
+  
+  if (length(ln_SS) > minTrans){
+    mod <- lm(ln_ES ~ ln_SS)
+    note[i] <- sprintf("Num of transitions = %s", 
+                    length(ln_SS))
+    
+    growth[,i] <- coef(mod)}
+  
+  if (length(ln_SS) <= minTrans){
+    #setting values to NaNs
+    note[i] <- sprintf("Not enough data. Num transitions = %s", 
+                    length(ln_SS))
+    growth[,i] <- NaN}}
+
+# save lists as dataframe and then column bind them into the growth dataframe
+a <- length(GrowthDataFrame$Model_IDs) + 1
+b <- a + length(Focus) - 1
+df <- data.frame(Model_IDs = UniqueIDs[a:b], 
+                 g.int = growth[1,], g.slp = growth[2,], 
+                 growth_notes = note)
+
+GrowthDataFrame <- rbind(GrowthDataFrame,df)
 
 ```
 #Plot full growth model1
@@ -97,17 +274,20 @@ legend("topleft", bty = "n", lty = c(1,1), col = c("red","blue","green"),
 #plot each genus separately
 par(mfrow=c(1,3))
 #Pocillopora
-plot(ln_ES ~ ln_SS ,data = ColonyLevel, main="Pocillopora growth fit at all sites")
+plot(ln_ES ~ ln_SS ,data = ColonyLevel,
+     main="Pocillopora growth fit at all sites")
 abline(a=Glist_genera$g.int[1], b=Glist_genera$g.slp[1], col='red', lwd=2)
 legend("topleft", bty = "n", lty = c(1,1), col = c("red"),
        legend= 'POCS' , cex = 0.8)
 #Porites
-plot(ln_ES ~ ln_SS ,data = ColonyLevel, main="Porites growth fit at all sites")
+plot(ln_ES ~ ln_SS ,data = ColonyLevel, 
+     main="Porites growth fit at all sites")
 abline(a=Glist_genera$g.int[2], b=Glist_genera$g.slp[2], col='blue', lwd=2)
 legend("topleft", bty = "n", lty = c(1,1), col = c("blue"),
        legend= 'POSP' , cex = 0.8)
 #Montipora
-plot(ln_ES ~ ln_SS ,data = ColonyLevel, main="Montipora growth fit at all sites")
+plot(ln_ES ~ ln_SS ,data = ColonyLevel, 
+     main="Montipora growth fit at all sites")
 abline(a=Glist_genera$g.int[3], b=Glist_genera$g.slp[3], col='green', lwd=2)
 legend("topleft", bty = "n", lty = c(1,1), col = c("green"),
        legend= 'MOSP' , cex = 0.8)
@@ -118,7 +298,8 @@ legend("topleft", bty = "n", lty = c(1,1), col = c("green"),
 
 #Plot full growth model2
 LoopLeng <- length(SiteNames)
-plot(ln_ES ~ ln_SS ,data = ColonyLevel, main="Each site growth fit for all genera + all interval years")
+plot(ln_ES ~ ln_SS ,data = ColonyLevel, 
+     main="Each site growth fit for all genera + all interval years")
 for (i in 1:LoopLeng) {
   abline(a=Glist_site$g.int[i], b=Glist_site$g.slp[i], col=i , lwd=2)
 }
@@ -137,13 +318,15 @@ for (h in 1:LoopLeng) {
 }
 
 ```
+
 #Plot full growth model 3
 Each Interval Year for all sites & genera
 ```{r Plotting full growth model 2,}
 #Plot full growth model3
 #mad right now bc of NA values
 LoopL <- length(IntervalYears)
-plot(ln_ES ~ ln_SS ,data = ColonyLevel, main="Each interval growth fit for all genera + all sites")
+plot(ln_ES ~ ln_SS ,data = ColonyLevel, 
+     main="Each interval growth fit for all genera + all sites")
 for (m in 1:LoopL) {
   abline(a=Glist_years$g.int[m], b=Glist_years$g.slp[m], col=m , lwd=2)
 }
@@ -158,7 +341,8 @@ legend("topleft", bty = "n", lty = c(1,1), col = 1:11,
 #plot each site's growth model separately
 par(mfrow=c(4,3))
 for (c in 1:LoopL) {
-  plot(ln_ES ~ ln_SS ,data = ColonyLevel, main="Each interval growth fit for all genera + all sites")
+  plot(ln_ES ~ ln_SS ,data = ColonyLevel, 
+       main="Each interval growth fit for all genera + all sites")
     abline(a=Glist_years$g.int[c], b=Glist_years$g.slp[c], col=c , lwd=2)
   legend("topleft", bty = "n", lty = c(1,1), col = c,
          legend= IntervalYears[c], cex = 0.6, pt.cex = .5)
@@ -259,59 +443,6 @@ for (v in 1:LoopLengthSF){
 NewLists[Focus[i]] <- list(List)
 }
 # running the linear regression model$
-```
-
-```{r Creating the unique IDS,}
-# Unique IDs for all models
-#Prepping names
-RIntY <- as.character(sapply(IntervalYears, round, 3))
-TNam <- length(GeneraNames)
-SNam <- length(SiteNames)
-YNam <- length(RIntY)
-
-nums <- TNam + SNam + YNam + YNam*TNam +
-        SNam*TNam + YNam*TNam*SNam
-
-UniqueIDs <- rep(0, length=nums)
-
-a <- 1
-b <- TNam
-rng <- a:b
-UniqueIDs[rng] <- sprintf("%s_all_Sites_Years",GeneraNames)
-
-a <- b + 1
-b <- a + SNam
-rng <- a:b
-UniqueIDs[rng] <- sprintf("%s_all_Taxa_Years", SiteNames)
-
-a <- b + 1
-b <- a + YNam
-rng <- a:b
-UniqueIDs[rng] <-sprintf("%s_all_Taxa_Sites", RIntY)
-
-for (g in 1:TNam){
-  a <- b+1
-  b <- a + SNam
-  rng <- a:b
-  UniqueIDs[rng] <-sprintf("%s_%s_all_Years", 
-                           rep(GeneraNames[g],length = SNam), 
-                           SiteNames)}
-
-
-# defining the name for the individual models! all 3x11x21 possible combos
-for (i in 1:YNam){
-  for (g in 1:TNam){
-    a <- b + 1
-    b <- a + SNam
-    rng <- a:b
-    UniqueIDs[rng] <- sprintf("%s_%s_%s", 
-                              rep(GeneraNames[g],length = SNam), 
-                              SiteNames,
-                              rep(RIntY[i],length = SNam))
-  }
-}
-
-
 ```
 
 #Survival
