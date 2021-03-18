@@ -321,9 +321,29 @@ for (i in 1:YNam){
 
 ```
 
+```{r}
+# Maybe we just use this for checking the models run & saved in the for loop?
+sub <- subset(ColonyLevel, TransitionTypeSimple == "GROWTH" | 
+                 TransitionTypeSimple == "SHRINK")
+sub$Interval_Years <- as.character(sub$Interval_Years)
+sub$ln_ES <- as.numeric(sub$ln_ES)
+sub$ln_SS <- as.numeric(sub$ln_SS)
+sub$ln_SS[sub$ln_SS == -Inf] <-NA
+sub$ln_SS[sub$ln_ES == -Inf] <-NA
+
+modelz <- lm(ln_ES ~ ln_SS* Interval_Years*Site , data = sub)
+
+summary(modelz)
+coef(modelz)
+
+
+```
+
+
 #TO DO
 [ ] Fix growth line
 [ ] Then run individual models 2 & 3
+[ ] Put everything into a dataframe
 [X] Plot each genus separately (full model)
 [ ] Plot each full model
 [ ] Plot each individual model
