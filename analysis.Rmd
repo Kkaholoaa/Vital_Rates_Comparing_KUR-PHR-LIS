@@ -176,14 +176,14 @@ for (i in 1:LoopLength){
   ln_SS <- subset2$ln_SS
   ln_ES <- subset2$ln_ES
   
-  if (length(ln_SS) > minTrans){
+  if (length(ln_SS) >= minTrans){
     mod <- lm(ln_ES ~ ln_SS)
     note[i] <- sprintf("Num of transitions = %s", 
                     length(ln_SS))
     
     growth[,i] <- coef(mod)}
   
-  if (length(ln_SS) <= minTrans){
+  if (length(ln_SS) < minTrans){
     #setting values to NaNs
     note[i] <- sprintf("Not enough data. Num transitions = %s", 
                     length(ln_SS))
@@ -351,15 +351,6 @@ for (i in 1:LoopLength){
   
   GrowthDataFrame <- rbind(GrowthDataFrame,df)
   }
-  # save lists as dataframe and then column bind them into the growth dataframe
-  # a <- length(GrowthDataFrame$Model_IDs) + 1
-  # b <- a + length(subFocus) - 1
-  # df <- data.frame(Model_IDs = UniqueIDs[a:b], 
-  #                  g.int = growth[1,], g.slp = growth[2,], 
-  #                  growth_notes = note)
-  # 
-  # GrowthDataFrame <- rbind(GrowthDataFrame,df)
-
 }
 ```
 
@@ -490,9 +481,20 @@ for (i in 1:LoopLength){
 ```
 
 ```{r}
-NewLists <- list(Focus)
+################################################################################
+###### 7. Genera + Site + Interval Years  models ###############################
+################################################################################
+# define the parms for model loop
+# Now with a second "Focus"
 
-List <- list(1:LoopLengthSF)
+Focus <- GeneraNames
+subFocus <- SiteNames
+subFocus2 <- IntervalYears
+LoopLength <- length(Focus)
+LoopLengthSF <-  length(subFocus)
+LoopLengthSF2 <-  length(subFocus)
+Spec_selection <- ColonyLevel$Site
+Spec_selectionSF <- ColonyLevel$Interval_Years
 
 for (i in 1:3){
  # i = 1
@@ -573,12 +575,6 @@ for (i in 1:LoopLength){
   AllList_g2[Focus[i]] <- list(gList)
 }
 
-
-
-
-################################################################################
-###### 7. Genera + Site + Interval Years  models ###############################
-################################################################################
 
 ```
 #Plot full growth model1
