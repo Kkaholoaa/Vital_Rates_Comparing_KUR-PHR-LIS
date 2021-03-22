@@ -510,7 +510,7 @@ Slist <- list(s.int = survival[1,], s.slp = survival[2,])
 [X] Plot each full growth model
 [X] Plot each full growth model w/ specific data
 [ ] Plot each individual growth model
-[ ] Figure out how to save into dataframe
+[X] Figure out how to save into dataframe
 [ ] Clean up script
 [ ] Operationalize survival script
 [ ] Plot survival models
