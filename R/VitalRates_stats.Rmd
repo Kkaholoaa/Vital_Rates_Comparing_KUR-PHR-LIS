@@ -205,6 +205,25 @@ MAIshrin_1618 #34
 #simpler and more reproducible
 
 ```
+#Stats discussion
+#Kai
+Comparing species specific vital rates b/w PLIG & PLIC at KUR
+ANCOVA- test for normality, test for equal variance, random independent samples (check), relationship b/w dependent and coviarate is linear
+Dependent= growth rate
+Covariate = starting size
+
+
+#Leta & Melissa
+Comparing vital rates (growth,recruit,survival) during bleaching years vs normal years
+Repeated Measure ANOVA
+1 dependent variable w/ more than one observation, needs to be continuous: size dependent(?) growth rate
+1 independent variable categorical: bleaching transition or normal transition
+
+size dependent growth rate by transition year
+levels are pre bleaching and post bleaching
+
+https://statistics.laerd.com/statistical-guides/repeated-measures-anova-statistical-guide.php
+
 
 
 #ANCOVA 
