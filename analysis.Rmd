@@ -41,6 +41,7 @@ ColonyLevel$ln_SS[ColonyLevel$ln_SS == -Inf] <-NA
 
 We are next creating all of the unique IDs for the models run. These correspond to the models that look at all genera together and those that look at each genera separately at separate sites and separate interval years. 
 
+DO NOT NEED ANYMORE (CAN DELETE SOON!!)
 ```{r Creating the unique IDS,}
 # Unique IDs for all models
 #Prepping names
@@ -142,7 +143,9 @@ SurvivalDataFrame <- data.frame(Model_IDs = "All_Genera_Site_Years", s.int = coe
                               s.slp = coef(modS)[2], survival_notes = 
                                 sprintf("Num of transitions used equals %s", 
                                         length(ColonyLevel$ln_SS)))
+```
 
+```{r}
 ################################################################################
 ################### Models Separated by Major Groupings ########################
 ################# (1) Genera, (2) Site, and (3) Interval Year ##################
@@ -187,20 +190,14 @@ for (i in 1:LoopLength){
     growth[,i] <- NaN}
   
   df <- data.frame(Model_IDs = sprintf("%s_All_Sites_Years",Focus[i]), 
-                 g.int = growth[1,], g.slp = growth[2,], 
-                 growth_notes = note)
+                 g.int = growth[1,i], g.slp = growth[2,i], 
+                 growth_notes = note[i])
+  GrowthDataFrame <- rbind(GrowthDataFrame,df)
   }
 
-# save lists as dataframe and then column bind them into the growth dataframe
-a <- length(GrowthDataFrame$Model_IDs) + 1
-b <- a + length(Focus) - 1
+```
 
-df <- data.frame(Model_IDs = UniqueIDs[a:b], 
-                 g.int = growth[1,], g.slp = growth[2,], 
-                 growth_notes = note)
-
-GrowthDataFrame <- rbind(GrowthDataFrame,df)
-
+```{r}
 ################################################################################
 ###### 2. Site models ##########################################################
 ################################################################################
@@ -237,17 +234,18 @@ for (i in 1:LoopLength){
     #setting values to NaNs
     note[i] <- sprintf("Not enough data. Num transitions = %s", 
                     length(ln_SS))
-    growth[,i] <- NaN}}
+    growth[,i] <- NaN}
 
-# save lists as dataframe and then column bind them into the growth dataframe
-a <- length(GrowthDataFrame$Model_IDs) + 1
-b <- a + length(Focus) - 1
-df <- data.frame(Model_IDs = UniqueIDs[a:b], 
-                 g.int = growth[1,], g.slp = growth[2,], 
-                 growth_notes = note)
+  df <- data.frame(Model_IDs = sprintf("%s_All_Taxa_Years",Focus[i]), 
+                 g.int = growth[1,i], g.slp = growth[2,i], 
+                 growth_notes = note[i])
+  
+  GrowthDataFrame <- rbind(GrowthDataFrame,df)
+  }
 
-GrowthDataFrame <- rbind(GrowthDataFrame,df)
+```
 
+```{r}
 ################################################################################
 ###### 3. Interval Year models #################################################
 ################################################################################
@@ -283,17 +281,19 @@ for (i in 1:LoopLength){
     #setting values to NaNs
     note[i] <- sprintf("Not enough data. Num transitions = %s", 
                     length(ln_SS))
-    growth[,i] <- NaN}}
+    growth[,i] <- NaN}
+  
+  df <- data.frame(Model_IDs = sprintf("%s_All_Taxa_Sites",Focus[i]), 
+                 g.int = growth[1,i], g.slp = growth[2,i], 
+                 growth_notes = note[i])
+  
+  GrowthDataFrame <- rbind(GrowthDataFrame,df)
+  
+  }
 
-# save lists as dataframe and then column bind them into the growth dataframe
-a <- length(GrowthDataFrame$Model_IDs) + 1
-b <- a + length(Focus) - 1
-df <- data.frame(Model_IDs = UniqueIDs[a:b], 
-                 g.int = growth[1,], g.slp = growth[2,], 
-                 growth_notes = note)
+```
 
-GrowthDataFrame <- rbind(GrowthDataFrame,df)
-
+```{r}
 ################################################################################
 ###### 4. Genera + Site for all Interval Years models ##########################
 ################################################################################
@@ -322,15 +322,17 @@ for (i in 1:LoopLength){
   subset1 <- subset(ColonyLevel, Spec_selection == Focus[i])
 
   for (v in 1:LoopLengthSF){
-    
+    v <- 11
     # subsetting for growth & shrinkage
     subset2 <- subset(subset1, TransitionTypeSimple == "GROWTH" | 
                  TransitionTypeSimple == "SHRINK")
     
     # subsetting growth & shrinkage for second focus
-    ln_SS <- subset2$ln_SS[Spec_selectionSF == subFocus[v]]
-    ln_ES <- subset2$ln_ES[Spec_selectionSF == subFocus[v]]
-  
+    subset3 <- subset(subset2, Site == subFocus[v])
+    
+    ln_SS <- subset3$ln_SS
+    ln_ES <- subset3$ln_ES
+    
     if (length(ln_SS) > minTrans){
       mod <- lm(ln_ES ~ ln_SS)
       note[v] <- sprintf("Num of transitions = %s", 
@@ -342,17 +344,26 @@ for (i in 1:LoopLength){
       note[v] <- sprintf("Not enough data. Num transitions = %s", 
                       length(ln_SS))
       growth[,v] <- NaN}
-  }
-  # save lists as dataframe and then column bind them into the growth dataframe
-  a <- length(GrowthDataFrame$Model_IDs) + 1
-  b <- a + length(subFocus) - 1
-  df <- data.frame(Model_IDs = UniqueIDs[a:b], 
-                   g.int = growth[1,], g.slp = growth[2,], 
-                   growth_notes = note)
+    
+  df <- data.frame(Model_IDs = sprintf("%s_%s_All_Years",Focus[i], subFocus[v]), 
+                 g.int = growth[1,v], g.slp = growth[2,v], 
+                 growth_notes = note[v])
   
   GrowthDataFrame <- rbind(GrowthDataFrame,df)
-
   }
+  # save lists as dataframe and then column bind them into the growth dataframe
+  # a <- length(GrowthDataFrame$Model_IDs) + 1
+  # b <- a + length(subFocus) - 1
+  # df <- data.frame(Model_IDs = UniqueIDs[a:b], 
+  #                  g.int = growth[1,], g.slp = growth[2,], 
+  #                  growth_notes = note)
+  # 
+  # GrowthDataFrame <- rbind(GrowthDataFrame,df)
+
+}
+```
+
+```{r}
 ################################################################################
 ###### 5. Genera + Interval Years for all Site models ##########################
 ################################################################################
@@ -387,9 +398,11 @@ for (i in 1:LoopLength){
                  TransitionTypeSimple == "SHRINK")
     
     # subsetting growth & shrinkage for second focus
-    ln_SS <- subset2$ln_SS[Spec_selectionSF == subFocus[v]]
-    ln_ES <- subset2$ln_ES[Spec_selectionSF == subFocus[v]]
-  
+    subset3 <- subset(subset2, Site == subFocus[v])
+    
+    ln_SS <- subset3$ln_SS
+    ln_ES <- subset3$ln_ES
+
     if (length(ln_SS) > minTrans){
       mod <- lm(ln_ES ~ ln_SS)
       note[v] <- sprintf("Num of transitions = %s", 
@@ -401,17 +414,18 @@ for (i in 1:LoopLength){
       note[v] <- sprintf("Not enough data. Num transitions = %s", 
                       length(ln_SS))
       growth[,v] <- NaN}
-  }
-  # save lists as dataframe and then column bind them into the growth dataframe
-  a <- length(GrowthDataFrame$Model_IDs) + 1
-  b <- a + length(subFocus) - 1
-  df <- data.frame(Model_IDs = UniqueIDs[a:b], 
-                   g.int = growth[1,], g.slp = growth[2,], 
-                   growth_notes = note)
+    
+    df <- data.frame(Model_IDs = sprintf("%s_%s_All_Sites",Focus[i], subFocus[v]), 
+               g.int = growth[1,v], g.slp = growth[2,v], 
+               growth_notes = note[v])
   
   GrowthDataFrame <- rbind(GrowthDataFrame,df)
-
   }
+
+}
+```
+
+```{r}
 ################################################################################
 ###### 6. Site + Interval Years for all Genera models ##########################
 ################################################################################
@@ -446,9 +460,11 @@ for (i in 1:LoopLength){
                  TransitionTypeSimple == "SHRINK")
     
     # subsetting growth & shrinkage for second focus
-    ln_SS <- subset2$ln_SS[Spec_selectionSF == subFocus[v]]
-    ln_ES <- subset2$ln_ES[Spec_selectionSF == subFocus[v]]
-  
+    subset3 <- subset(subset2, Site == subFocus[v])
+    
+    ln_SS <- subset3$ln_SS
+    ln_ES <- subset3$ln_ES
+    
     if (length(ln_SS) > minTrans){
       mod <- lm(ln_ES ~ ln_SS)
       note[v] <- sprintf("Num of transitions = %s", 
@@ -460,19 +476,20 @@ for (i in 1:LoopLength){
       note[v] <- sprintf("Not enough data. Num transitions = %s", 
                       length(ln_SS))
       growth[,v] <- NaN}
-  }
-  # save lists as dataframe and then column bind them into the growth dataframe
-  a <- length(GrowthDataFrame$Model_IDs) + 1
-  b <- a + length(subFocus) - 1
-  df <- data.frame(Model_IDs = UniqueIDs[a:b], 
-                   g.int = growth[1,], g.slp = growth[2,], 
-                   growth_notes = note)
+    
+  df <- data.frame(Model_IDs = sprintf("%s_%s_All_Genera",Focus[i], subFocus[v]), 
+             g.int = growth[1,v], g.slp = growth[2,v], 
+             growth_notes = note[v])
   
   GrowthDataFrame <- rbind(GrowthDataFrame,df)
+  
+  }
 
 }
 
+```
 
+```{r}
 NewLists <- list(Focus)
 
 List <- list(1:LoopLengthSF)
