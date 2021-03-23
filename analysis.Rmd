@@ -668,7 +668,6 @@ for (c in 1:LoopL) {
 
 
 Each Genera by interval year, sites are not separated
-Growth (line 116) is messed up
 ```{r IndividualGrowthMods, eval=TRUE}
 # initializing the data runs for the growth analysis
 
@@ -760,77 +759,153 @@ NewLists[Focus[i]] <- list(List)
 # running the linear regression model$
 ```
 
+
 #Survival
+Delete once it's added to models 1-7:
 ```{r SurvivalMods, eval=TRUE}
-#NOTES
-#all survival (all sites all genera)
-surv <- 1 - ColonyLevel$Mortality #if it dies it's a 0
-ColonyLevel$ln_SS <- as.numeric(ColonyLevel$ln_SS)
-ColonyLevel$ln_SS[ColonyLevel$ln_SS == -Inf] <-NA
-#fit
-gn <- glm(surv ~ ln_SS, family = "binomial", data = ColonyLevel)
-gn
-#Pocillopora
-surv_POCS <- 1 - Poc$Mortality
-Poc$ln_SS <- as.numeric(Poc$ln_SS)
-Poc$ln_SS[Poc$ln_SS == -Inf] <-NA
-#fit
-gn_POCS <- glm(surv_POCS ~ ln_SS, family = "binomial", data = Poc)
-gn_POCS
-
-
-#attempting loop
 # initializing the data runs for the survival analysis
-surv <- 1 - ColonyLevel$Mortality #if it dies it's a 0
 ColonyLevel$ln_SS <- as.numeric(ColonyLevel$ln_SS)
 ColonyLevel$ln_SS[ColonyLevel$ln_SS == -Inf] <-NA
+
 # define the parms for model loop
-SFocus <- GeneraNames #change this each run
-SLoopLength <- length(SFocus)
-Spec_selection <- ColonyLevel$Genus_Code #change this each run
+Focus <- IntervalYears #change this each run
+LoopLength <- length(Focus)
+Spec_selection <- ColonyLevel$Interval_Years #change this each run
+
 # defining the matrix which holds the slope/int for each model run in the loop
-survival <- matrix(0, nrow = 2, ncol = SLoopLength)
-for (s in 1:SLoopLength){
+growth <- matrix(0, nrow = 2, ncol = LoopLength)
+survival <- matrix(0, nrow = 2, ncol = LoopLength)
+
+for (i in 1:LoopLength){
   # subsetting to specifiy which interactions (genera/site/year) we care about
-  subset1 <- subset(ColonyLevel, Spec_selection == SFocus[s])
+  subset1 <- subset(ColonyLevel, Spec_selection == Focus[i])
+  # for survival, all dead corals get a 0
+  surv <- 1 - subset1$Mortality
   
-  # subsetting for survival
-  #subset2 <- subset(subset1, TransitionTypeSimple == "MORT")
-  surv <- 1 - ColonyLevel$Mortality
+  # subsetting for growth & shrinkage
+  subset2 <- subset(subset1, TransitionTypeSimple == "GROWTH" | 
+                   TransitionTypeSimple == "SHRINK")
   
-  # running the generalized linear model
-  modS <- glm(surv ~ ln_SS, family = "binomial", data = subset2)
+  # running the linear regression model for all growth
+  modG <- lm(ln_ES ~ ln_SS ,data = subset2)
+  # running the generalized linear model for survival
+  modS <- glm(surv ~ ln_SS, family = "binomial", data = subset1)
   
   # saving the model
-  survival[,s] <- coef(modS)
+  growth[,i] <- coef(modG)
+  survival[,i] <- coef(modS)
   
 }
+
 # moving model coefs into a list
+# need to define the column names
+Glist <- list(g.int = growth[1,], g.slp = growth[2,])
 Slist <- list(s.int = survival[1,], s.slp = survival[2,])
+
 
 # for each model grouping: 
 # Comment out before new run
- Slist_genera <- Slist # Full model 1
+# Glist_genera <- Glist # Full model 1
+# Glist_site <- Glist # Full model 2
+ Glist_years <- Glist # Full model 3
+
+ #survival 
+# Comment out before new run
+# Slist_genera <- Slist # Full model 1
 # Slist_site <- Slist # Full model 2
-# Slist_years <- Slist # Full model 3
+ Slist_years <- Slist # Full model 3
+
+
 ```
 
 
+#Reproduction
+Work in progress. Delete once added to models 1-7
+```{r SurvivalMods, eval=TRUE}
+
+# define the parms for model loop
+Focus <- GeneraNames #change this each run
+LoopLength <- length(Focus)
+Spec_selection <- ColonyLevel$Genus_Code #change this each run
+
+# defining the matrix which holds the slope/int for each model run in the loop
+#WHY IS THIS NOT WORKING?!?!?
+recruitment < - matrix(0, nrow = 2, ncol = LoopLength)
+
+for (i in 1:LoopLength){
+  # subsetting to specifiy which interactions (genera/site/year) we care about
+  subset1 <- subset(ColonyLevel, Spec_selection == Focus[i])
+  
+  # subsetting for growth & shrinkage
+  subset2 <- subset(subset1, TransitionTypeSimple == "RECR")
+  
+  #calculate unique time intervals
+  timeint_unique <- unique(subset2$Interval_Years)
+  
+  #for every interval year, get the sum of the previous's years coral area (StartingSize)
+  area <- rep(0,length(timeint_unique)) #initalize vector
+  for (w in 1:length(timeint_unique)) {
+    area[w] <- sum(subset2$StartingSize[which(subset2$Interval_Years== timeint_unique[w])]) 
+    } #sum of patch areas for every time interval
+  #number of recruits per transition (number recruits/interval year)
+  numbrecruits <- rep(0,length(timeint_unique)) #initalize vector
+  for (v in 1:length(timeint_unique)) { #for every interval year, get the sum of recruits for that interval year
+    numbrecruits[v] <- sum(subset2$Recruit[which(subset2$Interval_Years== timeint_unique[v])])
+    }
+  numbrecruits <- round(numbrecruits/timeint_unique) #normalizes by time interval (# of recruits/time interval)
+  
+  # calculate the size specific recruitment rate for all recruitment & save
+  #sizespecrec <- numbrecruits/area
+  recruitment[,i] <- numbrecruits/area
+  
+}
+#STILL NEED TO FIGURE OUT HOW TO SAVE CALCS
+
+# moving model coefs into a list
+# need to define the column names
+Glist <- list(g.int = growth[1,], g.slp = growth[2,])
+Rlist <- #list(s.int = survival[1,], s.slp = survival[2,])
+
+
+# for each model grouping: 
+# Comment out before new run
+ Rlist_genera <- Rlist # Full model 1
+# Rlist_site <- Rlist # Full model 2
+
+```
 
 
 #TO DO
-[ ] Fix growth line
-[ ] Then run growth individual models 2 & 3
+[X] Run growth individual models 4-6
 [X] Plot each genus separately (full growth model)
-[X] Plot each full growth model
-[X] Plot each full growth model w/ specific data
-[ ] Plot each individual growth model
+[X] Plot full growth model 2&3
 [X] Figure out how to save into dataframe
 [ ] Clean up script
-[ ] Operationalize survival script
+[ ] Make powerpoint with some of our script and the plots
+#Caroline
+[ ] Fix growth plots (changed from list to df)
 [ ] Plot survival models
-[ ] Operationalize reproducion script
+[ ] Operationalize reprodution script
 [ ] Plot reproduction models
+[ ] Plot each individual growth model
+[ ] Start IPM chunk set up
+#Devynn
+[ ] Add in survival to models 1-7
+[ ] Add AIC calcs into the dataframe
+[ ] Add variance into the dataframe
+[ ] Maybe add reproduction into models 1-7?
+
+
+
+
+#Main Questions for Friday meeting
+1. Is this a good way to do the models? Should we be including interaction terms?
+2. Why does IntervalYears not work as an interaction term?
+3. Does the way that we're modeling reproduction (# of recruits/area of parent coral) make sense? 
+
+
+
+
 
 
 
