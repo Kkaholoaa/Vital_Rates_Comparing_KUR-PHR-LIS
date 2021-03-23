@@ -37,76 +37,10 @@ ColonyLevel$ln_SS[ColonyLevel$ln_ES == -Inf] <-NA
 
 ColonyLevel$ln_SS <- as.numeric(ColonyLevel$ln_SS)
 ColonyLevel$ln_SS[ColonyLevel$ln_SS == -Inf] <-NA
+
+ColonyLevel <- cbind(ColonyLevel, data.frame(Survival = 1 - ColonyLevel$Mortality))
 ```
 
-We are next creating all of the unique IDs for the models run. These correspond to the models that look at all genera together and those that look at each genera separately at separate sites and separate interval years. 
-
-DO NOT NEED ANYMORE (CAN DELETE SOON!!)
-```{r Creating the unique IDS,}
-# Unique IDs for all models
-#Prepping names
-RIntY <- as.character(sapply(IntervalYears, round, 3))
-TNam <- length(GeneraNames)
-SNam <- length(SiteNames)
-YNam <- length(RIntY)
-
-nums <- TNam + SNam + YNam + YNam*TNam +
-        SNam*TNam + YNam*TNam*SNam +1
-
-UniqueIDs <- rep(0, length=nums)
-UniqueIDs[1] <- "All_Genera_Site_Years"
-a <- 2
-b <- a + TNam -1
-rng <- a:b
-UniqueIDs[rng] <- sprintf("%s_All_Sites_Years",GeneraNames)
-
-a <- b + 1
-b <- a + SNam -1
-rng <- a:b
-UniqueIDs[rng] <- sprintf("%s_All_Taxa_Years", SiteNames)
-
-a <- b + 1
-b <- a + YNam -1
-rng <- a:b
-UniqueIDs[rng] <-sprintf("%s_All_Taxa_Sites", RIntY)
-
-for (g in 1:TNam){
-  a <- b+1
-  b <- a + SNam -1
-  rng <- a:b
-  UniqueIDs[rng] <-sprintf("%s_%s_All_Years", 
-                           rep(GeneraNames[g],length = SNam), 
-                           SiteNames)}
-for (g in 1:TNam){
-  a <- b+1
-  b <- a + YNam -1
-  rng <- a:b
-  UniqueIDs[rng] <-sprintf("%s_%s_All_Sites", 
-                           rep(GeneraNames[g],length = YNam), 
-                           RIntY)}
-for (s in 1:SNam){
-  a <- b+1
-  b <- a + YNam -1
-  rng <- a:b
-  UniqueIDs[rng] <-sprintf("%s_%s_All_Genera", 
-                           rep(SiteNames[s],length = YNam), 
-                           RIntY)}
-
-# defining the name for the individual models! all 3x11x21 possible combos
-for (i in 1:YNam){
-  for (g in 1:TNam){
-    a <- b + 1
-    b <- a + SNam -1
-    rng <- a:b
-    UniqueIDs[rng] <- sprintf("%s_%s_%s", 
-                              rep(GeneraNames[g],length = SNam), 
-                              SiteNames,
-                              rep(RIntY[i],length = SNam))
-  }
-}
-
-
-```
 The aim of this analysis is to calculate the kernel fits (growth, survival, & reproduction) for each combination of genera-site-year and then each separately. 
 
 Full models:
@@ -128,21 +62,30 @@ Growth <- subset(ColonyLevel, TransitionTypeSimple == "GROWTH" |
 
 #Growth Model
 mod <- lm(ln_ES ~ ln_SS, data = Growth)
+SlpVar <- (summary(mod)$sigma)**2
+aicVal <- AIC(mod)
 
 #Survival Model
-Survival <- 1 - ColonyLevel$Mortality
-modS <- glm(Survival ~ ln_SS, family = "binomial", data = ColonyLevel)
+modS <- glm(Survival ~ ln_SS, family = "binomial" , data = ColonyLevel)
+aicValS <- AIC(modS)
 
 # saving model coefficients and notes into dataframe with corresponding uniqueID
-GrowthDataFrame <- data.frame(Model_IDs ="All_Genera_Site_Years", g.int = coef(mod)[1], 
-                              g.slp = coef(mod)[2], growth_notes = 
+GrowthDataFrame <- data.frame(Model_IDs ="All_Genera_Site_Years", 
+                              g.int = coef(mod)[1], 
+                              g.slp = coef(mod)[2], g.var = SlpVar, 
+                              AIC = aicVal, growth_notes = 
                                 sprintf("Num of transitions used equals %s", 
                                         length(Growth$ln_SS)))
 
-SurvivalDataFrame <- data.frame(Model_IDs = "All_Genera_Site_Years", s.int = coef(modS)[1], 
-                              s.slp = coef(modS)[2], survival_notes = 
+SurvivalDataFrame <- data.frame(Model_IDs = "All_Genera_Site_Years", 
+                                s.int = coef(modS)[1], s.slp = coef(modS)[2], 
+                                AIC = aicValS, survival_notes = 
                                 sprintf("Num of transitions used equals %s", 
                                         length(ColonyLevel$ln_SS)))
+
+plot(jitter(Survival, 0.1) ~ ln_SS, ColonyLevel)
+ss <- seq(-3, 9, 0.1)
+lines(ss, predict(modS, list(ln_SS = ss), type="response"), pch=8)
 ```
 
 ```{r}
@@ -163,6 +106,8 @@ Spec_selection <- ColonyLevel$Genus_Code
 minTrans <- 4 # minimum number of transitions
 
 growth <- matrix(0, nrow = 2, ncol = LoopLength)
+Var <- c()
+aic <- c()
 survival <- growth
 
 note <- c()
@@ -181,17 +126,22 @@ for (i in 1:LoopLength){
     note[i] <- sprintf("Num of transitions = %s", 
                     length(ln_SS))
     
-    growth[,i] <- coef(mod)}
+    growth[,i] <- coef(mod)
+    Var[i] <- (summary(mod)$sigma)**2
+    aic[i] <- AIC(mod)
+    }
   
   if (length(ln_SS) < minTrans){
     #setting values to NaNs
     note[i] <- sprintf("Not enough data. Num transitions = %s", 
                     length(ln_SS))
-    growth[,i] <- NaN}
+    growth[,i] <- NaN
+    Var[i] <- NA
+    aic[i] <- NA}
   
   df <- data.frame(Model_IDs = sprintf("%s_All_Sites_Years",Focus[i]), 
-                 g.int = growth[1,i], g.slp = growth[2,i], 
-                 growth_notes = note[i])
+                 g.int = growth[1,i], g.slp = growth[2,i], g.var = Var[i], 
+                 AIC = aic[i], growth_notes = note[i])
   GrowthDataFrame <- rbind(GrowthDataFrame,df)
   }
 
@@ -225,20 +175,23 @@ for (i in 1:LoopLength){
   
   if (length(ln_SS) > minTrans){
     mod <- lm(ln_ES ~ ln_SS)
-    note[i] <- sprintf("Num of transitions = %s", 
-                    length(ln_SS))
+    note[i] <- sprintf("Num of transitions = %s", length(ln_SS))
     
-    growth[,i] <- coef(mod)}
+    growth[,i] <- coef(mod)
+    Var[i] <- (summary(mod)$sigma)**2
+    aic[i] <- AIC(mod)}
   
   if (length(ln_SS) <= minTrans){
     #setting values to NaNs
     note[i] <- sprintf("Not enough data. Num transitions = %s", 
                     length(ln_SS))
-    growth[,i] <- NaN}
+    growth[,i] <- NaN
+    Var[i] <- NA
+    aic[i] <- NA}
 
   df <- data.frame(Model_IDs = sprintf("%s_All_Taxa_Years",Focus[i]), 
                  g.int = growth[1,i], g.slp = growth[2,i], 
-                 growth_notes = note[i])
+                 g.var = Var[i], AIC = aic[i], growth_notes = note[i])
   
   GrowthDataFrame <- rbind(GrowthDataFrame,df)
   }
@@ -272,20 +225,23 @@ for (i in 1:LoopLength){
   
   if (length(ln_SS) > minTrans){
     mod <- lm(ln_ES ~ ln_SS)
-    note[i] <- sprintf("Num of transitions = %s", 
-                    length(ln_SS))
+    note[i] <- sprintf("Num of transitions = %s", length(ln_SS))
     
-    growth[,i] <- coef(mod)}
+    growth[,i] <- coef(mod)
+    Var[i] <- (summary(mod)$sigma)**2
+    aic[i] <- AIC(mod)}
   
   if (length(ln_SS) <= minTrans){
     #setting values to NaNs
     note[i] <- sprintf("Not enough data. Num transitions = %s", 
                     length(ln_SS))
-    growth[,i] <- NaN}
+    growth[,i] <- NaN
+    Var[i] <- NA
+    aic[i] <- NA}
   
   df <- data.frame(Model_IDs = sprintf("%s_All_Taxa_Sites",Focus[i]), 
                  g.int = growth[1,i], g.slp = growth[2,i], 
-                 growth_notes = note[i])
+                 g.var = Var[i], AIC = aic[i], growth_notes = note[i])
   
   GrowthDataFrame <- rbind(GrowthDataFrame,df)
   
@@ -316,7 +272,7 @@ for (i in 1:LoopLength){
   # redefine the matrix for each Focus step
   growth <- matrix(0, nrow = 2, ncol = LoopLengthSF)
   survival <- growth
-  note <- c()
+  note <- Var <- aic <- c()
   
   # subset ColonyLevel to specify first focus
   subset1 <- subset(ColonyLevel, Spec_selection == Focus[i])
@@ -335,19 +291,22 @@ for (i in 1:LoopLength){
     
     if (length(ln_SS) > minTrans){
       mod <- lm(ln_ES ~ ln_SS)
-      note[v] <- sprintf("Num of transitions = %s", 
-                      length(ln_SS))
-      growth[,v] <- coef(mod)}
+      note[v] <- sprintf("Num of transitions = %s", length(ln_SS))
+      growth[,v] <- coef(mod)
+      Var[v] <- (summary(mod)$sigma)**2
+      aic[v] <- AIC(mod)}
     
     if (length(ln_SS) <= minTrans){
       #setting values to NaNs
       note[v] <- sprintf("Not enough data. Num transitions = %s", 
                       length(ln_SS))
-      growth[,v] <- NaN}
+      growth[,v] <- NaN
+      Var[v] <- NA
+      aic[v] <- NA}
     
   df <- data.frame(Model_IDs = sprintf("%s_%s_All_Years",Focus[i], subFocus[v]), 
                  g.int = growth[1,v], g.slp = growth[2,v], 
-                 growth_notes = note[v])
+                 g.var = Var[v], AIC = aic[v], growth_notes = note[v])
   
   GrowthDataFrame <- rbind(GrowthDataFrame,df)
   }
@@ -377,7 +336,7 @@ for (i in 1:LoopLength){
   # redefine the matrix for each Focus step
   growth <- matrix(0, nrow = 2, ncol = LoopLengthSF)
   survival <- growth
-  note <- c()
+  note <- Var <- aic <- c()
   
   # subset ColonyLevel to specify first focus
   subset1 <- subset(ColonyLevel, Spec_selection == Focus[i])
@@ -396,19 +355,22 @@ for (i in 1:LoopLength){
 
     if (length(ln_SS) > minTrans){
       mod <- lm(ln_ES ~ ln_SS)
-      note[v] <- sprintf("Num of transitions = %s", 
-                      length(ln_SS))
-      growth[,v] <- coef(mod)}
+      note[v] <- sprintf("Num of transitions = %s", length(ln_SS))
+      growth[,v] <- coef(mod)
+      Var[v] <- (summary(mod)$sigma)**2
+      aic[v] <- AIC(mod)}
     
     if (length(ln_SS) <= minTrans){
       #setting values to NaNs
       note[v] <- sprintf("Not enough data. Num transitions = %s", 
                       length(ln_SS))
-      growth[,v] <- NaN}
+      growth[,v] <- NaN
+      Var[v] <- NA
+      aic[v] <- NA}
     
     df <- data.frame(Model_IDs = sprintf("%s_%s_All_Sites",Focus[i], subFocus[v]), 
                g.int = growth[1,v], g.slp = growth[2,v], 
-               growth_notes = note[v])
+               g.var = Var[v], AIC = aic[v], growth_notes = note[v])
   
   GrowthDataFrame <- rbind(GrowthDataFrame,df)
   }
@@ -451,26 +413,29 @@ for (i in 1:LoopLength){
                  TransitionTypeSimple == "SHRINK")
     
     # subsetting growth & shrinkage for second focus
-    subset3 <- subset(subset2, Site == subFocus[v])
+    subset3 <- subset(subset2, Interval_Years == subFocus[v])
     
     ln_SS <- subset3$ln_SS
     ln_ES <- subset3$ln_ES
     
     if (length(ln_SS) > minTrans){
       mod <- lm(ln_ES ~ ln_SS)
-      note[v] <- sprintf("Num of transitions = %s", 
-                      length(ln_SS))
-      growth[,v] <- coef(mod)}
+      note[v] <- sprintf("Num of transitions = %s", length(ln_SS))
+      growth[,v] <- coef(mod)
+      Var[v] <- (summary(mod)$sigma)**2
+      aic[v] <- AIC(mod)}
     
     if (length(ln_SS) <= minTrans){
       #setting values to NaNs
       note[v] <- sprintf("Not enough data. Num transitions = %s", 
                       length(ln_SS))
-      growth[,v] <- NaN}
+      growth[,v] <- NaN
+      Var[v] <- NA
+      aic[v] <- NA}
     
   df <- data.frame(Model_IDs = sprintf("%s_%s_All_Genera",Focus[i], subFocus[v]), 
              g.int = growth[1,v], g.slp = growth[2,v], 
-             growth_notes = note[v])
+             g.var = Var[v], AIC = aic[v], growth_notes = note[v])
   
   GrowthDataFrame <- rbind(GrowthDataFrame,df)
   
@@ -492,91 +457,64 @@ subFocus <- SiteNames
 subFocus2 <- IntervalYears
 LoopLength <- length(Focus)
 LoopLengthSF <-  length(subFocus)
-LoopLengthSF2 <-  length(subFocus)
-Spec_selection <- ColonyLevel$Site
-Spec_selectionSF <- ColonyLevel$Interval_Years
-
-for (i in 1:3){
- # i = 1
-for (v in 1:LoopLengthSF){
-  #v = 1
-  subset1 <- subset(ColonyLevel, Spec_selection == Focus[i])
-  subset2 <- subset(subset1, TransitionTypeSimple == "GROWTH" | 
-                 TransitionTypeSimple == "SHRINK")
-  ss <- unique(subset2$Site)
-  glist1 <- list(SiteNames)
-  growth <- matrix(0, nrow = 2, ncol = 1)
-  for (s in 1:length(ss)){
-    #s = 2
-    ln_SS <- subset2$ln_SS[subset2$Interval_Years == subFocus[v] & 
-                             subset2$Site == ss[s]]
-    
-    ln_ES <- subset2$ln_ES[subset2$Interval_Years == subFocus[v] & 
-                             subset2$Site == ss[s]]
-    #subset3 <- subset(subset3, Spec_selectionSF == subFocus[v])
-    # subsetting for growth & shrinkage
-    ThisSite <- SiteNames[SiteNames == ss[s]]
-    
-    if (length(ln_SS) > 1){
-      mod <- lm(ln_ES ~ ln_SS)
-      # saving the model
-      growth <- coef(mod)}
-  
-    if (length(ln_SS) < 1){
-      #setting values to NaNs
-      growth[1] <- sprintf("Not enough data for site: %s", ThisSite)
-      growth[2] <- sprintf("Not enough data for site: %s", ThisSite)
-    }
-    
-      Sites <- list(g.int = growth[1], g.slp = growth[2])
-      glist1[ThisSite] <- list(Sites)
-  } 
-    #gListS <- list(g.int = growth[1,], g.slp = growth[2,])
-    List[v] <- list(glist1)
-}
-NewLists[Focus[i]] <- list(List)
-}
-# running the linear regression model$
-
-# define the parms for model loop
-minTrans <- 1
-Focus <- GeneraNames
-subFocus <- IntervalYears
-LoopLength <- length(Focus)
-LoopLengthSF <-  length(subFocus)
+LoopLengthSF2 <-  length(subFocus2)
 Spec_selection <- ColonyLevel$Genus_Code
-Spec_selectionSF <- ColonyLevel$Interval_Years
+Spec_selectionSF <- ColonyLevel$Site
+Spec_selectionSF2 <- ColonyLevel$Interval_Years
 
-# defining the matrix/list which holds the slope/int for each model run in the loop
-AllList_g2 <- list(Focus)
+minTrans <- 4 
 
 for (i in 1:LoopLength){
-  growth <- matrix(0, nrow = 2, ncol = (LoopLengthSF))
-  # subsetting to specifiy which interactions (genera/site/year) we care about
-  subset1 <- subset(ColonyLevel, Spec_selection == Focus[i])
   
+  # subset ColonyLevel to specify first focus
+  subset1 <- subset(ColonyLevel, Spec_selection == Focus[i])
+
   for (v in 1:LoopLengthSF){
+      # redefine the matrix for each Focus step
+    growth <- matrix(0, nrow = 2, ncol = LoopLengthSF2)
+    survival <- growth
+    note <- Var <- aic <- c()
+    
+    # subsetting for growth & shrinkage
     subset2 <- subset(subset1, TransitionTypeSimple == "GROWTH" | 
                  TransitionTypeSimple == "SHRINK")
-  
-  ln_SS <- subset2$ln_SS[Monty2$Interval_Years == subFocus[v]]
-  ln_ES <- subset2$ln_ES[Monty2$Interval_Years == subFocus[v]]
-  
-  if (length(ln_SS) > minTrans){
-    mod <- lm(ln_ES ~ ln_SS)
-    # saving the model
-    growth[,v] <- coef(mod)}
-  
-  if (length(ln_SS) <= minTrans){
-    #setting values to NaNs
-    growth[,v] <- NaN}
-  }
-  gList <- list(g.int = growth[1,], g.slp = growth[2,])
-  AllList_g2[Focus[i]] <- list(gList)
-}
-
+    
+    # subsetting growth & shrinkage for second focus
+    subset3 <- subset(subset2, Site == subFocus[v])
+    
+    for (y in 1:LoopLengthSF2){
+      
+      subset4 <- subset(subset3, Interval_Years == subFocus2[y])
+      
+      ln_SS <- subset4$ln_SS
+      ln_ES <- subset4$ln_ES
+      
+      if (length(ln_SS) > minTrans){
+        mod <- lm(ln_ES ~ ln_SS)
+        note[y] <- sprintf("Num of transitions = %s", length(ln_SS))
+        growth[,y] <- coef(mod)
+        Var[y] <- (summary(mod)$sigma)**2
+        aic[y] <- AIC(mod)}
+      
+      if (length(ln_SS) <= minTrans){
+        #setting values to NaNs
+        note[y] <- sprintf("Not enough data. Num transitions = %s", 
+                        length(ln_SS))
+        growth[,y] <- NaN
+        Var[y] <- NA
+        aic[y] <- NA}
+      
+      df <- data.frame(Model_IDs = sprintf("%s_%s_%s",Focus[i], 
+                                           subFocus[v], subFocus2[y]), 
+                 g.int = growth[1,y], g.slp = growth[2,y], 
+                 g.var = Var[y], AIC = aic[y], growth_notes = note[y])
+      
+      GrowthDataFrame <- rbind(GrowthDataFrame,df)
+      
+    }}}
 
 ```
+
 #Plot full growth model1
 ```{r Plotting full growth model 1, }
 plot(ln_ES ~ ln_SS ,data = ColonyLevel)
@@ -891,8 +829,8 @@ Rlist <- #list(s.int = survival[1,], s.slp = survival[2,])
 [ ] Start IPM chunk set up
 #Devynn
 [ ] Add in survival to models 1-7
-[ ] Add AIC calcs into the dataframe
-[ ] Add variance into the dataframe
+[X] Add AIC calcs into the dataframe
+[X] Add variance into the dataframe
 [ ] Maybe add reproduction into models 1-7?
 
 
@@ -900,6 +838,7 @@ Rlist <- #list(s.int = survival[1,], s.slp = survival[2,])
 
 #Main Questions for Friday meeting
 1. Is this a good way to do the models? Should we be including interaction terms?
+1.b. Is this the best way to calculate the growth variance?
 2. Why does IntervalYears not work as an interaction term?
 3. Does the way that we're modeling reproduction (# of recruits/area of parent coral) make sense? 
 
