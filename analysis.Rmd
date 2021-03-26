@@ -520,7 +520,7 @@ for (i in 1:LoopLength){
 ```
 
 ### Survival
-```{r 1 FULLmod Survival,}
+```{r 1 FULLmod Survival, eval=FALSE}
 ################################################################################
 ################### Model with no separation of terms: survival ################
 ################################################################################
@@ -537,7 +537,7 @@ SurvivalDataFrame <- data.frame(Model_IDs = "All_Genera_n_Sites_n_Years",
                                         length(surv_dat$size)))
 
 ```
-```{r 2 GeneraMod Survival,}
+```{r 2 GeneraMod Survival,eval=FALSE}
 ################################################################################
 ######### Genera models: Survival ##############################################
 ################################################################################
@@ -582,7 +582,7 @@ for (i in 1:LoopLength){
 
  
 ```
-```{r 3 SiteMod Survival,}
+```{r 3 SiteMod Survival,eval=FALSE}
 ################################################################################
 ######### Site models: Survival ################################################
 ################################################################################
@@ -629,7 +629,7 @@ for (i in 1:LoopLength){
 
 ## Getting the error: "glm.fit: algorithm did not converge" might need to start this loop with a new dataframe for the survival data? 
 ```
-```{r 4 YearMod Survival,}
+```{r 4 YearMod Survival,eval=FALSE}
 ################################################################################
 ########## Interval Year models: survival ######################################
 ################################################################################
@@ -677,7 +677,7 @@ for (i in 1:LoopLength){
 
 ## Getting the error: "glm.fit: algorithm did not converge" might need to start this loop with a new dataframe for the survival data? 
 ```
-```{r 5 Genera + Site Mod Survival,}
+```{r 5 Genera + Site Mod Survival,eval=FALSE}
 ################################################################################
 ######### Genera + Site for all Interval Years models: survival ################
 ################################################################################
@@ -736,7 +736,7 @@ for (i in 1:LoopLength){
   }
 }
 ```
-```{r 6 Genera + Years Mod Survival,}
+```{r 6 Genera + Years Mod Survival,eval=FALSE}
 ################################################################################
 ######### Genera + Interval Years for all Site models ##########################
 ################################################################################
@@ -797,7 +797,7 @@ for (i in 1:LoopLength){
 }
 
 ```
-```{r 7 Site + Years Mod Survival,}
+```{r 7 Site + Years Mod Survival,eval=FALSE}
 ################################################################################
 ######### Site + Interval Years for all Genera models ##########################
 ################################################################################
@@ -861,7 +861,7 @@ for (i in 1:LoopLength){
 
 
 ```
-```{r 8 Genera + Site + Years Mod Survival,}
+```{r 8 Genera + Site + Years Mod Survival,eval=FALSE}
 ################################################################################
 ######### Genera + Site + Interval Years  models ###############################
 ## SURVIVAL ! ##################################################################
@@ -930,7 +930,7 @@ for (i in 1:LoopLength){
 
 ### Reproduction
 Work in progress. 
-```{r SurvivalMods, eval=TRUE}
+```{r reproduction, eval=TRUE}
 
 # define the parms for model loop
 Focus <- GeneraNames 
@@ -1043,7 +1043,7 @@ for (t in 1:LoopLength){
 
 Testing the model interactions. Maybe this makes more sense to have earlier on the page but this is here for reference as to why we coded the models this way. We were interested in extracting the values for the IPM parameters.
 
-```{r Interactions,}
+```{r Interactions,eval=FALSE}
 ################################################################################
 # Model interactions by genus: Growth ##########################################
 #### SITE ######################################################################
@@ -1086,7 +1086,7 @@ drop1(modS_site_MOSC, test="F")
 ```
 
 
-```{r Basic IPMs}
+```{r Basic IPMs,}
 
 options(stringsAsFactors=FALSE)
 
@@ -1165,7 +1165,7 @@ bigmatrix <- function(ModelParameters) {
 
 
 #Plot full growth model1
-```{r Plotting full growth model 1, }
+```{r Plotting full growth model 1,eval=FALSE }
 plot(ln_ES ~ ln_SS ,data = ColonyLevel)
 abline(a=Glist_genera$g.int[1], b=Glist_genera$g.slp[1], col='red', lwd=2)
 abline(a=Glist_genera$g.int[2], b=Glist_genera$g.slp[2], col='blue', lwd=2)
@@ -1196,7 +1196,7 @@ legend("topleft", bty = "n", lty = c(1,1), col = c("green"),
 
 ```
 #Plotting full growth model 2
-```{r Plotting full growth model 2,}
+```{r Plotting full growth model 2,eval=FALSE}
 
 #Plot full growth model2
 LoopLeng <- length(SiteNames)
@@ -1223,7 +1223,7 @@ for (h in 1:LoopLeng) {
 
 #Plot full growth model 3
 Each Interval Year for all sites & genera
-```{r Plotting full growth model 2,}
+```{r Plotting full growth model 2,eval=FALSE}
 #Plot full growth model3
 #mad right now bc of NA values
 LoopL <- length(IntervalYears)
