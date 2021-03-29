@@ -323,7 +323,7 @@ for (i in 1:LoopLength){
   GrowthDataFrame <- rbind(GrowthDataFrame,df)
   
   }} 
-  
+ 
 ```
 ```{r 6 Genera + Years Mod Growth,}
 ################################################################################
@@ -386,6 +386,7 @@ for (i in 1:LoopLength){
     GrowthDataFrame <- rbind(GrowthDataFrame,df)
   
 }}
+ 
 ```
 ```{r 7 Site + Years Mod Growth,}
 ################################################################################
@@ -930,7 +931,7 @@ for (i in 1:LoopLength){
 
 ### Reproduction
 Work in progress. 
-```{r SurvivalMods, eval=TRUE}
+```{r RecruitmentMods, eval=TRUE}
 
 # define the parms for model loop
 Focus <- GeneraNames 
@@ -1003,7 +1004,7 @@ subFocus <- SiteNames
 LoopLength <- length(Focus)
 LoopLengthSF <- length(subFocus)
 
-df <- data.frame()
+recruit_sitegenera <- data.frame()
 
 for (t in 1:LoopLength){
   recruit <- matrix(NaN, nrow = length(IntervalYears), ncol = LoopLengthSF)
@@ -1034,7 +1035,7 @@ for (t in 1:LoopLength){
     
     recruit[(1:length(rec)),i] <- rec
   }
-  df <- rbind(df, data.frame(Genus_Code = GeneraNames[t], rec_info = recruit))
+  recruit_sitegenera <- rbind(recruit_sitegenera, data.frame(Genus_Code = GeneraNames[t], rec_info = recruit))
 }
 
 
@@ -1048,18 +1049,20 @@ Testing the model interactions. Maybe this makes more sense to have earlier on t
 # Model interactions by genus: Growth ##########################################
 #### SITE ######################################################################
 ################################################################################
+#making interval bins instead of using the 0.92343 IntervalYears 
+Growth$IntervalName <- paste0(Growth$StartingYear,"_",Growth$EndingYear)
 
-mod_site_POCS <- lm(ln_ES ~ ln_SS + Site, 
+mod_site_POCS <- lm(ln_ESc ~ ln_SS + Site:ln_SS + IntervalName:ln_SS, 
            data = Growth[Growth$Genus_Code == GeneraNames[1],])
 summary(mod_site_POCS)
 drop1(mod_site_POCS, test="F")
 
-mod_site_POSP <- lm(ln_ES ~ ln_SS + Site, 
+mod_site_POSP <- lm(ln_ESc ~ ln_SS + Site:ln_SS + IntervalName:ln_SS, 
            data = Growth[Growth$Genus_Code == GeneraNames[2],])
 summary(mod_site_POSP)
 drop1(mod_site_POSP, test="F")
 
-mod_site_MOSC <- lm(ln_ES ~ ln_SS + Site, 
+mod_site_MOSC <- lm(ln_ESc ~ ln_SS + Site, 
            data = Growth[Growth$Genus_Code == GeneraNames[3],])
 summary(mod_site_MOSC)
 drop1(mod_site_MOSC, test="F")
@@ -1164,73 +1167,82 @@ bigmatrix <- function(ModelParameters) {
 ```
 
 
-#Plot full growth model1
+#Plot full growth model and Genera model
 ```{r Plotting full growth model 1, }
-plot(ln_ES ~ ln_SS ,data = ColonyLevel)
-abline(a=Glist_genera$g.int[1], b=Glist_genera$g.slp[1], col='red', lwd=2)
-abline(a=Glist_genera$g.int[2], b=Glist_genera$g.slp[2], col='blue', lwd=2)
-abline(a=Glist_genera$g.int[3], b=Glist_genera$g.slp[3], col='green', lwd=2)
+#Plot full growth model
+plot(ln_ES ~ ln_SS ,data = Growth, main="Full growth fit")
+abline(a=GrowthDataFrame$g.int[1], b=GrowthDataFrame$g.slp[1], col='red', lwd=2)
+legend("topleft", bty = "n", lty = c(1,1), col = c("red"),
+       legend= 'All Growth' , cex = 0.8)
+
+
+
+#Plot genera model (growth)
+plot(ln_ES ~ ln_SS ,data = Growth, main="Genera growth fit at all sites+ all interval years")
+abline(a=GrowthDataFrame$g.int[2], b=GrowthDataFrame$g.slp[2], col='red', lwd=2)
+abline(a=GrowthDataFrame$g.int[3], b=GrowthDataFrame$g.slp[3], col='blue', lwd=2)
+abline(a=GrowthDataFrame$g.int[4], b=GrowthDataFrame$g.slp[4], col='green', lwd=2)
 legend("topleft", bty = "n", lty = c(1,1), col = c("red","blue","green"),
        legend= GeneraNames , cex = 0.8)
+
 
 #plot each genus separately
 par(mfrow=c(1,3))
 #Pocillopora
-plot(ln_ES ~ ln_SS ,data = ColonyLevel,
-     main="Pocillopora growth fit at all sites")
-abline(a=Glist_genera$g.int[1], b=Glist_genera$g.slp[1], col='red', lwd=2)
+plot(ln_ES ~ ln_SS ,data = Growth,
+     main="Pocillopora growth fit at all sites+ all interval years")
+abline(a=GrowthDataFrame$g.int[2], b=GrowthDataFrame$g.slp[2], col='red', lwd=2)
 legend("topleft", bty = "n", lty = c(1,1), col = c("red"),
        legend= 'POCS' , cex = 0.8)
 #Porites
-plot(ln_ES ~ ln_SS ,data = ColonyLevel, 
-     main="Porites growth fit at all sites")
-abline(a=Glist_genera$g.int[2], b=Glist_genera$g.slp[2], col='blue', lwd=2)
+plot(ln_ES ~ ln_SS ,data = Growth, 
+     main="Porites growth fit at all sites+ all interval years")
+abline(a=GrowthDataFrame$g.int[3], b=GrowthDataFrame$g.slp[3], col='blue', lwd=2)
 legend("topleft", bty = "n", lty = c(1,1), col = c("blue"),
        legend= 'POSP' , cex = 0.8)
 #Montipora
-plot(ln_ES ~ ln_SS ,data = ColonyLevel, 
-     main="Montipora growth fit at all sites")
-abline(a=Glist_genera$g.int[3], b=Glist_genera$g.slp[3], col='green', lwd=2)
+plot(ln_ES ~ ln_SS ,data = Growth, 
+     main="Montipora growth fit at all sites+ all interval years")
+abline(a=GrowthDataFrame$g.int[4], b=GrowthDataFrame$g.slp[4], col='green', lwd=2)
 legend("topleft", bty = "n", lty = c(1,1), col = c("green"),
        legend= 'MOSP' , cex = 0.8)
 
 ```
-#Plotting full growth model 2
-```{r Plotting full growth model 2,}
+#Plotting full growth model 3: Sites
+```{r Plotting full growth model3 Sites,}
 
 #Plot full growth model2
 LoopLeng <- length(SiteNames)
-plot(ln_ES ~ ln_SS ,data = ColonyLevel, 
+plot(ln_ES ~ ln_SS ,data = Growth, 
      main="Each site growth fit for all genera + all interval years")
 for (i in 1:LoopLeng) {
-  abline(a=Glist_site$g.int[i], b=Glist_site$g.slp[i], col=i , lwd=2)
+  abline(a=GrowthDataFrame$g.int[i], b=GrowthDataFrame$g.slp[i], col=i , lwd=2)
 }
 legend("topleft", bty = "n", lty = c(1,1), col = 1:11,
        legend= SiteNames , cex = 0.8, pt.cex = .7)
 
 
 #plot each site's growth model separately
-LoopLeng <- length(SiteNames)
 par(mfrow=c(4,3))
 for (h in 1:LoopLeng) {
-  plot(ln_ES ~ ln_SS ,data = ColonyLevel)
-    abline(a=Glist_site$g.int[h], b=Glist_site$g.slp[h], col=h , lwd=2)
+  plot(ln_ES ~ ln_SS ,data = Growth, main="Each site growth fit for all genera + all interval years")
+    abline(a=GrowthDataFrame$g.int[h], b=GrowthDataFrame$g.slp[h], col=h , lwd=2)
   legend("topleft", bty = "n", lty = c(1,1), col = h,
          legend= SiteNames[h], cex = 0.6, pt.cex = .5)
 }
 
 ```
 
-#Plot full growth model 3
+#Plot full growth model 4: Interval Years
 Each Interval Year for all sites & genera
-```{r Plotting full growth model 2,}
-#Plot full growth model3
+```{r Plotting full growth model 4,}
+#Plot full growth model4
 #mad right now bc of NA values
 LoopL <- length(IntervalYears)
-plot(ln_ES ~ ln_SS ,data = ColonyLevel, 
+plot(ln_ES ~ ln_SS ,data = Growth, 
      main="Each interval growth fit for all genera + all sites")
 for (m in 1:LoopL) {
-  abline(a=Glist_years$g.int[m], b=Glist_years$g.slp[m], col=m , lwd=2)
+  abline(a=GrowthDataFrame$g.int[m], b=GrowthDataFrame$g.slp[m], col=m , lwd=2)
 }
 legend("topleft", bty = "n", lty = c(1,1), col = 1:11,
        legend= IntervalYears, cex = 0.8, pt.cex = .7)
@@ -1243,14 +1255,49 @@ legend("topleft", bty = "n", lty = c(1,1), col = 1:11,
 #plot each site's growth model separately
 par(mfrow=c(4,3))
 for (c in 1:LoopL) {
-  plot(ln_ES ~ ln_SS ,data = ColonyLevel, 
+  plot(ln_ES ~ ln_SS ,data = Growth, 
        main="Each interval growth fit for all genera + all sites")
-    abline(a=Glist_years$g.int[c], b=Glist_years$g.slp[c], col=c , lwd=2)
+    abline(a=GrowthDataFrame$g.int[c], b=GrowthDataFrame$g.slp[c], col=c , lwd=2)
   legend("topleft", bty = "n", lty = c(1,1), col = c,
          legend= IntervalYears[c], cex = 0.6, pt.cex = .5)
 }
 
 ```
+
+#Plot full growth model 5: Genera + Site (Work in progress)
+Each Interval Year for Sites + Genera
+```{r Plotting full growth model 4,}
+#loop first for sites. Plot 11 sites
+#next loop is from those specific genera at those specific sites
+
+
+#Plot full growth model5
+Loop1 <- length(GeneraNames)
+Subloop1 <- length(SiteNames)
+
+plot(ln_ES ~ ln_SS ,data = Growth, 
+     main="Each interval year for genera + site")
+for (m in 1:Loop1) {
+  abline(a=GrowthDataFrame$g.int[m], b=GrowthDataFrame$g.slp[m], col=m , lwd=2)
+}
+legend("topleft", bty = "n", lty = c(1,1), col = 1:11,
+       legend= IntervalYears, cex = 0.8, pt.cex = .7)
+
+
+
+
+#plot each site's growth model separately
+par(mfrow=c(4,3))
+for (c in 1:LoopL) {
+  plot(ln_ES ~ ln_SS ,data = Growth, 
+       main="Each interval growth fit for all genera + all sites")
+    abline(a=GrowthDataFrame$g.int[c], b=GrowthDataFrame$g.slp[c], col=c , lwd=2)
+  legend("topleft", bty = "n", lty = c(1,1), col = c,
+         legend= IntervalYears[c], cex = 0.6, pt.cex = .5)
+}
+
+```
+
 
 #TO DO
 [X] Run growth individual models 4-6
