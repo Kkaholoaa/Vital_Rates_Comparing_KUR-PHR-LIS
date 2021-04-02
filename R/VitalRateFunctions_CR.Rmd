@@ -17,9 +17,9 @@ library(tidyr)
 ```{r}
 setwd("/Users/c-rod/Documents/R_data/VitalRates/")
 #load in .rdata file
-load("/Users/c-rod/Documents/R_data/VitalRates/data/Patch_And_Colony_Data_20201103.rdata")
+load("/Users/c-rod/Documents/GitHub/Patch-To-Transition/Patch_And_Colony_Data_20210402.rdata")
 
-#View(ColonyLevel)
+View(ColonyLevel)
 #View(PatchLevel)
 
 
@@ -34,6 +34,8 @@ KUROCC010 <- subset(ColonyLevel, Site=="KUR_OCC_010")
 #View(KUROCC010)
 PHROCC016 <- subset(ColonyLevel, Site=="PHR_OCC_016")
 #View(PHROCC016)
+MAISIOK02 <- subset(ColonyLevel, Site=="MAI_SIO_K02")
+View(MAISIOK02)
 HAWOCC002 <- subset(ColonyLevel, Site=="HAW_OCC_002")
 HAWOCC003 <- subset(ColonyLevel, Site=="HAW_OCC_003")
 HAWOCC010 <- subset(ColonyLevel, Site=="HAW_OCC_010")
