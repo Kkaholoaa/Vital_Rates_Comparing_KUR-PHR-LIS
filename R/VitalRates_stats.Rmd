@@ -18,7 +18,7 @@ library(car) #used for ANCOVA
 ```{r}
 setwd("/Users/c-rod/Documents/R_data/VitalRates/")
 #load in .rdata file
-load(file = "/Users/c-rod/Documents/R_data/VitalRates/data/Patch_And_Colony_Data_20201103.rdata")
+load("/Users/c-rod/Documents/GitHub/Patch-To-Transition/Patch_And_Colony_Data_20210402.rdata")
 #View both tables saved in the .rdata
 View(ColonyLevel)
 #View(PatchLevel)
@@ -37,6 +37,9 @@ KUROCC010 <- subset(ColonyLevel, Site=="KUR_OCC_010")
 
 PHROCC016 <- subset(ColonyLevel, Site=="PHR_OCC_016")
 #View(PHROCC016)
+
+MAISIOK02 <- subset(ColonyLevel, Site=="MAI_SIO_K02")
+View(MAISIOK02)
 
 ```
 
