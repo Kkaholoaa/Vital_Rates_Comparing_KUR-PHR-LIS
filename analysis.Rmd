@@ -24,6 +24,9 @@ library(stringr)
 ```{r}
 # Loading dataframe(s)
 AllDataFrame <- load("data/Patch_And_Colony_Data_20201103.rdata")
+
+#load updated dataframe
+AllDataFrame <- load("data/Patch_And_Colony_Data_20210402.rdata")
 ```
 
 ```{r}
@@ -1113,11 +1116,15 @@ bigmatrix <- function(ModelParameters) {
 ```
 
 #Recruitment bar plots
+All sites. Each site, all the interval years. Avg those values to get std deviation. That will be error bars
+So bar for each site and timepoint. Avg the time points so get one bar per site.
+If there's large error bars, there are certain years w/ large recruitment
 ```{r}
 # sum number of recruits/site
 
-recruit_site <- matrix(NaN, nrow = length(IntervalYears), ncol = length(SiteNames))
+rec_bar <- data.frame()
 for (i in 1:length(SiteNames)){
+  recruit_bar <- matrix(NaN, nrow = length(IntervalYears), ncol = length(SiteNames))
   subsetz <- subset(ColonyLevel, Site == SiteNames[i])
   
   #calculate unique time intervals
@@ -1131,11 +1138,17 @@ for (i in 1:length(SiteNames)){
   if (numbrecruits[w] == 0) numbrecruits[w]<- NA
   }
   
-  rec <- numbrecruits * timeint_all # this is the number multiplied by the total area at each time step to give the number of recurits at the following time step.
+  rec <- numbrecruits * timeint_all # this is the # of recruits at each time step to give the number of recurits at the following time step.
   
-  recruit_site[(1:length(rec)),i] <- rec
+  recruit_bar[(1:length(rec)),i] <- rec
+  
+  #row bind results into recruit #s dataframe
+  rec_bar <- rbind(recruit_bar, data.frame(SiteName = SiteNames[i]))
 }
-View(recruit_site)
+View(recruit_bar)
+
+labelz <- data.frame(SiteName = sprintf("%s", SiteNames[i]))
+recr <- rbind(recruit_bar,labelz)
 
 # sum number of recruits/interval
 
