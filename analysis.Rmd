@@ -17,7 +17,7 @@ library(plyr)
 library(dplyr)
 library(tidyr)
 library(reshape2)
-library(stringr)
+library(stringr) 
 ```
 
 # Loading dataframes and modifications
@@ -26,7 +26,7 @@ library(stringr)
 AllDataFrame <- load("data/Patch_And_Colony_Data_20201103.rdata")
 
 #load updated dataframe
-#AllDataFrame <- load("data/Patch_And_Colony_Data_20210402.rdata")
+#AllDataFrame <- load("data/Patch_And_Colony_Data_20210412.rdata")
 
 ```
 
