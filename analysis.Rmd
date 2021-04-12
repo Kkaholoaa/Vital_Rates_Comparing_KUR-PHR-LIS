@@ -26,7 +26,8 @@ library(stringr)
 AllDataFrame <- load("data/Patch_And_Colony_Data_20201103.rdata")
 
 #load updated dataframe
-AllDataFrame <- load("data/Patch_And_Colony_Data_20210402.rdata")
+#AllDataFrame <- load("data/Patch_And_Colony_Data_20210402.rdata")
+
 ```
 
 ```{r}
@@ -1009,7 +1010,7 @@ drop1(mod_site_POCS, test="F")
 mod_site_POSP <- lm(ln_EScc ~ ln_SS + Site:ln_SS + IntervalName:ln_SS, 
            data = Growth[Growth$Genus_Code == GeneraNames[2],])
 summary(mod_site_POSP)
-drop1(mod_site_POSP, test="F")
+drop1(mod_site_POSP, test="F") 
 
 mod_site_MOSC <- lm(ln_EScc ~ ln_SS + Site, 
            data = Growth[Growth$Genus_Code == GeneraNames[3],])
@@ -1119,11 +1120,54 @@ bigmatrix <- function(ModelParameters) {
 All sites. Each site, all the interval years. Avg those values to get std deviation. That will be error bars
 So bar for each site and timepoint. Avg the time points so get one bar per site.
 If there's large error bars, there are certain years w/ large recruitment
+
+Loop for each genus
+Sub loop for site (take the avg of interval years)
+Run sub loop through intervals (14-15) and get the sum of recruits
+create an empty vector c() that has avg and another that has std error
+should get whole numbers
+Vector of integers that is the length of the total # of intervals sampled at that site (2 for 2 timepoints)
+Bar will be avg recruitment per site
+
+#Bar plots for reproduction
 ```{r}
+#if the time interval is less than 1 year, need to drop them!!!
+
 # sum number of recruits/site
 
-rec_bar <- data.frame()
-for (i in 1:length(SiteNames)){
+recruit_bar <- data.frame()
+#first loop by Genus
+for (i in 1:length(GeneraNames)){
+  subsetz1 <- subset(ColonyLevel, Genus_Code == GeneraNames[i])
+  #Then loop by site. Want a bar for each site and timepoint. Then avg the timepoints to get 1 bar per site
+  #initialize vector
+  
+  for (l in 1:length(SiteNames)) {
+    numbrecruits <- c()
+    subsetz2 <- subsetz1[subsetz1$Site == SiteNames[i],]
+     
+    #Want a bar for each time interval
+     #calculate unique time intervals
+     timeint_ <- unique(subsetz2$Interval)
+     
+     #calc # of recruits for each time interval
+     numbrecruits <- rep(0,length(timeint_))
+     for (w in 1:length(IntervalYears)){
+       numbrecruits[w] <- sum(subsetz2$Recruit[which(subsetz2$Interval ==
+                                              timeint_[w])])
+     }
+     #avg timepoints (per site) to get std dev
+    
+  cat<- data.frame(ID=sprintf("%s_%s",GeneraNames[i],SiteNames[l]), Mean= mean(numbrecruits), StdError= sd(numbrecruits)/sqrt(length(numbrecruits)) )
+  recruit_bar <- rbind(recruit_bar,cat)
+  }
+}
+
+
+
+
+
+  for (i in 1:length(SiteNames)){
   recruit_bar <- matrix(NaN, nrow = length(IntervalYears), ncol = length(SiteNames))
   subsetz <- subset(ColonyLevel, Site == SiteNames[i])
   
@@ -1146,13 +1190,6 @@ for (i in 1:length(SiteNames)){
   rec_bar <- rbind(recruit_bar, data.frame(SiteName = SiteNames[i]))
 }
 View(recruit_bar)
-
-labelz <- data.frame(SiteName = sprintf("%s", SiteNames[i]))
-recr <- rbind(recruit_bar,labelz)
-
-# sum number of recruits/interval
-
-
 
 ```
 
@@ -1179,7 +1216,7 @@ GrowthDataFrame %>%
 #Site = sprintf("%s",Focus[i]), TimeInterval = sprintf("%s",subFocus[v]),
 
 #use lines 88-197 in GrowthDataFrame (growth model6 site and interval). Change fill to g.int
-ggplot(GrowthDataFrame, aes(x=????, y=?????))+
+#ggplot(GrowthDataFrame, aes(x=????, y=?????))+
   geom_raster(aes(fill =g.int ))+
   scale_fill_gradient(low = "grey90", high = "purple" )+
   labs(title = "Matrix visualization example")+
@@ -1190,8 +1227,11 @@ ggplot(GrowthDataFrame, aes(x=????, y=?????))+
 
 #Plot full growth model and Genera model
 ```{r Plotting full growth model 1, }
+allgrowth <- subset(subset1, TransitionTypeSimple == "GROWTH" | 
+                   TransitionTypeSimple == "SHRINK")
+
 #Plot full growth model
-plot(ln_ESc ~ ln_SS ,data = Growth, main="Full growth fit")
+plot(ln_ESc ~ ln_SS ,data = allgrowth, main="Full growth fit")
 abline(a=GrowthDataFrame$g.int[1], b=GrowthDataFrame$g.slp[1], col='red', lwd=2)
 legend("topleft", bty = "n", lty = c(1,1), col = c("red"),
        legend= 'All Growth' , cex = 0.8)
@@ -1199,7 +1239,7 @@ legend("topleft", bty = "n", lty = c(1,1), col = c("red"),
 
 
 #Plot genera model (growth)
-plot(ln_ESc ~ ln_SS ,data = Growth, main="Genera growth fit at all sites+ all interval years")
+plot(ln_ESc ~ ln_SS ,data = allgrowth, main="Genera growth fit at all sites+ all interval years")
 abline(a=GrowthDataFrame$g.int[2], b=GrowthDataFrame$g.slp[2], col='red', lwd=2)
 abline(a=GrowthDataFrame$g.int[3], b=GrowthDataFrame$g.slp[3], col='blue', lwd=2)
 abline(a=GrowthDataFrame$g.int[4], b=GrowthDataFrame$g.slp[4], col='green', lwd=2)
@@ -1210,19 +1250,19 @@ legend("topleft", bty = "n", lty = c(1,1), col = c("red","blue","green"),
 #plot each genus separately
 par(mfrow=c(1,3))
 #Pocillopora
-plot(ln_ESc ~ ln_SS ,data = Growth,
+plot(ln_ESc ~ ln_SS ,data = allgrowth,
      main="Pocillopora growth fit at all sites+ all interval years")
 abline(a=GrowthDataFrame$g.int[2], b=GrowthDataFrame$g.slp[2], col='red', lwd=2)
 legend("topleft", bty = "n", lty = c(1,1), col = c("red"),
        legend= 'POCS' , cex = 0.8)
 #Porites
-plot(ln_ESc ~ ln_SS ,data = Growth, 
+plot(ln_ESc ~ ln_SS ,data = allgrowth, 
      main="Porites growth fit at all sites+ all interval years")
 abline(a=GrowthDataFrame$g.int[3], b=GrowthDataFrame$g.slp[3], col='blue', lwd=2)
 legend("topleft", bty = "n", lty = c(1,1), col = c("blue"),
        legend= 'POSP' , cex = 0.8)
 #Montipora
-plot(ln_ESc ~ ln_SS ,data = Growth, 
+plot(ln_ESc ~ ln_SS ,data = allgrowth, 
      main="Montipora growth fit at all sites+ all interval years")
 abline(a=GrowthDataFrame$g.int[4], b=GrowthDataFrame$g.slp[4], col='green', lwd=2)
 legend("topleft", bty = "n", lty = c(1,1), col = c("green"),
@@ -1234,7 +1274,7 @@ legend("topleft", bty = "n", lty = c(1,1), col = c("green"),
 
 #Plot full growth model2
 LoopLeng <- length(SiteNames)
-plot(ln_ESc ~ ln_SS ,data = Growth, 
+plot(ln_ESc ~ ln_SS ,data = allgrowth, 
      main="Each site growth fit for all genera + all interval years")
 for (i in 1:LoopLeng) {
   abline(a=GrowthDataFrame$g.int[i], b=GrowthDataFrame$g.slp[i], col=i , lwd=2)
@@ -1246,7 +1286,7 @@ legend("topleft", bty = "n", lty = c(1,1), col = 1:11,
 #plot each site's growth model separately
 par(mfrow=c(4,3))
 for (h in 1:LoopLeng) {
-  plot(ln_ESc ~ ln_SS ,data = Growth, main="Each site growth fit for all genera + all interval years")
+  plot(ln_ESc ~ ln_SS ,data = allgrowth, main="Each site growth fit for all genera + all interval years")
     abline(a=GrowthDataFrame$g.int[h], b=GrowthDataFrame$g.slp[h], col=h , lwd=2)
   legend("topleft", bty = "n", lty = c(1,1), col = h,
          legend= SiteNames[h], cex = 0.6, pt.cex = .5)
@@ -1260,7 +1300,7 @@ Each Interval Year for all sites & genera
 #Plot full growth model4
 #mad right now bc of NA values
 LoopL <- length(IntervalYears)
-plot(ln_ESc ~ ln_SS ,data = Growth, 
+plot(ln_ESc ~ ln_SS ,data = allgrowth, 
      main="Each interval growth fit for all genera + all sites")
 for (m in 1:LoopL) {
   abline(a=GrowthDataFrame$g.int[m], b=GrowthDataFrame$g.slp[m], col=m , lwd=2)
@@ -1276,7 +1316,7 @@ legend("topleft", bty = "n", lty = c(1,1), col = 1:11,
 #plot each site's growth model separately
 par(mfrow=c(4,3))
 for (c in 1:LoopL) {
-  plot(ln_ESc ~ ln_SS ,data = Growth, 
+  plot(ln_ESc ~ ln_SS ,data = allgrowth, 
        main="Each interval growth fit for all genera + all sites")
     abline(a=GrowthDataFrame$g.int[c], b=GrowthDataFrame$g.slp[c], col=c , lwd=2)
   legend("topleft", bty = "n", lty = c(1,1), col = c,
@@ -1296,7 +1336,7 @@ Each Interval Year for Sites + Genera
 Loop1 <- length(GeneraNames)
 Subloop1 <- length(SiteNames)
 
-plot(ln_ESc ~ ln_SS ,data = Growth, 
+plot(ln_ESc ~ ln_SS ,data = allgrowth, 
      main="Each interval year for genera + site")
 for (m in 1:Loop1) {
   abline(a=GrowthDataFrame$g.int[m], b=GrowthDataFrame$g.slp[m], col=m , lwd=2)
@@ -1310,7 +1350,7 @@ legend("topleft", bty = "n", lty = c(1,1), col = 1:11,
 #plot each site's growth model separately
 par(mfrow=c(4,3))
 for (c in 1:LoopL) {
-  plot(ln_ESc ~ ln_SS ,data = Growth, 
+  plot(ln_ESc ~ ln_SS ,data = allgrowth, 
        main="Each interval growth fit for all genera + all sites")
     abline(a=GrowthDataFrame$g.int[c], b=GrowthDataFrame$g.slp[c], col=c , lwd=2)
   legend("topleft", bty = "n", lty = c(1,1), col = c,
