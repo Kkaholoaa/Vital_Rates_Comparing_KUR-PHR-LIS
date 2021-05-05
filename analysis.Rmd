@@ -31,21 +31,11 @@ AllDataFrame <- load("data/Patch_And_Colony_Data_20210412.rdata")
 ```
 
 ```{r}
-# Ensuring that the log size values are numbers (I think they are numeric, but maybe not!)
-# And that the -Infs are NAs instead
-# ColonyLevel$ln_ESc <- as.numeric(ColonyLevel$ln_ESc)
-# ColonyLevel$ln_SS[ColonyLevel$ln_ESc == -Inf] <-NA
-# 
-# ColonyLevel$ln_SS <- as.numeric(ColonyLevel$ln_SS)
-# ColonyLevel$ln_SS[ColonyLevel$ln_SS == -Inf] <-NA
 
 #changing ln_ES/ln_SS from Na/-Inf to an actual value for recruitment/mortality
 ColonyLevel$ln_SS <- log(ColonyLevel$StartingSize)
 ColonyLevel$ln_ES <- log(ColonyLevel$EndingSize)
-
-# ColonyLevel$ln_ESc <- as.numeric(ColonyLevel$ln_ESc)
-# ColonyLevel$ln_SS[ColonyLevel$ln_ESc == -Inf] <-NA
-# 
+ 
 ColonyLevel$ln_SS <- as.numeric(ColonyLevel$ln_SS)
 ColonyLevel$ln_SS[ColonyLevel$ln_SS == -Inf] <-NA
 
@@ -149,6 +139,7 @@ dt               <- data.frame() # defining the full data frame
 df_SiteYear_coef <- data.frame()
 df_Year_coef     <- data.frame()
 df_Site_coef     <- data.frame()
+df_coef          <- data.frame()
 
 # Separating the growth data frame by genera #
 POCS <- Growth[Growth$Genus_Code==GeneraNames[1],]
@@ -163,10 +154,17 @@ x2_S   <- sort(unique(Choice$Site)) # your second predictor
 x2_Y   <- sort(unique(Choice$Interval)) # another predictor for time
 x2_SY  <- sort(unique(Choice$SiteInterval)) # another predictor where time & site are together 
 
+mod           <- lm(ln_ESc ~ ln_SS, data = Choice)
 mod_site      <- lm(ln_ESc ~ ln_SS + Site + Site*ln_SS, data = Choice)
 mod_year      <- lm(ln_ESc ~ ln_SS + Interval + Interval*ln_SS, data = Choice)
 mod_site_year <- lm(ln_ESc ~ ln_SS + 
                       SiteInterval + SiteInterval*ln_SS, data = Choice)
+
+
+dt <- rbind(dt, data.frame(ID=rep('All',2),
+                           Genus_Code=rep(Choice$Genus_Code[1],2),
+                           s.int=coef(mod)[1],
+                           s.slp=coef(mod)[2]))
 
 dt <- rbind(dt, data.frame(ID=x2_S,
                            Genus_Code=rep(Choice$Genus_Code[1],length(x2_S)),
@@ -182,6 +180,13 @@ dt <- rbind(dt, data.frame(ID=x2_SY,
                            Genus_Code=rep(Choice$Genus_Code[1], length(x2_SY)),
                            g.int=interceptz(mod_site_year, x2_SY),
                            g.slp=slopez(mod_site_year, x2_SY)))
+
+
+# Saving parameters & model summaries into dataframes
+df               <- as.data.frame(coef(summary(mod)))
+df               <- cbind(df, data.frame(Genus_Code = rep(Choice$Genus_Code[1],
+                                     dim(df["Estimate"])[1])))
+df_coef          <- rbind(df_coef, df)
 
 df               <- as.data.frame(coef(summary(mod_site)))
 df               <- cbind(df, data.frame(Genus_Code = rep(Choice$Genus_Code[1],
@@ -204,6 +209,7 @@ df_SiteYear_coef <- rbind(df_SiteYear_coef, df)
 
 ```{r}
 save(dt, file = "data/Growth_intmod_params.rdata")
+save(df_coef, file = "data/Growth_mod_summary.rdata")
 save(df_Site_coef, file = "data/Growth_intmod_summary_site.rdata")
 save(df_Year_coef, file = "data/Growth_intmod_summary_year.rdata")
 save(df_SiteYear_coef, file = "data/Growth_intmod_summary_site_year.rdata")
@@ -224,9 +230,10 @@ dS               <- data.frame()
 df_SiteYear_coef <- data.frame()
 df_Year_coef     <- data.frame()
 df_Site_coef     <- data.frame()
+df_coef          <- data.frame()
 ```
 
-```{r}
+```{r RunSurvivalIntz,}
 # Change this each time for the different Genus Codes
 # This just makes it into a generic name to change once in beginning & not have to change multiple times in the code
 Choice <- MOSC
@@ -235,12 +242,19 @@ x2_S   <- sort(unique(Choice$Site)) # your second predictor
 x2_Y   <- sort(unique(Choice$Interval)) # another predictor for time
 x2_SY  <- sort(unique(Choice$SiteInterval)) # another predictor where time & site are together 
 
+modS           <- glm(survival ~ size, family = "binomial", data = Choice)
 modS_site      <- glm(survival ~ size + Site + Site*size, 
                       family = "binomial", data = Choice)
 modS_year      <- glm(survival ~ size + Interval + 
                         Interval*size, family = "binomial", data = Choice)
 modS_site_year <- glm(survival ~ size + SiteInterval + 
                         SiteInterval*size, family = "binomial", data = Choice)
+
+# Saving parameters & model summaries into dataframes
+dS <- rbind(dS, data.frame(ID=rep('All',2),
+                           Genus_Code=rep(Choice$Genus_Code[1],2),
+                           s.int=coef(modS)[1],
+                           s.slp=coef(modS)[2]))
 
 dS <- rbind(dS, data.frame(ID=x2_S,
                            Genus_Code=rep(Choice$Genus_Code[1],length(x2_S)),
@@ -256,6 +270,11 @@ dS <- rbind(dS, data.frame(ID=x2_SY,
                            Genus_Code=rep(Choice$Genus_Code[1], length(x2_SY)),
                            s.int=interceptz(modS_site_year, x2_SY),
                            s.slp=slopez(modS_site_year, x2_SY)))
+
+df               <- as.data.frame(coef(summary(modS)))
+df               <- cbind(df, data.frame(Genus_Code = rep(Choice$Genus_Code[1],
+                                     dim(df["Estimate"])[1])))
+df_coef          <- rbind(df_coef, df)
 
 df               <- as.data.frame(coef(summary(modS_site)))
 df               <- cbind(df, data.frame(Genus_Code = rep(Choice$Genus_Code[1],
@@ -277,12 +296,186 @@ df_SiteYear_coef <- rbind(df_SiteYear_coef, df)
 
 ```
 
-```{r}
+```{r SaveSurvival,}
 save(dS, file = "data/Survival_intmod_params.rdata")
+save(df_coef, file = "data/Survival_mod_summary.rdata")
 save(df_Site_coef, file = "data/Survival_intmod_summary_site.rdata")
 save(df_Year_coef, file = "data/Survival_intmod_summary_year.rdata")
 save(df_SiteYear_coef, file = "data/Survival_intmod_summary_site_year.rdata")
 ```
+
+### Reproduction
+```{r RecGenSubset, eval=TRUE}
+# Run at the beginning of calculating recruitment stuff
+# Sepearting by genera
+POCS <- ColonyLevel[ColonyLevel$Genus_Code==GeneraNames[1],]
+POSP <- ColonyLevel[ColonyLevel$Genus_Code==GeneraNames[2],]
+MOSC <- ColonyLevel[ColonyLevel$Genus_Code==GeneraNames[3],]
+
+dr      <- data.frame()
+dr_size <- data.frame()
+```
+
+```{r SizeINDRecs,}
+# Rerun for all of the genera 
+Choice <- MOSC
+
+Tc   <- 1.0 # time cut off for sampling period obviously change value to reflect reality
+Cutz <- which(Choice$Interval_Years < Tc) # returns index for sampling periods less than Tc
+
+# Converting too small sampling periods into NAs to eliminate additional zeros
+Choice$Recruit[Cutz] <- NA
+
+# We care about Intervals, Sites, & SiteIntervals
+Ints  <- unique(Choice$Interval)
+Sites  <- unique(Choice$Site)
+SiteInts  <- unique(Choice$SiteInterval)
+recs_I  <- c()
+recs_S  <- c()
+recs_SI  <- c()
+
+
+for (i in 1:length(Ints)){
+  times <- c()
+  a_recs  <- Choice$Recruit[which(Choice$Interval == Ints[i])]
+  times   <- round(Choice$Interval_Years[which(Choice$Interval == Ints[i])])
+  recs_I[i] <- round(sum(a_recs/times),2)
+}
+
+for (i in 1:length(Sites)){
+  times <- c()
+  a_recs  <- Choice$Recruit[which(Choice$Site == Sites[i])]
+  times   <- round(Choice$Interval_Years[which(Choice$Site == Sites[i])])
+  recs_S[i] <- round(sum(a_recs/times),2)
+}
+
+for (i in 1:length(SiteInts)){
+  times <- c()
+  a_recs  <- Choice$Recruit[which(Choice$SiteInterval == SiteInts[i])]
+  times   <- round(Choice$Interval_Years[which(Choice$SiteInterval == 
+                                                 SiteInts[i])])
+  recs_SI[i] <- round(sum(a_recs/times),2)
+}
+
+
+
+sites <- rep('allSites',length(recs_I)) 
+ts <- Ints
+
+dr <- rbind(dr,data.frame(Genus_Code=rep(Choice$Genus_Code[1],length(recs_I)),
+                  Tots_recs_peryear=recs_I,
+                  Times=ts,
+                  Sites=sites))
+
+sites <-  Sites
+ts <- rep('allIntervals',length(recs_S))
+
+dr <- rbind(dr,data.frame(Genus_Code=rep(Choice$Genus_Code[1],length(recs_S)),
+                  Tots_recs_peryear=recs_S,
+                  Times=ts,
+                  Sites=sites))
+
+sites <-  SiteInts
+ts <- SiteInts
+
+dr <- rbind(dr,data.frame(Genus_Code=rep(Choice$Genus_Code[1],length(recs_SI)),
+                  Tots_recs_peryear=recs_SI,
+                  Times=ts,
+                  Sites=sites))
+
+```
+
+```{r SizedepRecs,}
+# Rerun for all of the genera 
+Choice <- MOSC
+
+Tc   <- 1.0 # time cut off for sampling period obviously change value to reflect reality
+Cutz <- which(Choice$Interval_Years < Tc) # returns index for sampling periods less than Tc
+
+# Converting too small sampling periods into NAs to eliminate additional zeros
+Choice$Recruit[Cutz] <- NA
+
+# We care about Intervals, Sites, & SiteIntervals
+Ints  <- unique(Choice$Interval)
+Sites  <- unique(Choice$Site)
+SiteInts  <- unique(Choice$SiteInterval)
+recs_I  <- c()
+recs_S  <- c()
+recs_SI  <- c()
+
+
+for (i in 1:length(Ints)){
+  times <- c()
+  a_recs  <- Choice$Recruit[which(Choice$Interval == Ints[i])]
+  times   <- round(Choice$Interval_Years[which(Choice$Interval == Ints[i])])
+  recs_I[i] <- round(sum(a_recs/times),2)
+}
+
+for (i in 1:length(Sites)){
+  times <- c()
+  a_recs  <- Choice$Recruit[which(Choice$Site == Sites[i])]
+  times   <- round(Choice$Interval_Years[which(Choice$Site == Sites[i])])
+  recs_S[i] <- round(sum(a_recs/times),2)
+}
+
+for (i in 1:length(SiteInts)){
+  times <- c()
+  a_recs  <- Choice$Recruit[which(Choice$SiteInterval == SiteInts[i])]
+  areas   <- Choice$Interval_Years[which(Choice$SiteInterval == 
+                                                 SiteInts[i])]
+  times   <- round(Choice$Interval_Years[which(Choice$SiteInterval == 
+                                                 SiteInts[i])])
+  recs_SI[i] <- round(sum(a_recs/times),2)
+}
+
+
+
+sites <- rep('allSites',length(recs_I)) 
+ts <- Ints
+
+dr_size <- rbind(dr_size,
+                 data.frame(Genus_Code=rep(Choice$Genus_Code[1],length(recs_I)),
+                 Tots_recs_peryear=recs_I,
+                 Times=ts,
+                 Sites=sites))
+
+sites <-  Sites
+ts <- rep('allIntervals',length(recs_S))
+
+dr_size <- rbind(dr_size,
+                 data.frame(Genus_Code=rep(Choice$Genus_Code[1],length(recs_S)),
+                 Tots_recs_peryear=recs_S,
+                 Times=ts,
+                 Sites=sites))
+
+sites <-  SiteInts
+ts <- SiteInts
+
+dr_size <- rbind(dr_size,
+                 data.frame(Genus_Code=rep(Choice$Genus_Code[1],length(recs_SI)),
+                 Tots_recs_peryear=recs_SI,
+                 Times=ts,
+                 Sites=sites))
+
+```
+
+```{r SaveRecData,}
+save(dr, file = "data/Recruitment_sizeIndependent.rdata")
+```
+
+# TO DO
+## Devynn
+[ ] Add area into the recruitment calculations
+[ ] Run & save all models & interactions
+[ ] Convert data into the format for matrix visualizations
+[ ] Plot recruitment barplots
+[ ] Write descriptions & explanations of steps
+[ ] Put models in IPMs 
+[ ] Learn how to do sensitivity analysis
+
+
+# IGNORE SOME OF THE STUFF BELOW FOR NOW
+
 
 
 ```{r}
@@ -1112,45 +1305,6 @@ for (i in 1:LoopLength){
     SurvivalDataFrame <- rbind(SurvivalDataFrame,dfS)
       
     }}}
-
-```
-
-### Reproduction
-Work in progress. 
-```{r RecruitmentMods, eval=TRUE}
-# Sepearting by genera
-POCS <- ColonyLevel[ColonyLevel$Genus_Code==GeneraNames[1],]
-POSP <- ColonyLevel[ColonyLevel$Genus_Code==GeneraNames[2],]
-MOSC <- ColonyLevel[ColonyLevel$Genus_Code==GeneraNames[3],]
-```
-
-```{r}
-Choice <- POCS
-
-Tc   <- 1.0 # time cut off for sampling period obviously change value to reflect reality
-Cutz <- which(Choice$Interval_Years < Tc) # returns index for sampling periods less than Tc
-
-# Converting too small sampling periods into NAs to eliminate additional zeros
-Choice$Recruit[Cutz] <- NA
-
-Ints  <- unique(Choice$Interval)
-times <- c()
-recs  <- c()
-for (i in 1:length(Ints)){
-  a_recs  <- Choice$Recruit[which(Choice$Interval == Ints[i])]
-  times   <- round(Choice$Interval_Years[which(Choice$Interval == Ints[i])])
-  recs[i] <- sum(a_recs/times)
-}
-
-dr <- data.frame()
-dr <- rbind(dr,data.frame(ID=rep(Choice$Genus_Code[1],length(recs)),
-                  Tots_recs_peryear=recs,
-                  Times=Ints,
-                  Sites=rep('allSites',length(recs))))
-
-# Need to run for sites & combination of site and time for the matricies for each genera
-# Also need to make this clean
-
 
 ```
 
