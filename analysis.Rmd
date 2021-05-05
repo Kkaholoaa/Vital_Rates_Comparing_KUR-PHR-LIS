@@ -23,10 +23,10 @@ library(stringr)
 # Loading dataframes and modifications
 ```{r}
 # Loading dataframe(s)
-AllDataFrame <- load("data/Patch_And_Colony_Data_20201103.rdata")
+#AllDataFrame <- load("data/Patch_And_Colony_Data_20201103.rdata")
 
 #load updated dataframe
-#AllDataFrame <- load("data/Patch_And_Colony_Data_20210412.rdata")
+AllDataFrame <- load("data/Patch_And_Colony_Data_20210412.rdata")
 
 ```
 
@@ -42,6 +42,12 @@ AllDataFrame <- load("data/Patch_And_Colony_Data_20201103.rdata")
 #changing ln_ES/ln_SS from Na/-Inf to an actual value for recruitment/mortality
 ColonyLevel$ln_SS <- log(ColonyLevel$StartingSize)
 ColonyLevel$ln_ES <- log(ColonyLevel$EndingSize)
+
+# ColonyLevel$ln_ESc <- as.numeric(ColonyLevel$ln_ESc)
+# ColonyLevel$ln_SS[ColonyLevel$ln_ESc == -Inf] <-NA
+# 
+ColonyLevel$ln_SS <- as.numeric(ColonyLevel$ln_SS)
+ColonyLevel$ln_SS[ColonyLevel$ln_SS == -Inf] <-NA
 
 ColonyLevel <- cbind(ColonyLevel, data.frame(Survival = 
                                                1 - ColonyLevel$Mortality))
@@ -74,6 +80,234 @@ The aim of this analysis is to calculate the kernel fits (growth, survival, & re
 (8) Each genera by site and interval year (we will have parameter values that equal site * interval years * genera)
 
 _*these separations only apply to our growth and survival models, reproduction is not modeled this way_
+
+```{r,}
+
+surv_dat <- data.frame()
+for (i in 1:nrow(ColonyLevel)){
+  if(ColonyLevel$Survival[i] == 0){
+    surv_dat <- rbind(surv_dat, data.frame(ColonyID = ColonyLevel$ColonyID[i], 
+                                size = ColonyLevel$ln_SS[i-1], survival = 0, 
+                                Genus_Code = ColonyLevel$Genus_Code[i],
+                                Interval = ColonyLevel$Interval[i],
+                                SiteInterval = ColonyLevel$SiteInterval[i],
+                                Site = ColonyLevel$Site[i])) 
+  }
+  else{
+    surv_dat <- rbind(surv_dat, data.frame(ColonyID = ColonyLevel$ColonyID[i], 
+                                size = ColonyLevel$ln_SS[i], survival = 1, 
+                                Genus_Code = ColonyLevel$Genus_Code[i],
+                                Interval = ColonyLevel$Interval[i],
+                                SiteInterval = ColonyLevel$SiteInterval[i],
+                                Site = ColonyLevel$Site[i]))}
+}
+
+```
+
+
+```{r Interactions,}
+###### Interactions code from Mike #############################################
+## Functions to calculate the slope and intercepts from interactions ###########
+
+interceptz <-function(mod, u_predict){ 
+	int <- rep(coef(mod)[[1]], length(u_predict))
+	for (i in 2:length(u_predict)) {
+	  Name <- grepl(u_predict[i], 
+	                names(coef(mod))) & !grepl(names(coef(mod))[2], 
+	                                           names(coef(mod)))
+	  if (sum(Name) == 0) int[i] <- NA
+	  else {
+	  int[i] <- int[i] + coef(mod)[Name]}}
+	int} 
+	
+slopez <-function(mod, u_predict){ 
+	slp <- rep(coef(mod)[[2]], length(u_predict))
+	for (i in 2:length(u_predict)) { 
+	  Name <- grepl(u_predict[i],
+	                names(coef(mod))) & grepl(names(coef(mod))[2],
+	                                          names(coef(mod)))
+	  if (sum(Name) == 0) slp[i] <- NA
+	  else {
+	  slp[i] <- slp[i] + coef(mod)[Name]}}
+	slp}
+
+
+```
+
+```{r}
+################################################################################
+# Model interactions by genus: Growth ##########################################
+################################################################################
+################################################################################
+
+Growth <- subset(ColonyLevel, TransitionTypeSimple == "GROWTH" | 
+                   TransitionTypeSimple == "SHRINK")
+
+# Only run this initially
+# we will compare this to other models calculated separately 
+dt               <- data.frame() # defining the full data frame
+df_SiteYear_coef <- data.frame()
+df_Year_coef     <- data.frame()
+df_Site_coef     <- data.frame()
+
+# Separating the growth data frame by genera #
+POCS <- Growth[Growth$Genus_Code==GeneraNames[1],]
+POSP <- Growth[Growth$Genus_Code==GeneraNames[2],]
+MOSC <- Growth[Growth$Genus_Code==GeneraNames[3],]
+```
+
+```{r}
+Choice <- MOSC # Change this to the Genera Name above that you care about
+
+x2_S   <- sort(unique(Choice$Site)) # your second predictor
+x2_Y   <- sort(unique(Choice$Interval)) # another predictor for time
+x2_SY  <- sort(unique(Choice$SiteInterval)) # another predictor where time & site are together 
+
+mod_site      <- lm(ln_ESc ~ ln_SS + Site + Site*ln_SS, data = Choice)
+mod_year      <- lm(ln_ESc ~ ln_SS + Interval + Interval*ln_SS, data = Choice)
+mod_site_year <- lm(ln_ESc ~ ln_SS + 
+                      SiteInterval + SiteInterval*ln_SS, data = Choice)
+
+dt <- rbind(dt, data.frame(ID=x2_S,
+                           Genus_Code=rep(Choice$Genus_Code[1],length(x2_S)),
+                           g.int=interceptz(mod_site, x2_S),
+                           g.slp=slopez(mod_site, x2_S)))
+
+dt <- rbind(dt, data.frame(ID=x2_Y, 
+                           Genus_Code=rep(Choice$Genus_Code[1], length(x2_Y)),
+                           g.int=interceptz(mod_year, x2_Y),
+                           g.slp=slopez(mod_year, x2_Y)))
+
+dt <- rbind(dt, data.frame(ID=x2_SY, 
+                           Genus_Code=rep(Choice$Genus_Code[1], length(x2_SY)),
+                           g.int=interceptz(mod_site_year, x2_SY),
+                           g.slp=slopez(mod_site_year, x2_SY)))
+
+df               <- as.data.frame(coef(summary(mod_site)))
+df               <- cbind(df, data.frame(Genus_Code = rep(Choice$Genus_Code[1],
+                                     dim(df["Estimate"])[1])))
+df_Site_coef     <- rbind(df_Site_coef, df)
+
+
+df               <- as.data.frame(coef(summary(mod_year)))
+df               <- cbind(df, data.frame(Genus_Code = rep(Choice$Genus_Code[1],
+                                     dim(df["Estimate"])[1])))
+df_Year_coef     <- rbind(df_Year_coef, df)
+
+
+df               <- as.data.frame(coef(summary(mod_site_year)))
+df               <- cbind(df, data.frame(Genus_Code = rep(Choice$Genus_Code[1],
+                                     dim(df["Estimate"])[1])))
+df_SiteYear_coef <- rbind(df_SiteYear_coef, df)
+
+```
+
+```{r}
+save(dt, file = "data/Growth_intmod_params.rdata")
+save(df_Site_coef, file = "data/Growth_intmod_summary_site.rdata")
+save(df_Year_coef, file = "data/Growth_intmod_summary_year.rdata")
+save(df_SiteYear_coef, file = "data/Growth_intmod_summary_site_year.rdata")
+```
+
+```{r,}
+################################################################################
+# Model interactions by genus: Survival ########################################
+################################################################################
+# subsetting the survival data frame by genera 
+POCS <- surv_dat[surv_dat$Genus_Code==GeneraNames[1],]
+POSP <- surv_dat[surv_dat$Genus_Code==GeneraNames[2],]
+MOSC <- surv_dat[surv_dat$Genus_Code==GeneraNames[3],]
+
+# Initializing data frames to save model slopes and summaries
+# Only run at beginning
+dS               <- data.frame()
+df_SiteYear_coef <- data.frame()
+df_Year_coef     <- data.frame()
+df_Site_coef     <- data.frame()
+```
+
+```{r}
+# Change this each time for the different Genus Codes
+# This just makes it into a generic name to change once in beginning & not have to change multiple times in the code
+Choice <- MOSC
+
+x2_S   <- sort(unique(Choice$Site)) # your second predictor
+x2_Y   <- sort(unique(Choice$Interval)) # another predictor for time
+x2_SY  <- sort(unique(Choice$SiteInterval)) # another predictor where time & site are together 
+
+modS_site      <- glm(survival ~ size + Site + Site*size, 
+                      family = "binomial", data = Choice)
+modS_year      <- glm(survival ~ size + Interval + 
+                        Interval*size, family = "binomial", data = Choice)
+modS_site_year <- glm(survival ~ size + SiteInterval + 
+                        SiteInterval*size, family = "binomial", data = Choice)
+
+dS <- rbind(dS, data.frame(ID=x2_S,
+                           Genus_Code=rep(Choice$Genus_Code[1],length(x2_S)),
+                           s.int=interceptz(modS_site, x2_S),
+                           s.slp=slopez(modS_site, x2_S)))
+
+dS <- rbind(dS, data.frame(ID=x2_Y, 
+                           Genus_Code=rep(Choice$Genus_Code[1], length(x2_Y)),
+                           s.int=interceptz(modS_year, x2_Y),
+                           s.slp=slopez(modS_year, x2_Y)))
+
+dS <- rbind(dS, data.frame(ID=x2_SY, 
+                           Genus_Code=rep(Choice$Genus_Code[1], length(x2_SY)),
+                           s.int=interceptz(modS_site_year, x2_SY),
+                           s.slp=slopez(modS_site_year, x2_SY)))
+
+df               <- as.data.frame(coef(summary(modS_site)))
+df               <- cbind(df, data.frame(Genus_Code = rep(Choice$Genus_Code[1],
+                                     dim(df["Estimate"])[1])))
+df_Site_coef     <- rbind(df_Site_coef, df)
+
+
+df               <- as.data.frame(coef(summary(modS_year)))
+df               <- cbind(df, data.frame(Genus_Code = rep(Choice$Genus_Code[1],
+                                     dim(df["Estimate"])[1])))
+df_Year_coef     <- rbind(df_Year_coef, df)
+
+
+df               <- as.data.frame(coef(summary(modS_site_year)))
+df               <- cbind(df, data.frame(Genus_Code = rep(Choice$Genus_Code[1],
+                                     dim(df["Estimate"])[1])))
+df_SiteYear_coef <- rbind(df_SiteYear_coef, df)
+                        
+
+```
+
+```{r}
+save(dS, file = "data/Survival_intmod_params.rdata")
+save(df_Site_coef, file = "data/Survival_intmod_summary_site.rdata")
+save(df_Year_coef, file = "data/Survival_intmod_summary_year.rdata")
+save(df_SiteYear_coef, file = "data/Survival_intmod_summary_site_year.rdata")
+```
+
+
+```{r}
+# modS <- glm(survival ~ size, family = "binomial" , data = surv_dat)
+plot(jitter(survival, 0.1) ~ size, Choice)
+ss <- seq(-3, 9, 0.1)
+lines(ss, predict(modS_site[1], list(size = ss), type="response"), pch=8)
+
+summary(modS_site)
+summary(modS_year)
+summary(modS_site_year)
+drop1(modS_site_POCS, test="F")
+
+modS_site_POSP <- glm(survival ~ size + Site, family = "binomial" , 
+           data = ColonyLevel[ColonyLevel$Genus_Code == GeneraNames[2],])
+summary(modS_site_POSP)
+drop1(modS_site_POSP, test="F")
+
+modS_site_MOSC <- glm(survival ~ size + Site, family = "binomial" , 
+           data = ColonyLevel[ColonyLevel$Genus_Code == GeneraNames[3],])
+summary(modS_site_MOSC)
+drop1(modS_site_MOSC, test="F")
+```
+
+
 
 ### Growth 
 
@@ -884,7 +1118,43 @@ for (i in 1:LoopLength){
 ### Reproduction
 Work in progress. 
 ```{r RecruitmentMods, eval=TRUE}
+# Sepearting by genera
+POCS <- ColonyLevel[ColonyLevel$Genus_Code==GeneraNames[1],]
+POSP <- ColonyLevel[ColonyLevel$Genus_Code==GeneraNames[2],]
+MOSC <- ColonyLevel[ColonyLevel$Genus_Code==GeneraNames[3],]
+```
 
+```{r}
+Choice <- POCS
+
+Tc   <- 1.0 # time cut off for sampling period obviously change value to reflect reality
+Cutz <- which(Choice$Interval_Years < Tc) # returns index for sampling periods less than Tc
+
+# Converting too small sampling periods into NAs to eliminate additional zeros
+Choice$Recruit[Cutz] <- NA
+
+Ints  <- unique(Choice$Interval)
+times <- c()
+recs  <- c()
+for (i in 1:length(Ints)){
+  a_recs  <- Choice$Recruit[which(Choice$Interval == Ints[i])]
+  times   <- round(Choice$Interval_Years[which(Choice$Interval == Ints[i])])
+  recs[i] <- sum(a_recs/times)
+}
+
+dr <- data.frame()
+dr <- rbind(dr,data.frame(ID=rep(Choice$Genus_Code[1],length(recs)),
+                  Tots_recs_peryear=recs,
+                  Times=Ints,
+                  Sites=rep('allSites',length(recs))))
+
+# Need to run for sites & combination of site and time for the matricies for each genera
+# Also need to make this clean
+
+
+```
+
+```{r}
 # define the parms for model loop
 Focus <- GeneraNames 
 LoopLength <- length(Focus)
@@ -996,47 +1266,7 @@ View(recruit_sitegenera)
 
 Testing the model interactions. Maybe this makes more sense to have earlier on the page but this is here for reference as to why we coded the models this way. We were interested in extracting the values for the IPM parameters.
 
-```{r Interactions,}
-################################################################################
-# Model interactions by genus: Growth ##########################################
-#### SITE ######################################################################
-################################################################################
 
-mod_site_POCS <- lm(ln_EScc ~ ln_SS + Site:ln_SS + IntervalName:ln_SS, 
-           data = Growth[Growth$Genus_Code == GeneraNames[1],])
-summary(mod_site_POCS)
-drop1(mod_site_POCS, test="F")
-
-mod_site_POSP <- lm(ln_EScc ~ ln_SS + Site:ln_SS + IntervalName:ln_SS, 
-           data = Growth[Growth$Genus_Code == GeneraNames[2],])
-summary(mod_site_POSP)
-drop1(mod_site_POSP, test="F") 
-
-mod_site_MOSC <- lm(ln_EScc ~ ln_SS + Site, 
-           data = Growth[Growth$Genus_Code == GeneraNames[3],])
-summary(mod_site_MOSC)
-drop1(mod_site_MOSC, test="F")
-
-################################################################################
-# Model interactions by genus: Survival ########################################
-#### SITE ######################################################################
-################################################################################
-
-modS_site_POCS <- glm(survival ~ size + Site, family = "binomial" ,
-           data = ColonyLevel[ColonyLevel$Genus_Code == GeneraNames[1],])
-summary(modS_site_POCS)
-drop1(modS_site_POCS, test="F")
-
-modS_site_POSP <- glm(survival ~ size + Site, family = "binomial" , 
-           data = ColonyLevel[ColonyLevel$Genus_Code == GeneraNames[2],])
-summary(modS_site_POSP)
-drop1(modS_site_POSP, test="F")
-
-modS_site_MOSC <- glm(survival ~ size + Site, family = "binomial" , 
-           data = ColonyLevel[ColonyLevel$Genus_Code == GeneraNames[3],])
-summary(modS_site_MOSC)
-drop1(modS_site_MOSC, test="F")
-```
 
 
 ```{r Basic IPMs}
