@@ -93,7 +93,9 @@ for (i in 1:nrow(ColonyLevel)){
 }
 
 ```
+## Notes for Caroline & Devynn with understanding interactions (and R's models in general).
 
+The interaction models return the differences from intercept & slope for each interaction. You have to calculate the differences when you have run the model to get the actual values for slope and intercept. That is what the following functions do, they were edited from material given to me by Mike McWilliam.
 
 ```{r Interactions,}
 ###### Interactions code from Mike #############################################
@@ -208,6 +210,8 @@ df_SiteYear_coef <- rbind(df_SiteYear_coef, df)
 ```
 
 ```{r}
+# Run this after running the chunk above for each genera
+
 save(dt, file = "data/Growth_intmod_params.rdata")
 save(df_coef, file = "data/Growth_mod_summary.rdata")
 save(df_Site_coef, file = "data/Growth_intmod_summary_site.rdata")
@@ -297,6 +301,8 @@ df_SiteYear_coef <- rbind(df_SiteYear_coef, df)
 ```
 
 ```{r SaveSurvival,}
+# Run this after running the chunk above for each genera
+
 save(dS, file = "data/Survival_intmod_params.rdata")
 save(df_coef, file = "data/Survival_mod_summary.rdata")
 save(df_Site_coef, file = "data/Survival_intmod_summary_site.rdata")
@@ -387,9 +393,9 @@ dr <- rbind(dr,data.frame(Genus_Code=rep(Choice$Genus_Code[1],length(recs_SI)),
 
 ```{r SizedepRecs,}
 # Rerun for all of the genera 
-Choice <- MOSC
+Choice <- POCS
 
-Tc   <- 1.0 # time cut off for sampling period obviously change value to reflect reality
+Tc   <- 0.6 # time cut off for sampling period obviously change value to reflect reality
 Cutz <- which(Choice$Interval_Years < Tc) # returns index for sampling periods less than Tc
 
 # Converting too small sampling periods into NAs to eliminate additional zeros
@@ -405,27 +411,35 @@ recs_SI  <- c()
 
 
 for (i in 1:length(Ints)){
-  times <- c()
+  times   <- c()
+  areas   <- c()
   a_recs  <- Choice$Recruit[which(Choice$Interval == Ints[i])]
   times   <- round(Choice$Interval_Years[which(Choice$Interval == Ints[i])])
+  areas   <- round(Choice$StartingSize[which(Choice$Interval == Ints[i])])
+  #a_recs  <- a_recs/areas
   recs_I[i] <- round(sum(a_recs/times),2)
-}
+  }
 
 for (i in 1:length(Sites)){
-  times <- c()
+  times   <- c()
+  areas   <- c()
   a_recs  <- Choice$Recruit[which(Choice$Site == Sites[i])]
   times   <- round(Choice$Interval_Years[which(Choice$Site == Sites[i])])
-  recs_S[i] <- round(sum(a_recs/times),2)
+  areas   <- round(Choice$StartingSize[which(Choice$Site == Sites[i])])
+  recs_S[i] <- round(sum(a_recs/areas * times),2)
 }
 
 for (i in 1:length(SiteInts)){
-  times <- c()
+  times   <- c()
+  areas   <- c()
   a_recs  <- Choice$Recruit[which(Choice$SiteInterval == SiteInts[i])]
   areas   <- Choice$Interval_Years[which(Choice$SiteInterval == 
                                                  SiteInts[i])]
   times   <- round(Choice$Interval_Years[which(Choice$SiteInterval == 
                                                  SiteInts[i])])
-  recs_SI[i] <- round(sum(a_recs/times),2)
+  areas   <- round(Choice$StartingSize[which(Choice$SiteInterval == 
+                                                 SiteInts[i])])
+  recs_SI[i] <- round(sum(a_recs/areas * times),2)
 }
 
 
