@@ -163,10 +163,10 @@ mod_site_year <- lm(ln_ESc ~ ln_SS +
                       SiteInterval + SiteInterval*ln_SS, data = Choice)
 
 
-dt <- rbind(dt, data.frame(ID=rep('All',2),
+dt <- rbind(dt, data.frame(ID=rep('All',length = 2),
                            Genus_Code=rep(Choice$Genus_Code[1],2),
-                           s.int=coef(mod)[1],
-                           s.slp=coef(mod)[2]))
+                           g.int=coef(mod)[1],
+                           g.slp=coef(mod)[2]))
 
 dt <- rbind(dt, data.frame(ID=x2_S,
                            Genus_Code=rep(Choice$Genus_Code[1],length(x2_S)),
@@ -240,7 +240,7 @@ df_coef          <- data.frame()
 ```{r RunSurvivalIntz,}
 # Change this each time for the different Genus Codes
 # This just makes it into a generic name to change once in beginning & not have to change multiple times in the code
-Choice <- MOSC
+Choice <- POCS
 
 x2_S   <- sort(unique(Choice$Site)) # your second predictor
 x2_Y   <- sort(unique(Choice$Interval)) # another predictor for time
@@ -326,7 +326,7 @@ dr_size <- data.frame()
 # Rerun for all of the genera 
 Choice <- MOSC
 
-Tc   <- 1.0 # time cut off for sampling period obviously change value to reflect reality
+Tc   <- 0.6 # time cut off for sampling period obviously change value to reflect reality
 Cutz <- which(Choice$Interval_Years < Tc) # returns index for sampling periods less than Tc
 
 # Converting too small sampling periods into NAs to eliminate additional zeros
@@ -398,6 +398,8 @@ Choice <- POCS
 Tc   <- 0.6 # time cut off for sampling period obviously change value to reflect reality
 Cutz <- which(Choice$Interval_Years < Tc) # returns index for sampling periods less than Tc
 
+Data_Min <- 30
+
 # Converting too small sampling periods into NAs to eliminate additional zeros
 Choice$Recruit[Cutz] <- NA
 
@@ -411,13 +413,20 @@ recs_SI  <- c()
 
 
 for (i in 1:length(Ints)){
-  times   <- c()
-  areas   <- c()
-  a_recs  <- Choice$Recruit[which(Choice$Interval == Ints[i])]
-  times   <- round(Choice$Interval_Years[which(Choice$Interval == Ints[i])])
-  areas   <- round(Choice$StartingSize[which(Choice$Interval == Ints[i])])
-  #a_recs  <- a_recs/areas
-  recs_I[i] <- round(sum(a_recs/times),2)
+  if (length(Choice$Interval == Ints[i]) <= Data_Min){
+    recs_I[i] <- NA
+  }
+  else {
+    times     <- c()
+    areas     <- c()
+    a_recs    <- Choice$Recruit[which(Choice$Interval == Ints[i])]
+    times     <- round(Choice$Interval_Years[which(Choice$Interval == Ints[i])])
+    areas     <- round(Choice$StartingSize[which(Choice$Interval == Ints[i])])
+    #a_recs   <- a_recs/areas
+    recs_I[i] <- round(sum(a_recs/times),2)
+    
+  }
+  
   }
 
 for (i in 1:length(Sites)){
@@ -475,10 +484,12 @@ dr_size <- rbind(dr_size,
 
 ```{r SaveRecData,}
 save(dr, file = "data/Recruitment_sizeIndependent.rdata")
+
 ```
 
 # TO DO
 ## Devynn
+[ ] Add the data limiter part to get rid of sites/intervals with too few transitions
 [ ] Add area into the recruitment calculations
 [ ] Run & save all models & interactions
 [ ] Convert data into the format for matrix visualizations
