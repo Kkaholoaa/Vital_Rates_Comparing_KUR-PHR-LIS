@@ -150,7 +150,7 @@ MOSC <- Growth[Growth$Genus_Code==GeneraNames[3],]
 ```
 
 ```{r}
-Choice <- MOSC # Change this to the Genera Name above that you care about
+Choice <- POCS # Change this to the Genera Name above that you care about
 
 x2_S   <- sort(unique(Choice$Site)) # your second predictor
 x2_Y   <- sort(unique(Choice$Interval)) # another predictor for time
@@ -163,22 +163,23 @@ mod_site_year <- lm(ln_ESc ~ ln_SS +
                       SiteInterval + SiteInterval*ln_SS, data = Choice)
 
 
-dt <- rbind(dt, data.frame(ID=rep('All',length = 2),
+dt <- rbind(dt, data.frame(ID_x=rep('All',length = 2),
+                           ID_y=rep('All',length = 2),
                            Genus_Code=rep(Choice$Genus_Code[1],2),
                            g.int=coef(mod)[1],
                            g.slp=coef(mod)[2]))
 
-dt <- rbind(dt, data.frame(ID=x2_S,
+dt <- rbind(dt, data.frame(ID_x=x2_S,ID_y=rep('All_Years',length(x2_S)),
                            Genus_Code=rep(Choice$Genus_Code[1],length(x2_S)),
                            g.int=interceptz(mod_site, x2_S),
                            g.slp=slopez(mod_site, x2_S)))
 
-dt <- rbind(dt, data.frame(ID=x2_Y, 
+dt <- rbind(dt, data.frame(ID_x=x2_Y,ID_y=rep('All_Sites',length(x2_Y)),
                            Genus_Code=rep(Choice$Genus_Code[1], length(x2_Y)),
                            g.int=interceptz(mod_year, x2_Y),
                            g.slp=slopez(mod_year, x2_Y)))
 
-dt <- rbind(dt, data.frame(ID=x2_SY, 
+dt <- rbind(dt, data.frame(ID_x=x2_SY, ID_y=x2_SY,  
                            Genus_Code=rep(Choice$Genus_Code[1], length(x2_SY)),
                            g.int=interceptz(mod_site_year, x2_SY),
                            g.slp=slopez(mod_site_year, x2_SY)))
@@ -255,22 +256,22 @@ modS_site_year <- glm(survival ~ size + SiteInterval +
                         SiteInterval*size, family = "binomial", data = Choice)
 
 # Saving parameters & model summaries into dataframes
-dS <- rbind(dS, data.frame(ID=rep('All',2),
+dS <- rbind(dS, data.frame(Sites=rep('All',2),Years=rep('All',2),
                            Genus_Code=rep(Choice$Genus_Code[1],2),
                            s.int=coef(modS)[1],
                            s.slp=coef(modS)[2]))
 
-dS <- rbind(dS, data.frame(ID=x2_S,
+dS <- rbind(dS, data.frame(Sites=x2_S,Years=rep('All_Years',length(x2_S)),
                            Genus_Code=rep(Choice$Genus_Code[1],length(x2_S)),
                            s.int=interceptz(modS_site, x2_S),
                            s.slp=slopez(modS_site, x2_S)))
 
-dS <- rbind(dS, data.frame(ID=x2_Y, 
+dS <- rbind(dS, data.frame(Years=x2_Y,Sites=rep('All_Sites',length(x2_Y)), 
                            Genus_Code=rep(Choice$Genus_Code[1], length(x2_Y)),
                            s.int=interceptz(modS_year, x2_Y),
                            s.slp=slopez(modS_year, x2_Y)))
 
-dS <- rbind(dS, data.frame(ID=x2_SY, 
+dS <- rbind(dS, data.frame(Sites=x2_SY, Years=x2_SY,  
                            Genus_Code=rep(Choice$Genus_Code[1], length(x2_SY)),
                            s.int=interceptz(modS_site_year, x2_SY),
                            s.slp=slopez(modS_site_year, x2_SY)))
@@ -487,11 +488,36 @@ save(dr, file = "data/Recruitment_sizeIndependent.rdata")
 
 ```
 
+Putting the data into a dataframe that will work best for the matrix visualization stuff
+```{r}
+# Loading in the data from above (this chunk can be run without running the stuff above!!)
+GrowthModel       <- load("data/Growth_intmod_params.rdata")
+SurvivalModel     <- load("data/Survival_intmod_params.rdata")
+
+POCS_G <- dt[dt$Genus_Code == GeneraNames[1],]
+POSP_G
+MOSC_G
+
+POCS_S       <- dS[dS$Genus_Code == GeneraNames[1],]
+POCS_S$Sites <- ss
+POCS_S$Years <- tt
+POSP_S
+MOSC_S
+
+Site_surv <- c()
+Site_grow <- c()
+ggplot(POCS_S, aes(x=Sites, y=Years))+
+  geom_raster(aes(fill = s.int))+
+  scale_fill_gradient(low = "grey90", high = "purple" )+
+  labs(title = "Matrix visualization example")+
+  theme_bw()
+```
+
 # TO DO
 ## Devynn
 [ ] Add the data limiter part to get rid of sites/intervals with too few transitions
 [ ] Add area into the recruitment calculations
-[ ] Run & save all models & interactions
+[X] Run & save all models & interactions
 [ ] Convert data into the format for matrix visualizations
 [ ] Plot recruitment barplots
 [ ] Write descriptions & explanations of steps
@@ -1637,7 +1663,7 @@ cell values: growth intercept, growth slope, survival intercept, survival slope,
 ```{r}
 #example
 ggplot(ColonyLevel, aes(x=Interval, y=Site))+
-  geom_raster(aes(fill =Recruit ))+
+  geom_raster(aes(fill = Recruit ))+
   scale_fill_gradient(low = "grey90", high = "purple" )+
   labs(title = "Matrix visualization example")+
   theme_bw()
