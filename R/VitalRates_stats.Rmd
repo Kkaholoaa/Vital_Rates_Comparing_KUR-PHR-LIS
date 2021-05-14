@@ -224,6 +224,12 @@ MAIshrin_1618 #34
 #etc. Since this code involves a lot of repetition, we need to write a loop to make our script
 #simpler and more reproducible
 
+#count the number of mortality events in each year
+sum(with(MAISIOK02, TransitionTypeSimple=="MORT" & Interval=="14-15"))
+sum(with(MAISIOK02, TransitionTypeSimple=="MORT" & Interval=="15-16"))
+sum(with(MAISIOK02, TransitionTypeSimple=="MORT" & Interval=="16-17"))
+sum(with(MAISIOK02, TransitionTypeSimple=="MORT" & Interval=="17-18"))
+
 ```
 #Stats discussion
 #Kai
@@ -372,6 +378,7 @@ model1$aic #1521.33 vs model2 AIC= 1523.330
 ```
 
 
+To Do:
 
 
 

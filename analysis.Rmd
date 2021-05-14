@@ -23,7 +23,7 @@ library(stringr)
 # Loading dataframes and modifications
 ```{r}
 # Loading dataframe(s)
-#AllDataFrame <- load("data/Patch_And_Colony_Data_20201103.rdata")
+#AllDataFrame <- load("data/Patch_And_Colony_Data_20201103.rdata") #old dataframe
 
 #load updated dataframe
 AllDataFrame <- load("data/Patch_And_Colony_Data_20210412.rdata")
@@ -146,11 +146,11 @@ df_coef          <- data.frame()
 # Separating the growth data frame by genera #
 POCS <- Growth[Growth$Genus_Code==GeneraNames[1],]
 POSP <- Growth[Growth$Genus_Code==GeneraNames[2],]
-MOSC <- Growth[Growth$Genus_Code==GeneraNames[3],]
+MOSP <- Growth[Growth$Genus_Code==GeneraNames[3],]
 ```
 
 ```{r}
-Choice <- POCS # Change this to the Genera Name above that you care about
+Choice <- MOSP # Change this to the Genera Name above that you care about
 
 x2_S   <- sort(unique(Choice$Site)) # your second predictor
 x2_Y   <- sort(unique(Choice$Interval)) # another predictor for time
@@ -227,7 +227,7 @@ save(df_SiteYear_coef, file = "data/Growth_intmod_summary_site_year.rdata")
 # subsetting the survival data frame by genera 
 POCS <- surv_dat[surv_dat$Genus_Code==GeneraNames[1],]
 POSP <- surv_dat[surv_dat$Genus_Code==GeneraNames[2],]
-MOSC <- surv_dat[surv_dat$Genus_Code==GeneraNames[3],]
+MOSP <- surv_dat[surv_dat$Genus_Code==GeneraNames[3],]
 
 # Initializing data frames to save model slopes and summaries
 # Only run at beginning
@@ -241,7 +241,7 @@ df_coef          <- data.frame()
 ```{r RunSurvivalIntz,}
 # Change this each time for the different Genus Codes
 # This just makes it into a generic name to change once in beginning & not have to change multiple times in the code
-Choice <- POCS
+Choice <- POSP
 
 x2_S   <- sort(unique(Choice$Site)) # your second predictor
 x2_Y   <- sort(unique(Choice$Interval)) # another predictor for time
@@ -317,7 +317,7 @@ save(df_SiteYear_coef, file = "data/Survival_intmod_summary_site_year.rdata")
 # Sepearting by genera
 POCS <- ColonyLevel[ColonyLevel$Genus_Code==GeneraNames[1],]
 POSP <- ColonyLevel[ColonyLevel$Genus_Code==GeneraNames[2],]
-MOSC <- ColonyLevel[ColonyLevel$Genus_Code==GeneraNames[3],]
+MOSP <- ColonyLevel[ColonyLevel$Genus_Code==GeneraNames[3],]
 
 dr      <- data.frame()
 dr_size <- data.frame()
@@ -325,7 +325,7 @@ dr_size <- data.frame()
 
 ```{r SizeINDRecs,}
 # Rerun for all of the genera 
-Choice <- MOSC
+Choice <- POSP
 
 Tc   <- 0.6 # time cut off for sampling period obviously change value to reflect reality
 Cutz <- which(Choice$Interval_Years < Tc) # returns index for sampling periods less than Tc
@@ -366,7 +366,7 @@ for (i in 1:length(SiteInts)){
 
 
 
-sites <- rep('allSites',length(recs_I)) 
+sites <- rep('allSites',length(recs_I)) #combine all the sites
 ts <- Ints
 
 dr <- rbind(dr,data.frame(Genus_Code=rep(Choice$Genus_Code[1],length(recs_I)),
@@ -375,7 +375,7 @@ dr <- rbind(dr,data.frame(Genus_Code=rep(Choice$Genus_Code[1],length(recs_I)),
                   Sites=sites))
 
 sites <-  Sites
-ts <- rep('allIntervals',length(recs_S))
+ts <- rep('allIntervals',length(recs_S)) #combine all intervals
 
 dr <- rbind(dr,data.frame(Genus_Code=rep(Choice$Genus_Code[1],length(recs_S)),
                   Tots_recs_peryear=recs_S,
@@ -413,18 +413,19 @@ recs_S  <- c()
 recs_SI  <- c()
 
 
-for (i in 1:length(Ints)){
+for (i in 1:length(Ints)){ #if the time interval doesn't have enough data points, give it an NA
+  
   if (length(Choice$Interval == Ints[i]) <= Data_Min){
     recs_I[i] <- NA
   }
   else {
     times     <- c()
     areas     <- c()
-    a_recs    <- Choice$Recruit[which(Choice$Interval == Ints[i])]
-    times     <- round(Choice$Interval_Years[which(Choice$Interval == Ints[i])])
-    areas     <- round(Choice$StartingSize[which(Choice$Interval == Ints[i])])
-    #a_recs   <- a_recs/areas
-    recs_I[i] <- round(sum(a_recs/times),2)
+    a_recs    <- Choice$Recruit[which(Choice$Interval == Ints[i])] #numb of recruits per time interval
+    times     <- round(Choice$Interval_Years[which(Choice$Interval == Ints[i])]) #each time interval (but rounded)
+    areas     <- sum(Choice$StartingSize[which(Choice$Interval == Ints[i])]) #sum of area of "parent corals"
+    #a_recs   <- a_recs/areas #calc numb recruits per area
+    recs_I[i] <- sum(a_recs/times)/areas #recruits per year per cm of adults rounded to 2 decimal places
     
   }
   
@@ -493,26 +494,105 @@ Putting the data into a dataframe that will work best for the matrix visualizati
 # Loading in the data from above (this chunk can be run without running the stuff above!!)
 GrowthModel       <- load("data/Growth_intmod_params.rdata")
 SurvivalModel     <- load("data/Survival_intmod_params.rdata")
+Recruit_indep <- load("data/Recruitment_sizeIndependent.rdata")
 
 POCS_G <- dt[dt$Genus_Code == GeneraNames[1],]
-POSP_G
-MOSC_G
+POSP_G <- dt[dt$Genus_Code == GeneraNames[2],]
+MOSP_G <- dt[dt$Genus_Code == GeneraNames[3],]
 
 POCS_S       <- dS[dS$Genus_Code == GeneraNames[1],]
 POCS_S$Sites <- ss
 POCS_S$Years <- tt
-POSP_S
-MOSC_S
+POSP_S <- dS[dS$Genus_Code == GeneraNames[2],]
+MOSP_S <- dS[dS$Genus_Code == GeneraNames[3],]
+
+#split site and year columns
+dt <- separate(dt, col = ID_x, into = c("Sites","sitesplit"), sep = "\n")
+dt <- separate(dt, col = ID_y, into = c("Years","yrsplit"), sep = "\n" )
+write.csv(dt, file = "growthmodel.csv")
+dS <- separate(dS, col=Sites, into = c("Sites","sitesplit"), sep = "\n" )
+dS <- separate(dS, col=Years, into = c("Years","yrsplit"), sep = "\n" )
+write.csv(dS, file = "survivalmodel.csv")
+dr <- separate(dr, col=Sites, into = c("Sites","sitesplit"), sep = "\n" )
+dr <- separate(dr, col=Times, into = c("Years","yrsplit"), sep = "\n" )
+write.csv(de, file = "indeprecruitmodel.csv")
+
+
+POCS_S <- separate(POCS_S, col=Sites, into = c("Sites","sitesplit"), sep = "\n" )
+POCS_S <- separate(POCS_S, col=Years, into = c("Years","yrsplit"), sep = "\n" )
+#some of the Years column has sites
+POCS_S[1:21,3] #select the years data
+POCS_S[22:38,4] #select the yrsplit data I want
+
+#then move both of these to Years column
+
+#replace value in A_Freq w/ value from same row but column M.F
+# df$A_Freq <- df$M.F
+POCS_S$yrsplit <- ifelse(POCS_S$yrsplit == "", POCS_S$Years, POCS_S$yrsplit) 
+doggie <- mutate(POCS_S, yrsplit = ifelse(yrsplit = NA ,Years, yrsplit))
+POCS_S <- mutate(POCS_S, x)
+
+
+growing <- read.csv("growthmodel.csv")
+POCS_G <- growing[growing$Genus_Code == GeneraNames[1],]
+POSP_G <- growing[growing$Genus_Code == GeneraNames[2],]
+MOSP_G <- growing[growing$Genus_Code == GeneraNames[3],]
 
 Site_surv <- c()
 Site_grow <- c()
-ggplot(POCS_S, aes(x=Sites, y=Years))+
-  geom_raster(aes(fill = s.int))+
+
+plotz <- ggplot(POSP_G, aes(x=Sites, y=Years)) + #when I get ss and tt working, change the x= and y-
+  geom_raster(aes(fill = g.slp))+ #change fill to look at diff VR functions
   scale_fill_gradient(low = "grey90", high = "purple" )+
-  labs(title = "Matrix visualization example")+
-  theme_bw()
+  labs(title = "Growth matrix visualization: POSP") + theme_bw() +
+  theme(plot.title = element_text(size = 20, face = "bold"), axis.text.x =  element_text(angle = 45, hjust = 1)) 
+ggsave(filename = "Figures/POSP_growthmatrix_slp.png", plot = plotz)
+
+
+#################
+#Recruitment
+
+#matrix for recruitment
+ggplot(dr, aes(x=Sites, y=Times )) + #change for size depend vs independ
+  geom_raster(aes(fill = Tots_recs_peryear ))+ 
+  scale_fill_gradient(low = "grey90", high = "purple" )+
+  labs(title = "Size indepedent matrix visualization example") + theme_bw() +
+  theme(plot.title = element_text(size = 20, face = "bold"), axis.text.x =  element_text(angle = 45, hjust = 1)) 
+  #xlab(" ") + ylab(" ")+
+
 ```
+
 ```{r}
+allsites <- POCS_S$Sites
+allsites
+allsites[14] <- allsites[1]
+allsites[15] <- allsites[1]
+allsites[16] <- allsites[1]
+allsites[17] <- allsites[1]
+allsites[18] <- allsites[1]
+allsites[19] <- allsites[1]
+allsites[20] <- allsites[1]
+allsites[21] <- allsites[1]
+
+allsites[22]<-allsites[3]
+allsites[23]<-allsites[3]
+allsites[24]<-allsites[3]
+allsites[25]<-allsites[4]
+allsites[26]<-allsites[4]
+allsites[27]<-allsites[5]
+allsites[28]<-allsites[6]
+allsites[29]<-allsites[7]
+allsites[30]<-allsites[8]
+allsites[31]<-allsites[9]
+allsites[32]<-allsites[10]
+allsites[33]<-allsites[11]
+allsites[34]<-allsites[12]
+allsites[35]<-allsites[13]
+
+POCS_S$Sites <- allsites
+
+
+
 # What I did to get ss & tt
 # > POCS_S$Sites
 #  [1] All                All                MAI_SIO_K01        FFS_OCC_002       
@@ -726,10 +806,10 @@ modS_site_POSP <- glm(survival ~ size + Site, family = "binomial" ,
 summary(modS_site_POSP)
 drop1(modS_site_POSP, test="F")
 
-modS_site_MOSC <- glm(survival ~ size + Site, family = "binomial" , 
+modS_site_MOSP <- glm(survival ~ size + Site, family = "binomial" , 
            data = ColonyLevel[ColonyLevel$Genus_Code == GeneraNames[3],])
-summary(modS_site_MOSC)
-drop1(modS_site_MOSC, test="F")
+summary(modS_site_MOSP)
+drop1(modS_site_MOSP, test="F")
 ```
 
 
