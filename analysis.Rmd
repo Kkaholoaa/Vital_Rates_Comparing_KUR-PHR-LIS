@@ -369,29 +369,29 @@ for (i in 1:length(SiteInts)){
 
 
 
-sites <- rep('allSites',length(recs_I)) #combine all the sites
+sites <- rep('All_Sites',length(recs_I)) #combine all the sites
 ts    <- Ints
 
 dr <- rbind(dr,data.frame(Genus_Code=rep(Choice$Genus_Code[1],length(recs_I)),
                   Tots_recs_peryear=recs_I,
-                  Times=ts,
-                  Sites=sites))
+                  Sites=sites,
+                  Years=ts))
 
 sites <-  Sites
-ts    <- rep('allIntervals',length(recs_S)) #combine all intervals
+ts    <- rep('All_Years',length(recs_S)) #combine all intervals
 
 dr <- rbind(dr,data.frame(Genus_Code=rep(Choice$Genus_Code[1],length(recs_S)),
                   Tots_recs_peryear=recs_S,
-                  Times=ts,
-                  Sites=sites))
+                  Sites=sites,
+                  Years=ts))
 
 sites <-  SiteInts
 ts    <- SiteInts
 
 dr <- rbind(dr,data.frame(Genus_Code=rep(Choice$Genus_Code[1],length(recs_SI)),
                   Tots_recs_peryear=recs_SI,
-                  Times=ts,
-                  Sites=sites))
+                  Sites=sites,
+                  Years=ts))
 
 ```
 
@@ -458,23 +458,23 @@ for (i in 1:length(SiteInts)){
 
 
 
-sites <- rep('allSites',length(recs_I)) 
+sites <- rep('All_Sites',length(recs_I)) 
 ts <- Ints
 
 dr_size <- rbind(dr_size,
                  data.frame(Genus_Code=rep(Choice$Genus_Code[1],length(recs_I)),
                  Tots_recs_peryear=recs_I,
-                 Times=ts,
-                 Sites=sites))
+                 Sites=sites,
+                  Years=ts))
 
 sites <-  Sites
-ts <- rep('allIntervals',length(recs_S))
+ts <- rep('All_Years',length(recs_S))
 
 dr_size <- rbind(dr_size,
                  data.frame(Genus_Code=rep(Choice$Genus_Code[1],length(recs_S)),
                  Tots_recs_peryear=recs_S,
-                 Times=ts,
-                 Sites=sites))
+                 Sites=sites,
+                  Years=ts))
 
 sites <-  SiteInts
 ts <- SiteInts
@@ -482,13 +482,14 @@ ts <- SiteInts
 dr_size <- rbind(dr_size,
                  data.frame(Genus_Code=rep(Choice$Genus_Code[1],length(recs_SI)),
                  Tots_recs_peryear=recs_SI,
-                 Times=ts,
-                 Sites=sites))
+                 Sites=sites,
+                  Years=ts))
 
 ```
 
 ```{r SaveRecData,}
 save(dr, file = "data/Recruitment_sizeIndependent.rdata")
+save(dr_size, file = "data/Recruitment_sizeDependent.rdata")
 
 ```
 
@@ -498,6 +499,7 @@ Putting the data into a dataframe that will work best for the matrix visualizati
 GrowthModel   <- load("data/Growth_intmod_params.rdata")
 SurvivalModel <- load("data/Survival_intmod_params.rdata")
 Recruit_indep <- load("data/Recruitment_sizeIndependent.rdata")
+Recruit_dep  <- load("data/Recruitment_sizeDependent.rdata")
 
 POCS_G <- dt[dt$Genus_Code == GeneraNames[1],]
 POSP_G <- dt[dt$Genus_Code == GeneraNames[2],]
@@ -507,273 +509,80 @@ POCS_S <- dS[dS$Genus_Code == GeneraNames[1],]
 POSP_S <- dS[dS$Genus_Code == GeneraNames[2],]
 MOSP_S <- dS[dS$Genus_Code == GeneraNames[3],]
 
+POCS_R <- dr[dr$Genus_Code == GeneraNames[1],]
+POSP_R <- dr[dr$Genus_Code == GeneraNames[2],]
+MOSP_R <- dr[dr$Genus_Code == GeneraNames[3],]
+
+POCS_Rdep <- dr_size[dr_size$Genus_Code == GeneraNames[1],]
+POSP_Rdep <- dr_size[dr_size$Genus_Code == GeneraNames[2],]
+MOSP_Rdep <- dr_size[dr_size$Genus_Code == GeneraNames[3],]
+
 ```
 
 ```{r fixingDFs,}
 #trying to split the site interval and flip the sites/intervals
-Change <- POCS_G #change this variable rather than having to change it everywhere
+Change <- POSP_Rdep #change this variable rather than having to change it everywhere
 these  <- grepl('\n',Change$Sites)
 Change[these,] <- separate(Change[these,], col=Sites, 
                           into = c("Sites","Years"), sep = "\n" )
 
-
+POSP_Rdep <- Change #change this variable rather than having to change it everywhere
 
 ```
 
 ```{r}
-GPlotz <- POCS_G
+GPlotz <- MOSP_G #change this variable
 
-plotz <- ggplot(GPlotz, aes(x=Sites, y=Years)) + #when I get ss and tt working, change the x= and y-
+plotz <- ggplot(GPlotz, aes(x=Sites, y=Years)) + 
   geom_raster(aes(fill = g.slp))+ #change fill to look at diff VR functions
   scale_fill_gradient(low = "grey90", high = "purple" )+
   labs(title = sprintf("Growth matrix visualization: %s", GPlotz$Genus_Code[1])) + theme_bw() +
   theme(plot.title = element_text(size = 20, face = "bold"), axis.text.x =  element_text(angle = 45, hjust = 1)) 
-#ggsave(filename = sprintf("Figures/%s_growthmatrix_%s.png",
-#                  GPlotz$Genus_Code[1],"int"), plot = plotz)
+ggsave(filename = sprintf("Figures/%s_growthmatrix_%s.png",
+                  GPlotz$Genus_Code[1],"slp"), plot = plotz)
+
+
+#recruitment
+RPlotz <- POSP_Rdep #change this variable
+
+plotz <- ggplot(RPlotz, aes(x=Sites, y=Years)) + 
+  geom_raster(aes(fill = Tots_recs_peryear))+ #change fill to look at diff VR functions
+  scale_fill_gradient(low = "grey90", high = "purple" )+
+  labs(title = sprintf("Recruitment matrix visualization: %s", RPlotz$Genus_Code[1])) + theme_bw() +
+  theme(plot.title = element_text(size = 20, face = "bold"), axis.text.x =  element_text(angle = 45, hjust = 1)) 
+ggsave(filename = sprintf("Figures/%s_indeprecruitmatrix.png",
+                  RPlotz$Genus_Code[1]), plot = plotz)
 
 ```
 
 ```{r}
 #################
 #Survival
-POCS_S <- surviving[surviving$Genus_Code == GeneraNames[1],]
-POSP_S <- surviving[surviving$Genus_Code == GeneraNames[2],]
-MOSP_S <- surviving[surviving$Genus_Code == GeneraNames[3],]
 
-plottt <- ggplot(POCS_S, aes(x=Sites, y=Years)) + #change genus
-  geom_raster(aes(fill = s.slp))+ #change fill to look at diff VR functions
+SPlotz <- POCS_S #change this variable
+plotz <- ggplot(SPlotz, aes(x=Sites, y=Years)) + 
+  geom_raster(aes(fill = s.int))+ #change fill to look at diff VR functions
   scale_fill_gradient(low = "grey90", high = "purple" )+
-  labs(title = "Survival matrix visualization: POCS") + theme_bw() +
+  labs(title = sprintf("Survival matrix visualization: %s", SPlotz$Genus_Code[1])) + theme_bw() +
   theme(plot.title = element_text(size = 20, face = "bold"), axis.text.x =  element_text(angle = 45, hjust = 1)) 
-#ggsave(filename = "Figures/POCS_Survivalmatrix_slp.png", plot = plottt)
+ggsave(filename = sprintf("Figures/%s_survivalmatrix_%s.png",
+                  SPlotz$Genus_Code[1],"int"), plot = plotz)
 
 
 #################
-#Recruitment
-recruiting <- read.csv("temp/indeprecruitmodel_upd.csv")
-POCS_R <- recruiting[recruiting$Genus_Code == GeneraNames[1],]
-POSP_R <- recruiting[recruiting$Genus_Code == GeneraNames[2],]
-MOSP_R <- recruiting[recruiting$Genus_Code == GeneraNames[3],]
+#log transformed Recruitment
+RPlotz <- POCS_R #change this variable
 
-#matrix for recruitment
-matrix1 <- ggplot(POCS_R, aes(x=Sites, y=Years )) + #change for size depend vs independ
-  geom_raster(aes(fill = Tots_recs_peryear ))+ 
+plotz <- ggplot(RPlotz, aes(x=Sites, y=Years)) + 
+  geom_raster(aes(fill = log10(Tots_recs_peryear) ))+ #change fill to look at diff VR functions
   scale_fill_gradient(low = "grey90", high = "purple" )+
-  labs(title = "Size indepedent recruitment matrix: POCS") + theme_bw() +
+  labs(title = sprintf("Recruitment matrix visualization: %s", RPlotz$Genus_Code[1])) + theme_bw() +
   theme(plot.title = element_text(size = 20, face = "bold"), axis.text.x =  element_text(angle = 45, hjust = 1)) 
-#ggsave(filename = "Figures/POCS_IndepRecruit_matrix.png", plot = matrix1)
-
+ggsave(filename = sprintf("Figures/%s_indeprecruitmatrix_%s.png",
+                  RPlotz$Genus_Code[1],"log"), plot = plotz)
 ```
 
-```{r}
-allsites <- POCS_S$Sites
-allsites
-allsites[14] <- allsites[1]
-allsites[15] <- allsites[1]
-allsites[16] <- allsites[1]
-allsites[17] <- allsites[1]
-allsites[18] <- allsites[1]
-allsites[19] <- allsites[1]
-allsites[20] <- allsites[1]
-allsites[21] <- allsites[1]
 
-allsites[22]<-allsites[3]
-allsites[23]<-allsites[3]
-allsites[24]<-allsites[3]
-allsites[25]<-allsites[4]
-allsites[26]<-allsites[4]
-allsites[27]<-allsites[5]
-allsites[28]<-allsites[6]
-allsites[29]<-allsites[7]
-allsites[30]<-allsites[8]
-allsites[31]<-allsites[9]
-allsites[32]<-allsites[10]
-allsites[33]<-allsites[11]
-allsites[34]<-allsites[12]
-allsites[35]<-allsites[13]
-
-POCS_S$Sites <- allsites
-
-
-
-# What I did to get ss & tt
-# > POCS_S$Sites
-#  [1] All                All                MAI_SIO_K01        FFS_OCC_002       
-#  [5] FFS_OCC_014        HAW_OCC_002        HAW_OCC_003        HAW_OCC_010       
-#  [9] HAW_SIO_K08        HAW_SIO_K10        KUR_OCC_010        MAI_OCC_002       
-# [13] MAI_SIO_K02        All_Sites          All_Sites          All_Sites         
-# [17] All_Sites          All_Sites          All_Sites          All_Sites         
-# [21] All_Sites          MAI_SIO_K01\n14-15 MAI_SIO_K01\n15-16 MAI_SIO_K01\n16-18
-# [25] FFS_OCC_002\n13-16 FFS_OCC_002\n16-19 FFS_OCC_014\n16-19 HAW_OCC_002\n16-19
-# [29] HAW_OCC_003\n16-19 HAW_OCC_010\n16-19 HAW_SIO_K08\n15-17 HAW_SIO_K10\n15-17
-# [33] KUR_OCC_010\n16-19 MAI_OCC_002\n16-19 MAI_SIO_K02\n17-18 MAI_SIO_K02\n16-17
-# [37] MAI_SIO_K02\n15-16 MAI_SIO_K02\n14-15
-# 38 Levels: All MAI_SIO_K01 FFS_OCC_002 FFS_OCC_014 HAW_OCC_002 HAW_OCC_003 ... MAI_SIO_K02\n14-15
-# > ss <- POCS_S$Sites
-# > ss[15] <- ss[1]
-# > ss[14] <- ss[1]
-# > ss[16] <- ss[1]
-# > ss[17] <- ss[1]
-# > ss[18] <- ss[1]
-# > ss[19] <- ss[1]
-# > ss[20] <- ss[1]
-# > ss[21] <- ss[1]
-# > ss
-#  [1] All                All                MAI_SIO_K01        FFS_OCC_002       
-#  [5] FFS_OCC_014        HAW_OCC_002        HAW_OCC_003        HAW_OCC_010       
-#  [9] HAW_SIO_K08        HAW_SIO_K10        KUR_OCC_010        MAI_OCC_002       
-# [13] MAI_SIO_K02        All                All                All               
-# [17] All                All                All                All               
-# [21] All                MAI_SIO_K01\n14-15 MAI_SIO_K01\n15-16 MAI_SIO_K01\n16-18
-# [25] FFS_OCC_002\n13-16 FFS_OCC_002\n16-19 FFS_OCC_014\n16-19 HAW_OCC_002\n16-19
-# [29] HAW_OCC_003\n16-19 HAW_OCC_010\n16-19 HAW_SIO_K08\n15-17 HAW_SIO_K10\n15-17
-# [33] KUR_OCC_010\n16-19 MAI_OCC_002\n16-19 MAI_SIO_K02\n17-18 MAI_SIO_K02\n16-17
-# [37] MAI_SIO_K02\n15-16 MAI_SIO_K02\n14-15
-# 38 Levels: All MAI_SIO_K01 FFS_OCC_002 FFS_OCC_014 HAW_OCC_002 HAW_OCC_003 ... MAI_SIO_K02\n14-15
-# > ss[22]<-ss[3]
-# > ss[23]<-ss[3]
-# > ss[24]<-ss[3]
-# > ss[25]<-ss[4]
-# > ss[26]<-ss[4]
-# > ss[27]<-ss[5]
-# > ss[28]<-ss[6]
-# > ss[29]<-ss[7]
-# > ss[30]<-ss[8]
-# > ss[31]<-ss[9]
-# > ss[32]<-ss[10]
-# > ss
-#  [1] All                All                MAI_SIO_K01        FFS_OCC_002       
-#  [5] FFS_OCC_014        HAW_OCC_002        HAW_OCC_003        HAW_OCC_010       
-#  [9] HAW_SIO_K08        HAW_SIO_K10        KUR_OCC_010        MAI_OCC_002       
-# [13] MAI_SIO_K02        All                All                All               
-# [17] All                All                All                All               
-# [21] All                MAI_SIO_K01        MAI_SIO_K01        MAI_SIO_K01       
-# [25] FFS_OCC_002        FFS_OCC_002        FFS_OCC_014        HAW_OCC_002       
-# [29] HAW_OCC_003        HAW_OCC_010        HAW_SIO_K08        HAW_SIO_K10       
-# [33] KUR_OCC_010\n16-19 MAI_OCC_002\n16-19 MAI_SIO_K02\n17-18 MAI_SIO_K02\n16-17
-# [37] MAI_SIO_K02\n15-16 MAI_SIO_K02\n14-15
-# 38 Levels: All MAI_SIO_K01 FFS_OCC_002 FFS_OCC_014 HAW_OCC_002 HAW_OCC_003 ... MAI_SIO_K02\n14-15
-# > ss[33]<-ss[11]
-# > ss[34]<-ss[12]
-# > ss[35]<-ss[13]
-# > ss
-#  [1] All                All                MAI_SIO_K01        FFS_OCC_002       
-#  [5] FFS_OCC_014        HAW_OCC_002        HAW_OCC_003        HAW_OCC_010       
-#  [9] HAW_SIO_K08        HAW_SIO_K10        KUR_OCC_010        MAI_OCC_002       
-# [13] MAI_SIO_K02        All                All                All               
-# [17] All                All                All                All               
-# [21] All                MAI_SIO_K01        MAI_SIO_K01        MAI_SIO_K01       
-# [25] FFS_OCC_002        FFS_OCC_002        FFS_OCC_014        HAW_OCC_002       
-# [29] HAW_OCC_003        HAW_OCC_010        HAW_SIO_K08        HAW_SIO_K10       
-# [33] KUR_OCC_010        MAI_OCC_002        MAI_SIO_K02        MAI_SIO_K02\n16-17
-# [37] MAI_SIO_K02\n15-16 MAI_SIO_K02\n14-15
-# 38 Levels: All MAI_SIO_K01 FFS_OCC_002 FFS_OCC_014 HAW_OCC_002 HAW_OCC_003 ... MAI_SIO_K02\n14-15
-# > ss[36]<-ss[13]
-# > ss[37]<-ss[13]
-# > ss[38]<-ss[13]
-# > ss
-#  [1] All         All         MAI_SIO_K01 FFS_OCC_002 FFS_OCC_014 HAW_OCC_002 HAW_OCC_003
-#  [8] HAW_OCC_010 HAW_SIO_K08 HAW_SIO_K10 KUR_OCC_010 MAI_OCC_002 MAI_SIO_K02 All        
-# [15] All         All         All         All         All         All         All        
-# [22] MAI_SIO_K01 MAI_SIO_K01 MAI_SIO_K01 FFS_OCC_002 FFS_OCC_002 FFS_OCC_014 HAW_OCC_002
-# [29] HAW_OCC_003 HAW_OCC_010 HAW_SIO_K08 HAW_SIO_K10 KUR_OCC_010 MAI_OCC_002 MAI_SIO_K02
-# [36] MAI_SIO_K02 MAI_SIO_K02 MAI_SIO_K02
-# 38 Levels: All MAI_SIO_K01 FFS_OCC_002 FFS_OCC_014 HAW_OCC_002 HAW_OCC_003 ... MAI_SIO_K02\n14-15
-# > POCS_S$Sites <- ss
-# > POCS_S
-#           Sites              Years Genus_Code       s.int         s.slp
-# 89          All                All       POCS  -0.1699435  2.602817e-01
-# 90          All                All       POCS  -0.1699435  2.602817e-01
-# 91  MAI_SIO_K01          All_Years       POCS  -2.4960182  7.862807e-01
-# 92  FFS_OCC_002          All_Years       POCS -19.5660685  1.390843e-11
-# 93  FFS_OCC_014          All_Years       POCS   2.0195211 -4.615907e-01
-# 94  HAW_OCC_002          All_Years       POCS  -0.3502737 -3.623879e-01
-# 95  HAW_OCC_003          All_Years       POCS  19.5660685 -4.222978e-11
-# 96  HAW_OCC_010          All_Years       POCS          NA            NA
-# 97  HAW_SIO_K08          All_Years       POCS -19.5660685  3.815281e-12
-# 98  HAW_SIO_K10          All_Years       POCS -23.1934400            NA
-# 99  KUR_OCC_010          All_Years       POCS  19.5660685  2.272216e-11
-# 100 MAI_OCC_002          All_Years       POCS   3.2723265 -5.452571e-01
-# 101 MAI_SIO_K02          All_Years       POCS  -0.9842586  9.582226e-01
-# 102         All              14-15       POCS  18.5660685  4.492100e-09
-# 103         All              15-16       POCS -57.8674410  1.407746e+01
-# 104         All              16-18       POCS 290.9249441 -6.667572e+01
-# 105         All              13-16       POCS -18.5660685  8.569987e-12
-# 106         All              16-19       POCS   0.1501326  2.440142e-01
-# 107         All              15-17       POCS -18.5660685  1.935340e-12
-# 108         All              17-18       POCS  18.5660685 -1.766982e-09
-# 109         All              16-17       POCS  18.5660685            NA
-# 110 MAI_SIO_K01 MAI_SIO_K01\n14-15       POCS  20.5660664  4.802222e-07
-# 111 MAI_SIO_K01 MAI_SIO_K01\n15-16       POCS -69.8262982  1.698670e+01
-# 112 MAI_SIO_K01 MAI_SIO_K01\n16-18       POCS 322.2643681 -7.385826e+01
-# 113 FFS_OCC_002 FFS_OCC_002\n13-16       POCS -20.5660685 -1.323528e-11
-# 114 FFS_OCC_002 FFS_OCC_002\n16-19       POCS -20.5660685  1.615461e-11
-# 115 FFS_OCC_014 FFS_OCC_014\n16-19       POCS   2.0195211 -4.615907e-01
-# 116 HAW_OCC_002 HAW_OCC_002\n16-19       POCS  -0.3502737 -3.623879e-01
-# 117 HAW_OCC_003 HAW_OCC_003\n16-19       POCS  20.5660685  8.760048e-09
-# 118 HAW_OCC_010 HAW_OCC_010\n16-19       POCS          NA            NA
-# 119 HAW_SIO_K08 HAW_SIO_K08\n15-17       POCS -20.5660685 -1.526073e-12
-# 120 HAW_SIO_K10 HAW_SIO_K10\n15-17       POCS -20.5660707            NA
-# 121 KUR_OCC_010 KUR_OCC_010\n16-19       POCS  20.5660685 -4.580926e-11
-# 122 MAI_OCC_002 MAI_OCC_002\n16-19       POCS   3.2723265 -5.452571e-01
-# 123 MAI_SIO_K02 MAI_SIO_K02\n17-18       POCS  20.5660685  3.626603e-09
-# 124 MAI_SIO_K02 MAI_SIO_K02\n16-17       POCS  20.5660662            NA
-# 125 MAI_SIO_K02 MAI_SIO_K02\n15-16       POCS -49.1736345  1.178681e+01
-# 126 MAI_SIO_K02 MAI_SIO_K02\n14-15       POCS  20.5660685  4.571358e-09
-# > tt <- POCS_S$Years
-# > tt
-#  [1] All                All                All_Years          All_Years         
-#  [5] All_Years          All_Years          All_Years          All_Years         
-#  [9] All_Years          All_Years          All_Years          All_Years         
-# [13] All_Years          14-15              15-16              16-18             
-# [17] 13-16              16-19              15-17              17-18             
-# [21] 16-17              MAI_SIO_K01\n14-15 MAI_SIO_K01\n15-16 MAI_SIO_K01\n16-18
-# [25] FFS_OCC_002\n13-16 FFS_OCC_002\n16-19 FFS_OCC_014\n16-19 HAW_OCC_002\n16-19
-# [29] HAW_OCC_003\n16-19 HAW_OCC_010\n16-19 HAW_SIO_K08\n15-17 HAW_SIO_K10\n15-17
-# [33] KUR_OCC_010\n16-19 MAI_OCC_002\n16-19 MAI_SIO_K02\n17-18 MAI_SIO_K02\n16-17
-# [37] MAI_SIO_K02\n15-16 MAI_SIO_K02\n14-15
-# 38 Levels: All All_Years 14-15 15-16 16-18 14-16 13-16 16-19 15-17 17-19 15-19 17-18 ... MAI_SIO_K02\n14-15
-# > tt[3]<-tt[1]
-# > tt[4]<-tt[1]
-# > tt[5]<-tt[1]
-# > tt[6]<-tt[1]
-# > tt[7]<-tt[1]
-# > tt[8]<-tt[1]
-# > tt[9]<-tt[1]
-# > tt[10]<-tt[1]
-# > tt[11]<-tt[1]
-# > tt[12]<-tt[1]
-# > tt[13]<-tt[1]
-# > tt[22]<-tt[14]
-# > tt[23]<-tt[15]
-# > tt[24]<-tt[16]
-# > tt[25]<-tt[17]
-# > tt[26]<-tt[18]
-# > tt[27]<-tt[18]
-# > tt[28]<-tt[18]
-# > tt[29]<-tt[18]
-# > tt[30]<-tt[18]
-# > tt[33]<-tt[18]
-# > tt[34]<-tt[18]
-# > tt[31]<-tt[19]
-# > tt[32]<-tt[19]
-# > tt[35]<-tt[20]
-# > tt
-#  [1] All                All                All                All               
-#  [5] All                All                All                All               
-#  [9] All                All                All                All               
-# [13] All                14-15              15-16              16-18             
-# [17] 13-16              16-19              15-17              17-18             
-# [21] 16-17              14-15              15-16              16-18             
-# [25] 13-16              16-19              16-19              16-19             
-# [29] 16-19              16-19              15-17              15-17             
-# [33] 16-19              16-19              17-18              MAI_SIO_K02\n16-17
-# [37] MAI_SIO_K02\n15-16 MAI_SIO_K02\n14-15
-# 38 Levels: All All_Years 14-15 15-16 16-18 14-16 13-16 16-19 15-17 17-19 15-19 17-18 ... MAI_SIO_K02\n14-15
-# > tt[36]<-tt[21]
-# > tt[37]<-tt[23]
-# > tt[38]<-tt[22]
-```
 
 
 
@@ -1736,7 +1545,39 @@ View(recruit_sitegenera)
 Testing the model interactions. Maybe this makes more sense to have earlier on the page but this is here for reference as to why we coded the models this way. We were interested in extracting the values for the IPM parameters.
 
 
+```{r IPM_TESTING,}
+Growth <- subset(ColonyLevel, TransitionTypeSimple == "GROWTH" | 
+                   TransitionTypeSimple == "SHRINK")
 
+# Only run this initially
+# we will compare this to other models calculated separately 
+dt               <- data.frame() # defining the full data frame
+
+
+# Separating the growth data frame by genera #
+POCS_g <- Growth[Growth$Genus_Code==GeneraNames[1],]
+POSP_g <- Growth[Growth$Genus_Code==GeneraNames[2],]
+MOSP_g <- Growth[Growth$Genus_Code==GeneraNames[3],]
+
+##############
+#SURVIVAL
+# subsetting the survival data frame by genera 
+POCS_s <- surv_dat[surv_dat$Genus_Code==GeneraNames[1],]
+POSP_s <- surv_dat[surv_dat$Genus_Code==GeneraNames[2],]
+MOSP_s <- surv_dat[surv_dat$Genus_Code==GeneraNames[3],]
+
+# Initializing data frames to save model slopes and summaries
+# Only run at beginning
+dS               <- data.frame()
+
+
+##############
+#RECRUITMENT
+subset(dr,)
+
+
+
+```
 
 ```{r Basic IPMs}
 
