@@ -149,8 +149,9 @@ POSP <- Growth[Growth$Genus_Code==GeneraNames[2],]
 MOSP <- Growth[Growth$Genus_Code==GeneraNames[3],]
 ```
 
+#Growth
 ```{r}
-Choice <- MOSP # Change this to the Genera Name above that you care about
+Choice <- POSP # Change this to the Genera Name above that you care about
 
 x2_S   <- sort(unique(Choice$Site)) # your second predictor
 x2_Y   <- sort(unique(Choice$Interval)) # another predictor for time
@@ -163,18 +164,20 @@ mod_site_year <- lm(ln_ESc ~ ln_SS +
                       SiteInterval + SiteInterval*ln_SS, data = Choice)
 
 
-dt <- rbind(dt, data.frame(ID_x=rep('All',length = 2),
-                           ID_y=rep('All',length = 2),
-                           Genus_Code=rep(Choice$Genus_Code[1],2),
+dt <- rbind(dt, data.frame(ID_x=rep('AllSites',length = 1),
+                           ID_y=rep('AllYears',length = 1),
+                           Genus_Code=rep(Choice$Genus_Code[1],1),
                            g.int=coef(mod)[1],
-                           g.slp=coef(mod)[2]))
+                           g.slp=coef(mod)[2],
+                           g.var=(summary(mod)$sigma)**2))
 
 dt <- rbind(dt, data.frame(ID_x=x2_S,ID_y=rep('All_Years',length(x2_S)),
                            Genus_Code=rep(Choice$Genus_Code[1],length(x2_S)),
                            g.int=interceptz(mod_site, x2_S),
-                           g.slp=slopez(mod_site, x2_S)))
+                           g.slp=slopez(mod_site, x2_S),
+                           ))
 
-dt <- rbind(dt, data.frame(ID_x=x2_Y,ID_y=rep('All_Sites',length(x2_Y)),
+dt <- rbind(dt, data.frame(ID_y=x2_Y,ID_x=rep('All_Sites',length(x2_Y)),
                            Genus_Code=rep(Choice$Genus_Code[1], length(x2_Y)),
                            g.int=interceptz(mod_year, x2_Y),
                            g.slp=slopez(mod_year, x2_Y)))
@@ -256,8 +259,8 @@ modS_site_year <- glm(survival ~ size + SiteInterval +
                         SiteInterval*size, family = "binomial", data = Choice)
 
 # Saving parameters & model summaries into dataframes
-dS <- rbind(dS, data.frame(Sites=rep('All',2),Years=rep('All',2),
-                           Genus_Code=rep(Choice$Genus_Code[1],2),
+dS <- rbind(dS, data.frame(Sites=rep('All_Sites',1),Years=rep('All_Years',1),
+                           Genus_Code=rep(Choice$Genus_Code[1],1),
                            s.int=coef(modS)[1],
                            s.slp=coef(modS)[2]))
 
@@ -325,7 +328,7 @@ dr_size <- data.frame()
 
 ```{r SizeINDRecs,}
 # Rerun for all of the genera 
-Choice <- POSP
+Choice <- POCS
 
 Tc   <- 0.6 # time cut off for sampling period obviously change value to reflect reality
 Cutz <- which(Choice$Interval_Years < Tc) # returns index for sampling periods less than Tc
@@ -506,25 +509,17 @@ POCS_S$Years <- tt
 POSP_S <- dS[dS$Genus_Code == GeneraNames[2],]
 MOSP_S <- dS[dS$Genus_Code == GeneraNames[3],]
 
-#split site and year columns
-dt <- separate(dt, col = ID_x, into = c("Sites","sitesplit"), sep = "\n")
-dt <- separate(dt, col = ID_y, into = c("Years","yrsplit"), sep = "\n" )
-write.csv(dt, file = "growthmodel.csv")
-dS <- separate(dS, col=Sites, into = c("Sites","sitesplit"), sep = "\n" )
-dS <- separate(dS, col=Years, into = c("Years","yrsplit"), sep = "\n" )
-write.csv(dS, file = "survivalmodel.csv")
-dr <- separate(dr, col=Sites, into = c("Sites","sitesplit"), sep = "\n" )
-dr <- separate(dr, col=Times, into = c("Years","yrsplit"), sep = "\n" )
-write.csv(de, file = "indeprecruitmodel.csv")
+#Site_surv <- c()
+#Site_grow <- c()
 
-
+#trying to split the site interval and flip the sites/intervals
 POCS_S <- separate(POCS_S, col=Sites, into = c("Sites","sitesplit"), sep = "\n" )
 POCS_S <- separate(POCS_S, col=Years, into = c("Years","yrsplit"), sep = "\n" )
-#some of the Years column has sites
-POCS_S[1:21,3] #select the years data
+#PROBLEM: some of the Years column has sites
+POCS_S[1:21,3] #select the years data I want
 POCS_S[22:38,4] #select the yrsplit data I want
-
 #then move both of these to Years column
+POCS_S["newyearcol"] <- POCS_S[1:21,3]
 
 #replace value in A_Freq w/ value from same row but column M.F
 # df$A_Freq <- df$M.F
@@ -533,32 +528,66 @@ doggie <- mutate(POCS_S, yrsplit = ifelse(yrsplit = NA ,Years, yrsplit))
 POCS_S <- mutate(POCS_S, x)
 
 
-growing <- read.csv("growthmodel.csv")
+
+
+#MANUALLY CHANGE
+#split site and year columns
+dt <- separate(dt, col = ID_x, into = c("Sites","sitesplit"), sep = "\n")
+dt <- separate(dt, col = ID_y, into = c("Years","yrsplit"), sep = "\n" )
+#write.csv(dt, file = "temp/growthmodel.csv")
+dS <- separate(dS, col=Sites, into = c("Sites","sitesplit"), sep = "\n" )
+dS <- separate(dS, col=Years, into = c("Years","yrsplit"), sep = "\n" )
+#write.csv(dS, file = "temp/survivalmodel.csv")
+dr <- separate(dr, col=Sites, into = c("Sites","sitesplit"), sep = "\n" )
+dr <- separate(dr, col=Times, into = c("Years","yrsplit"), sep = "\n" )
+#write.csv(dr, file = "temp/indeprecruitmodel.csv")
+
+
+
+#################
+#Growth
+growing <- read.csv("temp/growthmodel_upd.csv")
 POCS_G <- growing[growing$Genus_Code == GeneraNames[1],]
 POSP_G <- growing[growing$Genus_Code == GeneraNames[2],]
 MOSP_G <- growing[growing$Genus_Code == GeneraNames[3],]
-
-Site_surv <- c()
-Site_grow <- c()
 
 plotz <- ggplot(POSP_G, aes(x=Sites, y=Years)) + #when I get ss and tt working, change the x= and y-
   geom_raster(aes(fill = g.slp))+ #change fill to look at diff VR functions
   scale_fill_gradient(low = "grey90", high = "purple" )+
   labs(title = "Growth matrix visualization: POSP") + theme_bw() +
   theme(plot.title = element_text(size = 20, face = "bold"), axis.text.x =  element_text(angle = 45, hjust = 1)) 
-ggsave(filename = "Figures/POSP_growthmatrix_slp.png", plot = plotz)
+#ggsave(filename = "Figures/MOSP_growthmatrix_int.png", plot = plotz)
+
+
+#################
+#Survival
+surviving <- read.csv("temp/survivalmodel_upd.csv")
+POCS_S <- surviving[surviving$Genus_Code == GeneraNames[1],]
+POSP_S <- surviving[surviving$Genus_Code == GeneraNames[2],]
+MOSP_S <- surviving[surviving$Genus_Code == GeneraNames[3],]
+
+plottt <- ggplot(POCS_S, aes(x=Sites, y=Years)) + #change genus
+  geom_raster(aes(fill = s.slp))+ #change fill to look at diff VR functions
+  scale_fill_gradient(low = "grey90", high = "purple" )+
+  labs(title = "Survival matrix visualization: POCS") + theme_bw() +
+  theme(plot.title = element_text(size = 20, face = "bold"), axis.text.x =  element_text(angle = 45, hjust = 1)) 
+#ggsave(filename = "Figures/POCS_Survivalmatrix_slp.png", plot = plottt)
 
 
 #################
 #Recruitment
+recruiting <- read.csv("temp/indeprecruitmodel_upd.csv")
+POCS_R <- recruiting[recruiting$Genus_Code == GeneraNames[1],]
+POSP_R <- recruiting[recruiting$Genus_Code == GeneraNames[2],]
+MOSP_R <- recruiting[recruiting$Genus_Code == GeneraNames[3],]
 
 #matrix for recruitment
-ggplot(dr, aes(x=Sites, y=Times )) + #change for size depend vs independ
+matrix1 <- ggplot(POCS_R, aes(x=Sites, y=Years )) + #change for size depend vs independ
   geom_raster(aes(fill = Tots_recs_peryear ))+ 
   scale_fill_gradient(low = "grey90", high = "purple" )+
-  labs(title = "Size indepedent matrix visualization example") + theme_bw() +
+  labs(title = "Size indepedent recruitment matrix: POCS") + theme_bw() +
   theme(plot.title = element_text(size = 20, face = "bold"), axis.text.x =  element_text(angle = 45, hjust = 1)) 
-  #xlab(" ") + ylab(" ")+
+#ggsave(filename = "Figures/POCS_IndepRecruit_matrix.png", plot = matrix1)
 
 ```
 
@@ -1949,7 +1978,7 @@ GrowthDataFrame %>%
 
 #Plot full growth model and Genera model
 ```{r Plotting full growth model 1, }
-allgrowth <- subset(subset1, TransitionTypeSimple == "GROWTH" | 
+allgrowth <- subset(ColonyLevel, TransitionTypeSimple == "GROWTH" | 
                    TransitionTypeSimple == "SHRINK")
 
 #Plot full growth model
