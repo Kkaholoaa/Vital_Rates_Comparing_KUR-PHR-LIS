@@ -1550,33 +1550,56 @@ Growth <- subset(ColonyLevel, TransitionTypeSimple == "GROWTH" |
                    TransitionTypeSimple == "SHRINK")
 
 # Only run this initially
-# we will compare this to other models calculated separately 
-dt               <- data.frame() # defining the full data frame
+# 
+#dt               <- data.frame() # defining the full data frame
 
 
 # Separating the growth data frame by genera #
-POCS_g <- Growth[Growth$Genus_Code==GeneraNames[1],]
-POSP_g <- Growth[Growth$Genus_Code==GeneraNames[2],]
-MOSP_g <- Growth[Growth$Genus_Code==GeneraNames[3],]
+POCS_g <- dt[dt$Genus_Code==GeneraNames[1],]
+POSP_g <- dt[dt$Genus_Code==GeneraNames[2],]
+MOSP_g <- dt[dt$Genus_Code==GeneraNames[3],]
 
 ##############
 #SURVIVAL
 # subsetting the survival data frame by genera 
-POCS_s <- surv_dat[surv_dat$Genus_Code==GeneraNames[1],]
-POSP_s <- surv_dat[surv_dat$Genus_Code==GeneraNames[2],]
-MOSP_s <- surv_dat[surv_dat$Genus_Code==GeneraNames[3],]
+POCS_s <- dS[dS$Genus_Code==GeneraNames[1],]
+POSP_s <- dS[dS$Genus_Code==GeneraNames[2],]
+MOSP_s <- dS[dS$Genus_Code==GeneraNames[3],]
+
 
 # Initializing data frames to save model slopes and summaries
 # Only run at beginning
-dS               <- data.frame()
+#dS               <- data.frame()
 
 
 ##############
 #RECRUITMENT
-subset(dr,)
+POCS_R <- dr[dr$Genus_Code == GeneraNames[1],]
+POSP_R <- dr[dr$Genus_Code == GeneraNames[2],]
+MOSP_R <- dr[dr$Genus_Code == GeneraNames[3],]
+
+POCS_R <- subset(POCS_R,
+                   Years == "All_Years" )
+totrecruits_POCS <- sum(POCS_R$Tots_recs_peryear)
+POSP_R <- subset(POSP_R,
+                   Years == "All_Years" )
+totrecruits_POSP <- sum(POSP_R$Tots_recs_peryear)
+MOSP_R <- subset(MOSP_R,
+                   Years == "All_Years" )
+totrecruits_MOSP <- sum(MOSP_R$Tots_recs_peryear)
+
+#run chunk below to get the functions
+#NEXT
+
+MP_POCS <- list(rec = totrecruits_POCS, g.int = POCS_g$g.int[1], g.slp = POCS_g$g.slp[1], g.var = 0.07, s.int = POCS_s$s.int[1], s.slp = POCS_s$s.slp[1])
+MP_POSP <- list(rec = totrecruits_POSP, g.int = POSP_g$g.int[1], g.slp = POSP_g$g.slp[1], g.var = 0.07, s.int = POSP_s$s.int[1], s.slp = POSP_s$s.slp[1])
+MP_MOSP <- list(rec = totrecruits_MOSP, g.int = MOSP_g$g.int[1], g.slp = MOSP_g$g.slp[1], g.var = 0.07, s.int = MOSP_s$s.int[1], s.slp = MOSP_s$s.slp[1])
+
+pocs <- bigmatrix(MP_POCS)
 
 
 
+  
 ```
 
 ```{r Basic IPMs}
