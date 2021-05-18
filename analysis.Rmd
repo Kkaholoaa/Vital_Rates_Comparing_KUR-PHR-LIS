@@ -151,7 +151,7 @@ MOSP <- Growth[Growth$Genus_Code==GeneraNames[3],]
 
 #Growth
 ```{r}
-Choice <- MOSP # Change this to the Genera Name above that you care about
+Choice <- POCS # Change this to the Genera Name above that you care about
 
 x2_S   <- sort(unique(Choice$Site)) # your second predictor
 x2_Y   <- sort(unique(Choice$Interval)) # another predictor for time
@@ -168,8 +168,8 @@ dt <- rbind(dt, data.frame(Sites=rep('All_Sites',length = 1),
                            Years=rep('All_Years',length = 1),
                            Genus_Code=rep(Choice$Genus_Code[1],1),
                            g.int=coef(mod)[1],
-                           g.slp=coef(mod)[2]))
-                           #g.var=(summary(mod)$sigma)**2))
+                           g.slp=coef(mod)[2],
+                           g.var=(summary(mod)$sigma)**2))
 
 dt <- rbind(dt, data.frame(Sites=x2_S,Years=rep('All_Years',length(x2_S)),
                            Genus_Code=rep(Choice$Genus_Code[1],length(x2_S)),
