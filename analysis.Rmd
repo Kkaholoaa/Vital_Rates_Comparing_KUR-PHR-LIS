@@ -151,7 +151,7 @@ MOSP <- Growth[Growth$Genus_Code==GeneraNames[3],]
 
 #Growth
 ```{r}
-Choice <- POCS # Change this to the Genera Name above that you care about
+Choice <- MOSP # Change this to the Genera Name above that you care about
 
 x2_S   <- sort(unique(Choice$Site)) # your second predictor
 x2_Y   <- sort(unique(Choice$Interval)) # another predictor for time
@@ -168,8 +168,8 @@ dt <- rbind(dt, data.frame(Sites=rep('All_Sites',length = 1),
                            Years=rep('All_Years',length = 1),
                            Genus_Code=rep(Choice$Genus_Code[1],1),
                            g.int=coef(mod)[1],
-                           g.slp=coef(mod)[2],
-                           g.var=(summary(mod)$sigma)**2))
+                           g.slp=coef(mod)[2]))
+                           #g.var=(summary(mod)$sigma)**2))
 
 dt <- rbind(dt, data.frame(Sites=x2_S,Years=rep('All_Years',length(x2_S)),
                            Genus_Code=rep(Choice$Genus_Code[1],length(x2_S)),
@@ -658,10 +658,31 @@ pocs <- bigmatrix(MP_POCS)
 posp <- bigmatrix(MP_POSP)
 mosp <- bigmatrix(MP_MOSP)
 
-
-image(y, y, t(pocs$K)^.3,)
+png(filename = "figs/POCS_fullK.png")
+image(y, y, t(pocs$K)^.1,)
 title(GeneraNames[1], line=-1)
 abline(0, 1, lty=2)
+legend("topleft", bty = "n", lty = c(0,2), col = 1,
+       legend= c(sprintf("lambda = %.2f", round(pocs$lam,2)), "1:1 line"))
+dev.off()
+
+png(filename = "figs/POSP_fullK.png")
+image(y, y, t(posp$K)^.1,)
+title(GeneraNames[2], line=-1)
+abline(0, 1, lty=2)
+legend("topleft", bty = "n", lty = c(0,2), col = 1,
+       legend= c(sprintf("lambda = %.2f", round(posp$lam,2)), "1:1 line"))
+dev.off()
+
+png(filename = "figs/MOSP_fullK.png")
+image(y, y, t(mosp$K)^.1,)
+title(GeneraNames[3], line=-1)
+abline(0, 1, lty=2)
+legend("topleft", bty = "n", lty = c(0,2), col = 1,
+       legend= c(sprintf("lambda = %.2f", round(mosp$lam,2)), "1:1 line"))
+dev.off()
+
+
 
 ```
 
@@ -740,12 +761,12 @@ bigmatrix <- function(ModelParameters) {
   Growth_kernel <- delta_size * outer(y, y, growth_function, g.int=g.int, 
                                     g.slp=g.slp, g.var=g.var)
   
-  Survival_kernel <- outer(y, survival_function(y))
+  Survival_kernel <- survival_function(y)
   
   P <- Growth_kernel
   i <- 1:50
 
-  P[,i] <- Growth_kernel[,i]*Survival_kernel[,i]
+  P[,i] <- Growth_kernel[,i]*Survival_kernel[i]
   
   K <- P + Reproduction_kernel
   
