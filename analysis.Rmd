@@ -162,7 +162,7 @@ mod_site      <- lm(ln_ESc ~ ln_SS + Site + Site*ln_SS, data = Choice)
 mod_year      <- lm(ln_ESc ~ ln_SS + Interval + Interval*ln_SS, data = Choice)
 mod_site_year <- lm(ln_ESc ~ ln_SS + 
                       SiteInterval + SiteInterval*ln_SS, data = Choice)
-
+#anova(mod_year,mod_site_year)
 
 dt <- rbind(dt, data.frame(Sites=rep('All_Sites',length = 1),
                            Years=rep('All_Years',length = 1),
