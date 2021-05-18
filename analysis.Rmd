@@ -760,6 +760,9 @@ bigmatrix <- function(ModelParameters) {
 
   Growth_kernel <- delta_size * outer(y, y, growth_function, g.int=g.int, 
                                     g.slp=g.slp, g.var=g.var)
+  ## Growth Kernel
+  # only works inside the function or if you have done this by had
+  #image(y,y,t(Growth_kernel))
   
   Survival_kernel <- survival_function(y)
   
