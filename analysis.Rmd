@@ -584,6 +584,221 @@ ggsave(filename = sprintf("Figures/%s_indeprecruitmatrix_%s.png",
 
 
 
+```{r IPM_TESTING,}
+Growth <- subset(ColonyLevel, TransitionTypeSimple == "GROWTH" | 
+                   TransitionTypeSimple == "SHRINK")
+
+# Only run this initially
+# 
+#dt               <- data.frame() # defining the full data frame
+
+
+# Separating the growth data frame by genera #
+POCS_g <- dt[dt$Genus_Code==GeneraNames[1],]
+POSP_g <- dt[dt$Genus_Code==GeneraNames[2],]
+MOSP_g <- dt[dt$Genus_Code==GeneraNames[3],]
+
+##############
+#SURVIVAL
+# subsetting the survival data frame by genera 
+POCS_s <- dS[dS$Genus_Code==GeneraNames[1],]
+POSP_s <- dS[dS$Genus_Code==GeneraNames[2],]
+MOSP_s <- dS[dS$Genus_Code==GeneraNames[3],]
+
+
+# Initializing data frames to save model slopes and summaries
+# Only run at beginning
+#dS               <- data.frame()
+
+
+##############
+#RECRUITMENT
+POCS_R <- dr[dr$Genus_Code == GeneraNames[1],]
+POSP_R <- dr[dr$Genus_Code == GeneraNames[2],]
+MOSP_R <- dr[dr$Genus_Code == GeneraNames[3],]
+
+POCS_R <- subset(POCS_R,
+                   Years == "All_Years" )
+totrecruits_POCS <- sum(POCS_R$Tots_recs_peryear)
+POSP_R <- subset(POSP_R,
+                   Years == "All_Years" )
+totrecruits_POSP <- sum(POSP_R$Tots_recs_peryear)
+MOSP_R <- subset(MOSP_R,
+                   Years == "All_Years" )
+totrecruits_MOSP <- sum(MOSP_R$Tots_recs_peryear)
+
+#run chunk below to get the functions
+#NEXT
+
+MP_POCS <- list(rec = totrecruits_POCS, 
+                g.int = POCS_g$g.int[1], 
+                g.slp = POCS_g$g.slp[1], 
+                g.var = 0.035, 
+                s.int = POCS_s$s.int[1], 
+                s.slp = POCS_s$s.slp[1])
+
+MP_POSP <- list(rec = totrecruits_POSP, 
+                g.int = POSP_g$g.int[1], 
+                g.slp = POSP_g$g.slp[1], 
+                g.var = 0.035, 
+                s.int = POSP_s$s.int[1], 
+                s.slp = POSP_s$s.slp[1])
+
+MP_MOSP <- list(rec = totrecruits_MOSP, 
+                g.int = MOSP_g$g.int[1], 
+                g.slp = MOSP_g$g.slp[1], 
+                g.var = 0.035, 
+                s.int = MOSP_s$s.int[1], 
+                s.slp = MOSP_s$s.slp[1])
+
+
+
+
+pocs <- bigmatrix(MP_POCS)
+posp <- bigmatrix(MP_POSP)
+mosp <- bigmatrix(MP_MOSP)
+
+
+image(y, y, t(pocs$K)^.3,)
+title(GeneraNames[1], line=-1)
+abline(0, 1, lty=2)
+
+```
+
+```{r Basic IPMs}
+
+options(stringsAsFactors=FALSE)
+
+# Global mesh variables 
+
+min.size <- -2.7  # 2*sqrt((10^-2.7)/pi)  # approx 5 cm  diameter coral
+max.size <- 2     # 2*sqrt((10^2)/pi)     # approx 11 m diameter coral (ridiculous, but avoids boundary issues)
+rec.size <- -2.5  # 2*sqrt((10^-2.5)/pi)  # approx 6 cm  diameter coral
+bin_size <- min.size + c(0:50) * (max.size - min.size)/50
+y <- 0.5 * (bin_size[1:50]+bin_size[2:(50+1)])
+I <- y >= rec.size
+delta_size <- y[2] - y[1]
+  
+inv.logit <- function(x) {
+  exp(x)/(1+exp(x))
+}
+
+################################################################################
+###### The growth model ########################################################
+################################################################################
+
+growth_function <- function(y, x, g.int, g.slp, g.var) {
+  mu <- (g.int + g.slp * x)
+  sig <- sqrt(g.var)
+  dnorm(y, mean=mu, sd=sig)
+}
+
+################################################################################
+###### The survival model ######################################################
+################################################################################
+
+survival_function <- function(x) {
+  #, s.int, s.slp)
+  Line <- s.slp * x + s.int
+  u <- inv.logit(Line) # From binomial glm, link = logit function
+  # removed bakground mortality due to temp. 
+  # Could add something in to add more stochasiticity?
+  return(u)
+}
+################################################################################
+###### The reproduction model ##################################################
+################################################################################
+
+reproduction_function <- function(y, x, rec, rec.size=-2.5,ind = TRUE) {
+  # 2*sqrt((10^-2.5)/pi)  # approx 6 cm  diameter coral
+  if (ind == TRUE){
+    out <- 10^x
+    out[1:3] <- out[1:3] * rec}
+    #out[x < rec.size | y >= rec.size] <- 0}
+
+  if (ind == FALSE){
+    out <-  (10^x) * rec
+    out[x < rec.size | y >= rec.size] <- 0 #if x is below recruitment size then it doesn't count 
+   }
+  return(out)
+}
+
+################################################################################
+########## ... Running the IPM ... #############################################
+################################################################################
+bigmatrix <- function(ModelParameters) {
+  rec <- ModelParameters$rec
+  g.int <- ModelParameters$g.int
+  g.slp <- ModelParameters$g.slp
+  g.var <- ModelParameters$g.var
+  s.int <- ModelParameters$s.int
+  s.slp <- ModelParameters$s.slp
+  
+  Reproduction_kernel <- delta_size * outer(y, y, 
+                                          reproduction_function, rec = rec)
+
+  Growth_kernel <- delta_size * outer(y, y, growth_function, g.int=g.int, 
+                                    g.slp=g.slp, g.var=g.var)
+  
+  Survival_kernel <- outer(y, survival_function(y))
+  
+  P <- Growth_kernel
+  i <- 1:50
+
+  P[,i] <- Growth_kernel[,i]*Survival_kernel[,i]
+  
+  K <- P + Reproduction_kernel
+  
+  lam <- Re(eigen(K)$values[1])
+  v <- Re(eigen(K)$vectors[,1])
+  v <- v/sum(v) # right eigenvector/stable distribution
+  
+  return(list(K=K, lam=lam, v=v))
+}
+```
+
+```{r}
+reproduction_function <- function(y, x, rec, rec.size=-2.5,ind = TRUE) {
+  # 2*sqrt((10^-2.5)/pi)  # approx 6 cm  diameter coral
+  if (ind == TRUE){
+    out <- 10^x
+    out[1:3] <- out[1:3] * rec
+    out[x < rec.size | y >= rec.size] <- 0}
+
+  if (ind == FALSE){
+    out <-  (10^x) * rec
+    out[x < rec.size | y >= rec.size] <- 0 #if x is below recruitment size then it doesn't count 
+   }
+  return(out)
+}
+
+ModelParameters <- MP_MOSP
+rec <- ModelParameters$rec
+g.int <- ModelParameters$g.int
+g.slp <- ModelParameters$g.slp
+g.var <- ModelParameters$g.var
+s.int <- ModelParameters$s.int
+s.slp <- ModelParameters$s.slp
+
+Reproduction_kernel <- delta_size * outer(y, y, 
+                                        reproduction_function, rec = rec)
+
+Growth_kernel <- delta_size * outer(y, y, growth_function, g.int=g.int, 
+                                  g.slp=g.slp, g.var=g.var)
+
+Survival_kernel <- outer(y, survival_function(y))
+
+P <- Growth_kernel
+i <- 1:50
+P[,i] <- Growth_kernel[,i]*Survival_kernel[i]
+
+K <- P + Reproduction_kernel
+
+lam <- Re(eigen(K)$values[1])
+v <- Re(eigen(K)$vectors[,1])
+v <- v/sum(v) # right eigenvector/stable distribution
+```
+
 
 
 # TO DO
@@ -1544,154 +1759,6 @@ View(recruit_sitegenera)
 
 Testing the model interactions. Maybe this makes more sense to have earlier on the page but this is here for reference as to why we coded the models this way. We were interested in extracting the values for the IPM parameters.
 
-
-```{r IPM_TESTING,}
-Growth <- subset(ColonyLevel, TransitionTypeSimple == "GROWTH" | 
-                   TransitionTypeSimple == "SHRINK")
-
-# Only run this initially
-# 
-#dt               <- data.frame() # defining the full data frame
-
-
-# Separating the growth data frame by genera #
-POCS_g <- dt[dt$Genus_Code==GeneraNames[1],]
-POSP_g <- dt[dt$Genus_Code==GeneraNames[2],]
-MOSP_g <- dt[dt$Genus_Code==GeneraNames[3],]
-
-##############
-#SURVIVAL
-# subsetting the survival data frame by genera 
-POCS_s <- dS[dS$Genus_Code==GeneraNames[1],]
-POSP_s <- dS[dS$Genus_Code==GeneraNames[2],]
-MOSP_s <- dS[dS$Genus_Code==GeneraNames[3],]
-
-
-# Initializing data frames to save model slopes and summaries
-# Only run at beginning
-#dS               <- data.frame()
-
-
-##############
-#RECRUITMENT
-POCS_R <- dr[dr$Genus_Code == GeneraNames[1],]
-POSP_R <- dr[dr$Genus_Code == GeneraNames[2],]
-MOSP_R <- dr[dr$Genus_Code == GeneraNames[3],]
-
-POCS_R <- subset(POCS_R,
-                   Years == "All_Years" )
-totrecruits_POCS <- sum(POCS_R$Tots_recs_peryear)
-POSP_R <- subset(POSP_R,
-                   Years == "All_Years" )
-totrecruits_POSP <- sum(POSP_R$Tots_recs_peryear)
-MOSP_R <- subset(MOSP_R,
-                   Years == "All_Years" )
-totrecruits_MOSP <- sum(MOSP_R$Tots_recs_peryear)
-
-#run chunk below to get the functions
-#NEXT
-
-MP_POCS <- list(rec = totrecruits_POCS, g.int = POCS_g$g.int[1], g.slp = POCS_g$g.slp[1], g.var = 0.07, s.int = POCS_s$s.int[1], s.slp = POCS_s$s.slp[1])
-MP_POSP <- list(rec = totrecruits_POSP, g.int = POSP_g$g.int[1], g.slp = POSP_g$g.slp[1], g.var = 0.07, s.int = POSP_s$s.int[1], s.slp = POSP_s$s.slp[1])
-MP_MOSP <- list(rec = totrecruits_MOSP, g.int = MOSP_g$g.int[1], g.slp = MOSP_g$g.slp[1], g.var = 0.07, s.int = MOSP_s$s.int[1], s.slp = MOSP_s$s.slp[1])
-
-
-
-
-pocs <- bigmatrix(MP_POCS)
-
-
-
-  
-```
-
-```{r Basic IPMs}
-
-options(stringsAsFactors=FALSE)
-
-# Global mesh variables 
-
-min.size <- -2.7  # 2*sqrt((10^-2.7)/pi)  # approx 5 cm  diameter coral
-max.size <- 2     # 2*sqrt((10^2)/pi)     # approx 11 m diameter coral (ridiculous, but avoids boundary issues)
-rec.size <- -2.5  # 2*sqrt((10^-2.5)/pi)  # approx 6 cm  diameter coral
-bin_size <- min.size + c(0:50) * (max.size - min.size)/50
-y <- 0.5 * (bin_size[1:50]+bin_size[2:(50+1)])
-I <- y >= rec.size
-delta_size <- y[2] - y[1]
-  
-inv.logit <- function(x) {
-  exp(x)/(1+exp(x))
-}
-
-################################################################################
-###### The growth model ########################################################
-################################################################################
-
-growth_function <- function(y, x, g.int, g.slp, g.var) {
-  mu <- (g.int + g.slp * x)
-  sig <- sqrt(g.var)
-  dnorm(y, mean=mu, sd=sig)
-}
-
-################################################################################
-###### The survival model ######################################################
-################################################################################
-
-survival_function <- function(x, s.int, s.slp) {
-  u <- inv.logit(s.int + s.slp * x) # From binomial glm, link = logit function
-  # removed bakground mortality due to temp. 
-  # Could add something in to add more stochasiticity?
-}
-################################################################################
-###### The reproduction model ##################################################
-################################################################################
-
-reproduction_function <- function(y, x, rec, rec.size=-2.5,ind = TRUE) {
-  # 2*sqrt((10^-2.5)/pi)  # approx 6 cm  diameter coral
-  if (ind == TRUE){
-    out <- 10^x
-    out[1:3] <- 10^x[1:3] * rec}
-    #out[4:length(x)] <- 10^x[4:length(x)]}
-  if (ind == FALSE){
-    out <-  (10^x) * rec
-    out[x < rec.size | y >= rec.size] <- 0 #if x is below recruitment size then it doesn't count 
-   }
-  return(out)
-}
-
-################################################################################
-########## ... Running the IPM ... #############################################
-################################################################################
-bigmatrix <- function(ModelParameters) {
-  rec <- ModelParameters$rec
-  g.int <- ModelParameters$g.int
-  g.slp <- ModelParameters$g.slp
-  g.var <- ModelParameters$g.var
-  s.int <- ModelParameters$s.int
-  s.slp <- ModelParameters$s.slp
-  
-  Reproduction_kernel <- rec
-  #Reproduction_kernel <- delta_size * 
-    #outer(y, y, reproduction_function, 
-          #rec = "[Insert the rec value from models]")
-  
-  Growth_kernel <- delta_size * outer(y, y, growth_function, g.int=g.int, 
-                                      g.slp=g.slp, g.var=g.var)
-  Survival_kernel <- outer(y, survival_function, s.int=s.int, s.slp=s.slp)
-  
-  P <- Growth_kernel
-  i <- 1:n_individuals
-  P[,i] <- Growth_kernel[,i]*Survival_kernel[i]
-  
-  K <- P + Reproduction_kernel
-  
-  lam <- Re(eigen(K)$values[1])
-  v <- Re(eigen(K)$vectors[,1])
-  v <- v/sum(v) # right eigenvector/stable distribution
-  
-  return(list(K=K, lam=lam, v=v))
-}
-```
 
 #Recruitment bar plots
 All sites. Each site, all the interval years. Avg those values to get std deviation. That will be error bars
