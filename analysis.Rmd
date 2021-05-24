@@ -632,76 +632,77 @@ totrecruits_MOSP <- sum(MOSP_R$Tots_recs_peryear)
 #run chunk below to get the functions
 #NEXT
 
-MP_POCS <- list(rec = 4, 
+```
+
+```{r}
+recvalpc <- 21.278
+recvalpp <- 20.998
+recvalmp <- 21.2745
+
+MP_POCS <- list(rec = recvalpc, 
                 g.int = POCS_g$g.int[1], 
                 g.slp = POCS_g$g.slp[1], 
                 g.var = 0.035, 
                 s.int = POCS_s$s.int[1], 
                 s.slp = POCS_s$s.slp[1])
 
-MP_POSP <- list(rec = 4, 
+MP_POSP <- list(rec = recvalpp, 
                 g.int = POSP_g$g.int[1], 
                 g.slp = POSP_g$g.slp[1], 
                 g.var = 0.035, 
                 s.int = POSP_s$s.int[1], 
                 s.slp = POSP_s$s.slp[1])
 
-MP_MOSP <- list(rec = 4, 
+MP_MOSP <- list(rec = recvalmp, 
                 g.int = MOSP_g$g.int[1], 
                 g.slp = MOSP_g$g.slp[1], 
                 g.var = 0.035, 
                 s.int = MOSP_s$s.int[1], 
                 s.slp = MOSP_s$s.slp[1])
-
-MP_POCS <- list(rec = 4,
-                g.int = POCS_g$g.int[1], 
-                g.slp = POCS_g$g.slp[1], 
-                g.var = 0.035, 
-                s.int = POCS_s$s.int[1], 
-                s.slp = POCS_s$s.slp[1])
-
-MP_POSP <- list(rec = 4, 
-                g.int = POSP_g$g.int[1], 
-                g.slp = POSP_g$g.slp[1], 
-                g.var = 0.035, 
-                s.int = POSP_s$s.int[1], 
-                s.slp = POSP_s$s.slp[1])
-
-MP_MOSP <- list(rec = totrecruits_MOSP, 
-                g.int = MOSP_g$g.int[1], 
-                g.slp = MOSP_g$g.slp[1], 
-                g.var = 0.035, 
-                s.int = MOSP_s$s.int[1], 
-                s.slp = MOSP_s$s.slp[1])
-
-
 
 pocs <- bigmatrix(MP_POCS)
 posp <- bigmatrix(MP_POSP)
 mosp <- bigmatrix(MP_MOSP)
 
+print(pocs$lam)
+print(posp$lam)
+print(mosp$lam)
+```
+
+```{r}
+
+```
+
+
+
+```{r}
+y_a <- 2*(sqrt(10^y/pi))
+
 png(filename = "figs/POCS_fullK.png")
-image(y, y, t(pocs$K)^.1,)
+image(y_a, y_a, t(pocs$K)^.1,)
 title(GeneraNames[1], line=-1)
 abline(0, 1, lty=2)
-legend("topleft", bty = "n", lty = c(0,2), col = 1,
-       legend= c(sprintf("lambda = %.2f", round(pocs$lam,2)), "1:1 line"))
+legend("bottomright", bty = "n", lty = c(0,0,2), col = 1,
+       legend= c(sprintf("recruitment value = %.2f", recvalpc), sprintf("lambda = %.2f",  
+                         round(pocs$lam,2)), "1:1 line"))
 dev.off()
 
 png(filename = "figs/POSP_fullK.png")
 image(y, y, t(posp$K)^.1,)
 title(GeneraNames[2], line=-1)
 abline(0, 1, lty=2)
-legend("topleft", bty = "n", lty = c(0,2), col = 1,
-       legend= c(sprintf("lambda = %.2f", round(posp$lam,2)), "1:1 line"))
+legend("bottomright", bty = "n", lty = c(0,0,2), col = 1,
+       legend= c(sprintf("recruitment value = %.2f", recvalpp), sprintf("lambda = %.2f",  
+                         round(posp$lam,2)), "1:1 line"))
 dev.off()
 
 png(filename = "figs/MOSP_fullK.png")
 image(y, y, t(mosp$K)^.1,)
 title(GeneraNames[3], line=-1)
 abline(0, 1, lty=2)
-legend("topleft", bty = "n", lty = c(0,2), col = 1,
-       legend= c(sprintf("lambda = %.2f", round(mosp$lam,2)), "1:1 line"))
+legend("bottomright", bty = "n", lty = c(0,0,2), col = 1,
+       legend= c(sprintf("recruitment value = %.2f", recvalmp), sprintf("lambda = %.2f",  
+                         round(mosp$lam,2)), "1:1 line"))
 dev.off()
 
 
