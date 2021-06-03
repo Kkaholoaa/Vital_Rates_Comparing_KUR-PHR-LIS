@@ -26,7 +26,7 @@ library(stringr)
 #AllDataFrame <- load("data/Patch_And_Colony_Data_20201103.rdata") #old dataframe
 
 #load updated dataframe
-AllDataFrame <- load("data/Patch_And_Colony_Data_20210412.rdata")
+AllDataFrame <- load("data/Patch_And_Colony_Data_20210531.rdata")
 
 ```
 
@@ -151,7 +151,7 @@ MOSP <- Growth[Growth$Genus_Code==GeneraNames[3],]
 
 #Growth
 ```{r}
-Choice <- MOSP # Change this to the Genera Name above that you care about
+Choice <- POCS # Change this to the Genera Name above that you care about
 
 x2_S   <- sort(unique(Choice$Site)) # your second predictor
 x2_Y   <- sort(unique(Choice$Interval)) # another predictor for time
@@ -162,7 +162,6 @@ mod_site      <- lm(ln_ESc ~ ln_SS + Site + Site*ln_SS, data = Choice)
 mod_year      <- lm(ln_ESc ~ ln_SS + Interval + Interval*ln_SS, data = Choice)
 mod_site_year <- lm(ln_ESc ~ ln_SS + 
                       SiteInterval + SiteInterval*ln_SS, data = Choice)
-#anova(mod_year,mod_site_year)
 
 dt <- rbind(dt, data.frame(Sites=rep('All_Sites',length = 1),
                            Years=rep('All_Years',length = 1),
@@ -209,6 +208,21 @@ df               <- as.data.frame(coef(summary(mod_site_year)))
 df               <- cbind(df, data.frame(Genus_Code = rep(Choice$Genus_Code[1],
                                      dim(df["Estimate"])[1])))
 df_SiteYear_coef <- rbind(df_SiteYear_coef, df)
+
+
+#Compare model fits
+AIC(mod)
+AIC(mod_site)
+AIC(mod_year)
+AIC(mod_site_year)
+anova(mod, mod_site)
+anova(mod,mod_year)
+anova(mod, mod_site_year)
+anova(mod_year,mod_site_year)
+
+#plot model residuals
+par(mfrow=c(2,2))
+plot(mod_year) #change for each model
 
 ```
 
@@ -301,7 +315,23 @@ df               <- as.data.frame(coef(summary(modS_site_year)))
 df               <- cbind(df, data.frame(Genus_Code = rep(Choice$Genus_Code[1],
                                      dim(df["Estimate"])[1])))
 df_SiteYear_coef <- rbind(df_SiteYear_coef, df)
-                        
+
+#Compare model fits
+AIC(mod)
+AIC(mod_site)
+AIC(mod_year)
+AIC(mod_site_year)
+
+anova(mod, mod_site)
+anova(mod,mod_year)
+anova(mod, mod_site_year)
+anova(mod_year,mod_site_year)
+
+#plot model residuals
+# png(filename = "figs/survivalresiduals.png")
+# par(mfrow=c(2,2))
+# plot(mod) #change for each model
+# dev.off()
 
 ```
 
@@ -522,30 +552,63 @@ MOSP_Rdep <- dr_size[dr_size$Genus_Code == GeneraNames[3],]
 ```
 
 ```{r fixingDFs,}
-#trying to split the site interval and flip the sites/intervals
-Change <- MOSP_G #change this variable rather than having to change it everywhere
+#split the site interval and flip the sites/intervals
+Change <- POSP_R #change this variable rather than having to change it everywhere
 these  <- grepl('\n',Change$Sites)
 Change[these,] <- separate(Change[these,], col=Sites, 
                           into = c("Sites","Years"), sep = "\n" )
 
-MOSP_G <- Change #change this variable rather than having to change it everywhere
+POSP_R <- Change #change this variable rather than having to change it everywhere
 
 ```
 
-```{r}
-GPlotz <- MOSP_G #change this variable
+```{r PlotGrowthMatrix,}
+#Growth
+GPlotz <- POCS_G #change this variable
 
-ggplot(GPlotz, aes(x=Sites, y=Years)) + 
-  geom_raster(aes(fill = g.slp))+ #change fill to look at diff VR functions
-  scale_fill_gradient2(low = "red", high = "blue", mid="white",midpoint = GPlotz$g.slp[1],na.value = "grey" )+
+plotz<- ggplot(GPlotz, aes(x=Sites, y=Years)) + 
+  geom_raster(aes(fill = g.int))+ #change fill to look at diff VR functions
+  scale_fill_gradient2(low = "red", high = "blue", mid="white",midpoint = GPlotz$g.int[1],na.value = "grey" )+
   labs(title = sprintf("Growth matrix visualization: %s", GPlotz$Genus_Code[1])) + theme_dark() +
   theme(plot.title = element_text(size = 20, face = "bold"), axis.text.x =  element_text(angle = 45, hjust = 1)) 
 ggsave(filename = sprintf("Figures/%s_growthmatrix_%s.png",
-                  GPlotz$Genus_Code[1],"slp"), plot = plotz)
+                  GPlotz$Genus_Code[1],"int"), plot = plotz)
 
+```
 
+```{r PlotSurv_Matrix,}
+#################
+#Survival
+
+SPlotz <- POCS_S #change this variable
+plotz <- ggplot(SPlotz, aes(x=Sites, y=Years)) + 
+  geom_raster(aes(fill = s.int))+ #change fill to look at diff VR functions
+  scale_fill_gradient2(low = "red", high = "blue", mid="white",midpoint = SPlotz$s.int[1],na.value = "grey" )+
+  labs(title = sprintf("Survival matrix visualization: %s", SPlotz$Genus_Code[1])) + theme_dark() +
+  theme(plot.title = element_text(size = 20, face = "bold"), axis.text.x =  element_text(angle = 45, hjust = 1)) 
+ggsave(filename = sprintf("Figures/%s_survivalmatrix_%s.png",
+                  SPlotz$Genus_Code[1],"int"), plot = plotz)
+
+```
+
+```{r PlotRecruitMatrix,}
+#need to print # of transitions on recruitment matrix
+table(ColonyLevel$Site)
+
+#Recruitment
+
+#log transformed Recruitment
+RPlotz <- POSP_R #change this variable
+
+plotz <- ggplot(RPlotz, aes(x=Sites, y=Years)) + 
+  geom_raster(aes(fill = log10(Tots_recs_peryear) ))+ #change fill to look at diff VR functions
+  scale_fill_gradient(low = "grey90", high = "purple" )+
+  labs(title = sprintf("Recruitment matrix visualization: %s", RPlotz$Genus_Code[1])) + theme_bw() +
+  theme(plot.title = element_text(size = 20, face = "bold"), axis.text.x =  element_text(angle = 45, hjust = 1)) 
+ggsave(filename = sprintf("Figures/%s_indeprecruitmatrix_%s.png",
+                  RPlotz$Genus_Code[1],"log"), plot = plotz)
 #recruitment
-RPlotz <- POSP_Rdep #change this variable
+RPlotz <- POSP_R #change this variable
 
 plotz <- ggplot(RPlotz, aes(x=Sites, y=Years)) + 
   geom_raster(aes(fill = Tots_recs_peryear))+ #change fill to look at diff VR functions
@@ -557,35 +620,8 @@ ggsave(filename = sprintf("Figures/%s_indeprecruitmatrix.png",
 
 ```
 
-```{r}
-#################
-#Survival
 
-SPlotz <- POCS_S #change this variable
-plotz <- ggplot(SPlotz, aes(x=Sites, y=Years)) + 
-  geom_raster(aes(fill = s.int))+ #change fill to look at diff VR functions
-  scale_fill_gradient(low = "grey90", high = "purple" )+
-  labs(title = sprintf("Survival matrix visualization: %s", SPlotz$Genus_Code[1])) + theme_bw() +
-  theme(plot.title = element_text(size = 20, face = "bold"), axis.text.x =  element_text(angle = 45, hjust = 1)) 
-ggsave(filename = sprintf("Figures/%s_survivalmatrix_%s.png",
-                  SPlotz$Genus_Code[1],"int"), plot = plotz)
-
-
-#################
-#log transformed Recruitment
-RPlotz <- POCS_R #change this variable
-
-plotz <- ggplot(RPlotz, aes(x=Sites, y=Years)) + 
-  geom_raster(aes(fill = log10(Tots_recs_peryear) ))+ #change fill to look at diff VR functions
-  scale_fill_gradient(low = "grey90", high = "purple" )+
-  labs(title = sprintf("Recruitment matrix visualization: %s", RPlotz$Genus_Code[1])) + theme_bw() +
-  theme(plot.title = element_text(size = 20, face = "bold"), axis.text.x =  element_text(angle = 45, hjust = 1)) 
-ggsave(filename = sprintf("Figures/%s_indeprecruitmatrix_%s.png",
-                  RPlotz$Genus_Code[1],"log"), plot = plotz)
-```
-
-
-
+#all of the IPM analysis needs to be moved into a new .rmd file
 ```{r IPM_TESTING,}
 Growth <- subset(ColonyLevel, TransitionTypeSimple == "GROWTH" | 
                    TransitionTypeSimple == "SHRINK")
@@ -632,7 +668,23 @@ totrecruits_MOSP <- sum(MOSP_R$Tots_recs_peryear)
 #run chunk below to get the functions
 #NEXT
 
+<<<<<<< Updated upstream
 ```
+=======
+MP_POCS <- list(rec = 1, 
+                g.int = POCS_g$g.int[1], 
+                g.slp = POCS_g$g.slp[1], 
+                g.var = 0.035, 
+                s.int = POCS_s$s.int[1], 
+                s.slp = POCS_s$s.slp[1])
+
+MP_POSP <- list(rec = 4, 
+                g.int = POSP_g$g.int[1], 
+                g.slp = POSP_g$g.slp[1], 
+                g.var = 0.035, 
+                s.int = POSP_s$s.int[1], 
+                s.slp = POSP_s$s.slp[1])
+>>>>>>> Stashed changes
 
 ```{r}
 recvalpc <- 21.278
@@ -852,12 +904,12 @@ v <- v/sum(v) # right eigenvector/stable distribution
 # TO DO
 ## Devynn
 [ ] Add the data limiter part to get rid of sites/intervals with too few transitions
-[ ] Add area into the recruitment calculations
+[X] Add area into the recruitment calculations
 [X] Run & save all models & interactions
-[ ] Convert data into the format for matrix visualizations
+[X] Convert data into the format for matrix visualizations
 [ ] Plot recruitment barplots
 [ ] Write descriptions & explanations of steps
-[ ] Put models in IPMs 
+[X] Put models in IPMs 
 [ ] Learn how to do sensitivity analysis
 
 
@@ -1693,6 +1745,25 @@ for (i in 1:LoopLength){
       
     }}}
 
+##############
+#plotting logistic regression for presentation
+surv <- 1 - ColonyLevel$Mortality #if it dies it's a 0
+ColonyLevel$ln_SS <- as.numeric(ColonyLevel$ln_SS)
+ColonyLevel$ln_SS[ColonyLevel$ln_SS == -Inf] <-NA
+gn <- glm(surv ~ ln_SS, family = "binomial", data = ColonyLevel)
+gn
+
+png(filename = "figs/SurvivalLogisticRegression.png")
+plot(jitter(surv, 0.1) ~ ln_SS, ColonyLevel, 
+    xlab= "Log Transformed Starting Size", ylab = "Survival", main = "Survival model: Logistic Regression")
+ss <- seq(-3, 9, 0.1)
+lines(ss, predict(gn, list(ln_SS = ss), type="response"), pch=8)
+legend("bottomright", bty = "n", lty = c(0,2), col = 1,
+       legend= c(sprintf("Slope = %.2f", round(gn$coefficients[2],2))) )
+dev.off()
+
+
+
 ```
 
 ```{r}
@@ -1957,13 +2028,17 @@ legend("topleft", bty = "n", lty = c(1,1), col = c("red"),
 
 
 #Plot genera model (growth)
-plot(ln_ESc ~ ln_SS ,data = allgrowth, main="Genera growth fit at all sites+ all interval years")
+png(filename = "figs/GrowthLinRegress.png")
+plot(ln_ESc ~ ln_SS ,data = allgrowth, main="Genera growth fit at all sites+ all interval years",
+     xlab= "Log Transformed Starting Size", ylab = "Log transformed yearly growth",
+     ylim = c(0,8), xlim = c(0,8))
 abline(a=GrowthDataFrame$g.int[2], b=GrowthDataFrame$g.slp[2], col='red', lwd=2)
 abline(a=GrowthDataFrame$g.int[3], b=GrowthDataFrame$g.slp[3], col='blue', lwd=2)
 abline(a=GrowthDataFrame$g.int[4], b=GrowthDataFrame$g.slp[4], col='green', lwd=2)
-legend("topleft", bty = "n", lty = c(1,1), col = c("red","blue","green"),
-       legend= GeneraNames , cex = 0.8)
-
+abline(0, 1, lty=2, col='yellow',lwd=2)
+legend("topleft", bty = "n", lty = c(1,1), col = c("red","blue","green","yellow"),
+       legend= c(GeneraNames, "1:1 line"), cex = 0.8)
+dev.off()
 
 #plot each genus separately
 par(mfrow=c(1,3))
