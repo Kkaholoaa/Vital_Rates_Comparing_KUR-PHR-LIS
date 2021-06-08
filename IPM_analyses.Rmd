@@ -101,7 +101,7 @@ growth_function <- function(y, x, g.int, g.slp, g.var) {
 # }
 
 #testing this out
-survival_function <- function(x) {
+survival_function <- function(x,s.slp,s.int) {
   #, s.int, s.slp)
   Line <- s.slp * x + s.int
   u <- exp(Line) # From binomial glm, link = logit function
@@ -147,7 +147,8 @@ bigmatrix <- function(ModelParameters) {
   # only works inside the function or if you have done this by had
   #image(y,y,t(Growth_kernel))
   
-  Survival_kernel <- survival_function(y)
+  Survival_kernel <- survival_function(y,s.int=s.int, 
+                                    s.slp=s.slp)
   
   P <- Growth_kernel
   i <- 1:n
@@ -197,7 +198,8 @@ Reproduction_kernel <- delta_size * outer(y, y,
 Growth_kernel <- delta_size * outer(y, y, growth_function, g.int=g.int, 
                                   g.slp=g.slp, g.var=g.var)
 
-Survival_kernel <- survival_function(y)
+Survival_kernel <- survival_function(y,s.int=s.int, 
+                                  s.slp=s.slp)
 
 P <- Growth_kernel
 i <- 1:n
