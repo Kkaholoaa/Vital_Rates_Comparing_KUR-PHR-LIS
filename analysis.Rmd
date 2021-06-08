@@ -151,7 +151,7 @@ MOSP <- Growth[Growth$Genus_Code==GeneraNames[3],]
 
 #Growth
 ```{r}
-Choice <- POCS # Change this to the Genera Name above that you care about
+Choice <- POSP # Change this to the Genera Name above that you care about
 
 x2_S   <- sort(unique(Choice$Site)) # your second predictor
 x2_Y   <- sort(unique(Choice$Interval)) # another predictor for time
@@ -220,6 +220,18 @@ anova(mod,mod_year)
 anova(mod, mod_site_year)
 anova(mod_year,mod_site_year)
 
+#model assumptions
+#Residuals should have constant variance and no trend in mean (residuals vs fitted plot plot line should be linear)
+#Residuals should be Gaussian (Q-Q plot residuals should fall on 1:1 line)
+#Constant error variance (Scale-Location plot)
+
+fitvalues <- fitted(mod_year) #fitted values
+residu <- residuals(mod_year) #residuals
+standresid <- rstandard(mod_year) #standardized residuals
+shapiro.test(residu) #data should be normal(p>0.05)
+cor.test(fitvalues, sqrt(abs(standresid)), method = "k" ) #want there to be no correlation (p>0.05) and tau to be a small number (weak association)
+
+
 #plot model residuals
 par(mfrow=c(2,2))
 plot(mod_year) #change for each model
@@ -257,15 +269,16 @@ df_coef          <- data.frame()
 ```
 
 ```{r RunSurvivalIntz,}
+
 # Change this each time for the different Genus Codes
 # This just makes it into a generic name to change once in beginning & not have to change multiple times in the code
-Choice <- POCS
+Choice <- POSP
 
 x2_S   <- sort(unique(Choice$Site)) # your second predictor
 x2_Y   <- sort(unique(Choice$Interval)) # another predictor for time
 x2_SY  <- sort(unique(Choice$SiteInterval)) # another predictor where time & site are together 
 
-modS           <- glm(survival ~ size, family = "binomial", data = Choice)
+modS           <- glm(survival ~ size, family = "binomial", data = Choice) #subset by site and interval and run the mod to get the g.var
 modS_site      <- glm(survival ~ size + Site + Site*size, 
                       family = "binomial", data = Choice)
 modS_year      <- glm(survival ~ size + Interval + 
@@ -327,10 +340,23 @@ anova(mod,mod_year)
 anova(mod, mod_site_year)
 anova(mod_year,mod_site_year)
 
+#Calculate Area Under Curve (AUC)
+#library(ROCR)
+#library(Metrics)
+library(pROC)
+
+survivalPOCS <- subset(surv_dat, Genus_Code == "POCS")
+survivalPOSP <- subset(surv_dat, Genus_Code == "POSP")
+survivalMOSP <- subset(surv_dat, Genus_Code == "MOSP")
+auc(survivalPOCS$survival, survivalPOCS$size)
+auc(survivalPOSP$survival, survivalPOSP$size)
+auc(survivalMOSP$survival, survivalMOSP$size)
+
+
 #plot model residuals
 # png(filename = "figs/survivalresiduals.png")
-# par(mfrow=c(2,2))
-# plot(mod) #change for each model
+ par(mfrow=c(2,2))
+ plot(mod) #change for each model
 # dev.off()
 
 ```
@@ -533,6 +559,7 @@ SurvivalModel <- load("data/Survival_intmod_params.rdata")
 Recruit_indep <- load("data/Recruitment_sizeIndependent.rdata")
 Recruit_dep  <- load("data/Recruitment_sizeDependent.rdata")
 
+
 POCS_G <- dt[dt$Genus_Code == GeneraNames[1],]
 POSP_G <- dt[dt$Genus_Code == GeneraNames[2],]
 MOSP_G <- dt[dt$Genus_Code == GeneraNames[3],]
@@ -626,11 +653,6 @@ ggsave(filename = sprintf("Figures/%s_indeprecruitmatrix.png",
 Growth <- subset(ColonyLevel, TransitionTypeSimple == "GROWTH" | 
                    TransitionTypeSimple == "SHRINK")
 
-# Only run this initially
-# 
-#dt               <- data.frame() # defining the full data frame
-
-
 # Separating the growth data frame by genera #
 POCS_g <- dt[dt$Genus_Code==GeneraNames[1],]
 POSP_g <- dt[dt$Genus_Code==GeneraNames[2],]
@@ -642,11 +664,6 @@ MOSP_g <- dt[dt$Genus_Code==GeneraNames[3],]
 POCS_s <- dS[dS$Genus_Code==GeneraNames[1],]
 POSP_s <- dS[dS$Genus_Code==GeneraNames[2],]
 MOSP_s <- dS[dS$Genus_Code==GeneraNames[3],]
-
-
-# Initializing data frames to save model slopes and summaries
-# Only run at beginning
-#dS               <- data.frame()
 
 
 ##############
@@ -665,85 +682,6 @@ MOSP_R <- subset(MOSP_R,
                    Years == "All_Years" )
 totrecruits_MOSP <- sum(MOSP_R$Tots_recs_peryear)
 
-#run chunk below to get the functions
-#NEXT
-
-```
-
-
-```{r}
-recvalpc <- 21.278
-recvalpp <- 20.998
-recvalmp <- 21.2745
-
-MP_POCS <- list(rec = recvalpc, 
-                g.int = POCS_g$g.int[1], 
-                g.slp = POCS_g$g.slp[1], 
-                g.var = 0.035, 
-                s.int = POCS_s$s.int[1], 
-                s.slp = POCS_s$s.slp[1])
-
-MP_POSP <- list(rec = recvalpp, 
-                g.int = POSP_g$g.int[1], 
-                g.slp = POSP_g$g.slp[1], 
-                g.var = 0.035, 
-                s.int = POSP_s$s.int[1], 
-                s.slp = POSP_s$s.slp[1])
-
-MP_MOSP <- list(rec = recvalmp, 
-                g.int = MOSP_g$g.int[1], 
-                g.slp = MOSP_g$g.slp[1], 
-                g.var = 0.035, 
-                s.int = MOSP_s$s.int[1], 
-                s.slp = MOSP_s$s.slp[1])
-
-pocs <- bigmatrix(MP_POCS)
-posp <- bigmatrix(MP_POSP)
-mosp <- bigmatrix(MP_MOSP)
-
-print(pocs$lam)
-print(posp$lam)
-print(mosp$lam)
-```
-
-```{r}
-
-```
-
-
-
-```{r}
-y_a <- 2*(sqrt(10^y/pi))
-
-png(filename = "figs/POCS_fullK.png")
-image(y_a, y_a, t(pocs$K)^.1,)
-title(GeneraNames[1], line=-1)
-abline(0, 1, lty=2)
-legend("bottomright", bty = "n", lty = c(0,0,2), col = 1,
-       legend= c(sprintf("recruitment value = %.2f", recvalpc), sprintf("lambda = %.2f",  
-                         round(pocs$lam,2)), "1:1 line"))
-dev.off()
-
-png(filename = "figs/POSP_fullK.png")
-image(y, y, t(posp$K)^.1,)
-title(GeneraNames[2], line=-1)
-abline(0, 1, lty=2)
-legend("bottomright", bty = "n", lty = c(0,0,2), col = 1,
-       legend= c(sprintf("recruitment value = %.2f", recvalpp), sprintf("lambda = %.2f",  
-                         round(posp$lam,2)), "1:1 line"))
-dev.off()
-
-png(filename = "figs/MOSP_fullK.png")
-image(y, y, t(mosp$K)^.1,)
-title(GeneraNames[3], line=-1)
-abline(0, 1, lty=2)
-legend("bottomright", bty = "n", lty = c(0,0,2), col = 1,
-       legend= c(sprintf("recruitment value = %.2f", recvalmp), sprintf("lambda = %.2f",  
-                         round(mosp$lam,2)), "1:1 line"))
-dev.off()
-
-
-
 ```
 
 ```{r Basic IPMs}
@@ -755,7 +693,7 @@ options(stringsAsFactors=FALSE)
 min.size <- -2.7  # 2*sqrt((10^-2.7)/pi)  # approx 5 cm  diameter coral
 max.size <- 2     # 2*sqrt((10^2)/pi)     # approx 11 m diameter coral (ridiculous, but avoids boundary issues)
 rec.size <- -2.5  # 2*sqrt((10^-2.5)/pi)  # approx 6 cm  diameter coral
-bin_size <- min.size + c(0:50) * (max.size - min.size)/50
+bin_size <- min.size + c(0:50) * (max.size - min.size)/50 #n aka mesh size = 50
 y <- 0.5 * (bin_size[1:50]+bin_size[2:(50+1)])
 I <- y >= rec.size
 delta_size <- y[2] - y[1]
@@ -885,6 +823,76 @@ v <- Re(eigen(K)$vectors[,1])
 v <- v/sum(v) # right eigenvector/stable distribution
 ```
 
+#Full IPM w/ recruitment model 1 (constant recruitment for all)
+```{r}
+recvalpc <- 21.278
+recvalpp <- 20.998
+recvalmp <- 21.2745
+
+MP_POCS <- list(rec = recvalpc, 
+                g.int = POCS_g$g.int[1], 
+                g.slp = POCS_g$g.slp[1], 
+                g.var = 0.035, 
+                s.int = POCS_s$s.int[1], 
+                s.slp = POCS_s$s.slp[1])
+
+MP_POSP <- list(rec = recvalpp, 
+                g.int = POSP_g$g.int[1], 
+                g.slp = POSP_g$g.slp[1], 
+                g.var = 0.035, 
+                s.int = POSP_s$s.int[1], 
+                s.slp = POSP_s$s.slp[1])
+
+MP_MOSP <- list(rec = recvalmp, 
+                g.int = MOSP_g$g.int[1], 
+                g.slp = MOSP_g$g.slp[1], 
+                g.var = 0.035, 
+                s.int = MOSP_s$s.int[1], 
+                s.slp = MOSP_s$s.slp[1])
+
+pocs <- bigmatrix(MP_POCS)
+posp <- bigmatrix(MP_POSP)
+mosp <- bigmatrix(MP_MOSP)
+
+print(pocs$lam)
+print(posp$lam)
+print(mosp$lam)
+```
+
+
+#Plot IPM kernels
+```{r}
+y_a <- 2*(sqrt(10^y/pi))
+
+png(filename = "figs/POCS_fullK.png")
+image(y_a, y_a, t(pocs$K)^.1,)
+title(GeneraNames[1], line=-1)
+abline(0, 1, lty=2)
+legend("bottomright", bty = "n", lty = c(0,0,2), col = 1,
+       legend= c(sprintf("recruitment value = %.2f", recvalpc), sprintf("lambda = %.2f",  
+                         round(pocs$lam,2)), "1:1 line"))
+dev.off()
+
+png(filename = "figs/POSP_fullK.png")
+image(y, y, t(posp$K)^.1,)
+title(GeneraNames[2], line=-1)
+abline(0, 1, lty=2)
+legend("bottomright", bty = "n", lty = c(0,0,2), col = 1,
+       legend= c(sprintf("recruitment value = %.2f", recvalpp), sprintf("lambda = %.2f",  
+                         round(posp$lam,2)), "1:1 line"))
+dev.off()
+
+png(filename = "figs/MOSP_fullK.png")
+image(y, y, t(mosp$K)^.1,)
+title(GeneraNames[3], line=-1)
+abline(0, 1, lty=2)
+legend("bottomright", bty = "n", lty = c(0,0,2), col = 1,
+       legend= c(sprintf("recruitment value = %.2f", recvalmp), sprintf("lambda = %.2f",  
+                         round(mosp$lam,2)), "1:1 line"))
+dev.off()
+
+
+```
 
 
 # TO DO

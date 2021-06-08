@@ -41,7 +41,7 @@ Read in data, make some plots
 
 
 # read in data. the data is a .csv file included in the same folder as this file
-d=read.csv('/Intro_to_IPMs/Intro_to_IPMs_Exercises_Data.csv')
+d=read.csv('/Users/c-rod/Documents/GitHub/VitalRates/Intro_to_IPMs/Intro_to_IPMs_Exercises_Data.csv')
 #View(d)
 
 	# you'll notice that adults are stored at the beginning of the data set with values for size (measured in 2001) and sizeNext (measured in 2002). the number of seeds and flowering status were measured in 2001.
@@ -248,10 +248,10 @@ image(y,exp(y),t(tmp3))
 # Analyses usually begin with obtaining the eigenvalues (λ) and eigenvectors (v-left; w-right) of the matrix. These are useful for understanding the asymptotic dynamics. The dominant eigenvalue gives the asymptotic population growth rate (lam). The right eigenvector gives the stable stage distribution and the left eigenvector gives the reproductive value, when normalized.
 # 1. get lamda,v,w  
 (lam=Re(eigen(K)$values[1])) # should be 1.013391
-w.eigen=Re(eigen(K)$vectors[,1])
-stable.dist=w.eigen/sum(w.eigen) 
-v.eigen=Re(eigen(t(K))$vectors[,1])
-repro.val=v.eigen/v.eigen[1] 
+w.eigen=Re(eigen(K)$vectors[,1]) #right eigen
+stable.dist=w.eigen/sum(w.eigen)  #use right eigenvector gives you stable size dist
+v.eigen=Re(eigen(t(K))$vectors[,1]) #left eigenvector
+repro.val=v.eigen/v.eigen[1] #gives the reproductive value
 
 
 # The eigen-things can be combined to obtain the sensitivity and elasticity matrices.
