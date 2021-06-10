@@ -46,32 +46,38 @@ POCS_Rdep <- subset(dr_size, Genus_Code == "POCS")
 POSP_Rdep <- subset(dr_size, Genus_Code == "POSP")
 MOSP_Rdep <- subset(dr_size, Genus_Code == "MOSP")
 
-# POCS_R <- subset(POCS_R,
-#                    Years == "All_Years" )
-# totrecruits_POCS <- sum(POCS_R$Tots_recs_peryear)
-# POSP_R <- subset(POSP_R,
-#                    Years == "All_Years" )
-# totrecruits_POSP <- sum(POSP_R$Tots_recs_peryear)
-# MOSP_R <- subset(MOSP_R,
-#                    Years == "All_Years" )
-# totrecruits_MOSP <- sum(MOSP_R$Tots_recs_peryear)
+POCS_R <- subset(POCS_R,Years == "All_Years" )
+totrecruits_POCS <- sum(POCS_R$Tots_recs_peryear, na.rm = T)
+mean(POCS_R$Tots_recs_peryear, na.rm = T)
+
+POSP_R <- subset(POSP_R,Years == "All_Years" )
+totrecruits_POSP <- sum(POSP_R$Tots_recs_peryear, na.rm = T)
+mean(POSP_R$Tots_recs_peryear, na.rm = T)
+
+MOSP_R <- subset(MOSP_R,Years == "All_Years" )
+totrecruits_MOSP <- sum(MOSP_R$Tots_recs_peryear, na.rm = T)
+mean(MOSP_R$Tots_recs_peryear, na.rm = T)
 
 ```
 
 ```{r Basic IPMs}
-
 options(stringsAsFactors=FALSE)
 
 # Global mesh variables 
 
+#Run the first 2 chunks of analysis.Rmd ("Loading dataframes" and "Modify input")
+#then calculate the min and max observed sizes
+min.size <- 0.9*min(c(ColonyLevel$ln_SS, ColonyLevel$ln_ESc), na.rm = T)
+max.size <- 1.1*max(c(ColonyLevel$ln_SS, ColonyLevel$ln_ESc), na.rm = T)
+
 n = 50 #mesh size / number of cells in the discretized kernel
-min.size <- -2.7  # 2*sqrt((10^-2.7)/pi)  # approx 5 cm  diameter coral
-max.size <- 2     # 2*sqrt((10^2)/pi)     # approx 11 m diameter coral (ridiculous, but avoids boundary issues)
+#min.size <- -2.7  # 2*sqrt((10^-2.7)/pi)  # approx 5 cm  diameter coral
+#max.size <- 2     # 2*sqrt((10^2)/pi)     # approx 11 m diameter coral (ridiculous, but avoids boundary issues)
 rec.size <- -2.5  # 2*sqrt((10^-2.5)/pi)  # approx 6 cm  diameter coral
 bin_size <- min.size + c(0:n) * (max.size - min.size)/n #boundary points (the edges of the cells defining the kernel 
-y <- 0.5 * (bin_size[1:n]+bin_size[2:(n+1)]) 
+y <- 0.5 * (bin_size[1:n]+bin_size[2:(n+1)]) #mesh points (midpoints of cells)
 I <- y >= rec.size
-delta_size <- y[2] - y[1] #width of cells
+delta_size <- y[2] - y[1] #width of cells (h)
   
 inv.logit <- function(x) {
   exp(x)/(1+exp(x))
@@ -91,22 +97,15 @@ growth_function <- function(y, x, g.int, g.slp, g.var) {
 ###### The survival model ######################################################
 ################################################################################
 
-# survival_function <- function(x) {
-#   #, s.int, s.slp)
-#   Line <- s.slp * x + s.int
-#   u <- inv.logit(Line) # From binomial glm, link = logit function
-#   # removed bakground mortality due to temp. 
-#   # Could add something in to add more stochasiticity?
-#   return(u)
-# }
+ survival_function <- function(x) {
+   #, s.int, s.slp)
+   Line <- s.slp * x + s.int
+   u <- inv.logit(Line) # From binomial glm, link = logit function
+   # removed bakground mortality due to temp. 
+   # Could add something in to add more stochasiticity?
+   return(u)
+ }
 
-#testing this out
-survival_function <- function(x) {
-  #, s.int, s.slp)
-  Line <- s.slp * x + s.int
-  u <- exp(Line) # From binomial glm, link = logit function
-  return(u/(1+u))
-}
 
 ################################################################################
 ###### The reproduction model ##################################################
@@ -183,7 +182,7 @@ reproduction_function <- function(y, x, rec, rec.size=-2.5,ind = TRUE) {
   return(out)
 }
 
-ModelParameters <- MP_POSP
+ModelParameters <- MP_MOSP
 rec <- 21.5
 g.int <- ModelParameters$g.int
 g.slp <- ModelParameters$g.slp
@@ -218,30 +217,37 @@ elas <- matrix(as.vector(sens) * as.vector(K) / lam, nrow = n)
 
 ```
 
+#Log likelihood Function
+Measure of how well a particular model fits the data
+Explains how well a parameter explains the observed data
+Hope it will give range of recruitment values that give us a lambda of 1
+The value of the parameter (recruitment #) that maximizes the probability of observing data (lambda)
+*Will do this later
+
 #Full IPM w/ recruitment model 1 (constant recruitment for all)
 ```{r}
-recvalpc <- 21.278
-recvalpp <- 20.998
-recvalmp <- 21.2745
+recvalpc <- 5.161 #21.23 
+recvalpp <- 5.121 #20.8
+recvalmp <- 5.11 #20.94
 
 MP_POCS <- list(rec = recvalpc, 
                 g.int = POCS_G$g.int[1], 
                 g.slp = POCS_G$g.slp[1], 
-                g.var = 0.035, 
+                g.var = 0.230512176, #0.035
                 s.int = POCS_S$s.int[1], 
                 s.slp = POCS_S$s.slp[1])
 
 MP_POSP <- list(rec = recvalpp, 
                 g.int = POSP_G$g.int[1], 
                 g.slp = POSP_G$g.slp[1], 
-                g.var = 0.035, 
+                g.var = 0.372585621, #0.035
                 s.int = POSP_S$s.int[1], 
                 s.slp = POSP_S$s.slp[1])
 
 MP_MOSP <- list(rec = recvalmp, 
                 g.int = MOSP_G$g.int[1], 
                 g.slp = MOSP_G$g.slp[1], 
-                g.var = 0.035, 
+                g.var = 1.102913776, #0.035
                 s.int = MOSP_S$s.int[1], 
                 s.slp = MOSP_S$s.slp[1])
 
@@ -252,8 +258,8 @@ mosp <- bigmatrix(MP_MOSP)
 print(pocs$lam)
 print(posp$lam)
 print(mosp$lam)
-print(pocs$w)
-print(pocs$v )
+#print(pocs$w)
+#print(pocs$v )
 
 ```
 
@@ -265,7 +271,7 @@ image(y,y,t(Growth_kernel), main='growth kernel')
 abline(0,1,lwd=3)	# plot 1:1, which represents stasis
 
 #plot survival kernel
-plot(y,Survival_kernel,type = 'l', main = 'Survival - using exp() + u/(1+u)' )
+plot(y,Survival_kernel,type = 'l', main = 'Survival' )
 #this looks kinda weird...shouldn't it be more logistic reg shaped?
 
 #Plot full kernel
@@ -313,11 +319,11 @@ plot(y, stabledist,xlab="Size",type="l",main="Stable size distribution")
 plot(y,reprodvalue,xlab="Size",type="l",main="Reproductive values")
 
 #Plot Elasticity
-image(y,y,t(elas), xlab="Size (t)",ylab="Size (t+1)",main="Elasticity")
+image(y,y[I],t(elas[I,])^0.2, xlab="Size (t)",ylab="Size (t+1)",main="Elasticity") #[I] cuts out recruitment
 abline(0,1,lwd=3)	# plot 1:1
 
 #Plot Sensitivity
-image(y,y,t(sens), xlab="Size (t)",ylab="Size (t+1)", main="Sensitivity")
+image(y,y,t(sens)^0.2, xlab="Size (t)",ylab="Size (t+1)", main="Sensitivity")
 abline(0,1,lwd=3)	# plot 1:1
 
 ```

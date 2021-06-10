@@ -29,7 +29,7 @@ library(stringr)
 AllDataFrame <- load("data/Patch_And_Colony_Data_20210531.rdata")
 
 ```
-
+#Modify input dataframe
 ```{r}
 
 #changing ln_ES/ln_SS from Na/-Inf to an actual value for recruitment/mortality
@@ -46,6 +46,7 @@ ColonyLevel <- cbind(ColonyLevel, data.frame(Survival =
 GY <- (ColonyLevel$ln_ES - ColonyLevel$ln_SS)*(1/ColonyLevel$Interval_Year)
 ColonyLevel <- cbind(ColonyLevel, data.frame(ln_ESc = 
                                              ColonyLevel$ln_SS + GY))
+ColonyLevel$ln_ESc[ColonyLevel$ln_ESc == -Inf] <-NA
 
 # Defining site IDs, genera names, and transition intervals (years) as lists
 SiteNames <- as.character(unique(ColonyLevel$Site))
@@ -591,12 +592,12 @@ POSP_R <- Change #change this variable rather than having to change it everywher
 
 ```{r PlotGrowthMatrix,}
 #Growth
-GPlotz <- POCS_G #change this variable
+GPlotz <- POSP_G #change this variable
 
 plotz<- ggplot(GPlotz, aes(x=Sites, y=Years)) + 
-  geom_raster(aes(fill = g.int))+ #change fill to look at diff VR functions
-  scale_fill_gradient2(low = "red", high = "blue", mid="white",midpoint = GPlotz$g.int[1],na.value = "grey" )+
-  labs(title = sprintf("Growth matrix visualization: %s", GPlotz$Genus_Code[1])) + theme_dark() +
+  geom_raster(aes(fill = g.slp))+ #change fill to look at diff VR functions
+  scale_fill_gradient2(low = "blue", high = "red", mid="white",midpoint = GPlotz$g.int[1],na.value = "gray" )+
+  labs(title = sprintf("Growth matrix visualization: %s", GPlotz$Genus_Code[1])) + theme_gray() +
   theme(plot.title = element_text(size = 20, face = "bold"), axis.text.x =  element_text(angle = 45, hjust = 1)) 
 ggsave(filename = sprintf("Figures/%s_growthmatrix_%s.png",
                   GPlotz$Genus_Code[1],"int"), plot = plotz)
@@ -607,10 +608,10 @@ ggsave(filename = sprintf("Figures/%s_growthmatrix_%s.png",
 #################
 #Survival
 
-SPlotz <- POCS_S #change this variable
+SPlotz <- POSP_S #change this variable
 plotz <- ggplot(SPlotz, aes(x=Sites, y=Years)) + 
   geom_raster(aes(fill = s.int))+ #change fill to look at diff VR functions
-  scale_fill_gradient2(low = "red", high = "blue", mid="white",midpoint = SPlotz$s.int[1],na.value = "grey" )+
+  scale_fill_gradient2(low = "blue", high = "red", mid="white",midpoint = SPlotz$s.int[1],na.value = "grey" )+
   labs(title = sprintf("Survival matrix visualization: %s", SPlotz$Genus_Code[1])) + theme_dark() +
   theme(plot.title = element_text(size = 20, face = "bold"), axis.text.x =  element_text(angle = 45, hjust = 1)) 
 ggsave(filename = sprintf("Figures/%s_survivalmatrix_%s.png",
@@ -647,252 +648,6 @@ ggsave(filename = sprintf("Figures/%s_indeprecruitmatrix.png",
 
 ```
 
-
-#all of the IPM analysis needs to be moved into a new .rmd file
-```{r IPM_TESTING,}
-Growth <- subset(ColonyLevel, TransitionTypeSimple == "GROWTH" | 
-                   TransitionTypeSimple == "SHRINK")
-
-# Separating the growth data frame by genera #
-POCS_g <- dt[dt$Genus_Code==GeneraNames[1],]
-POSP_g <- dt[dt$Genus_Code==GeneraNames[2],]
-MOSP_g <- dt[dt$Genus_Code==GeneraNames[3],]
-
-##############
-#SURVIVAL
-# subsetting the survival data frame by genera 
-POCS_s <- dS[dS$Genus_Code==GeneraNames[1],]
-POSP_s <- dS[dS$Genus_Code==GeneraNames[2],]
-MOSP_s <- dS[dS$Genus_Code==GeneraNames[3],]
-
-
-##############
-#RECRUITMENT
-POCS_R <- dr[dr$Genus_Code == GeneraNames[1],]
-POSP_R <- dr[dr$Genus_Code == GeneraNames[2],]
-MOSP_R <- dr[dr$Genus_Code == GeneraNames[3],]
-
-POCS_R <- subset(POCS_R,
-                   Years == "All_Years" )
-totrecruits_POCS <- sum(POCS_R$Tots_recs_peryear)
-POSP_R <- subset(POSP_R,
-                   Years == "All_Years" )
-totrecruits_POSP <- sum(POSP_R$Tots_recs_peryear)
-MOSP_R <- subset(MOSP_R,
-                   Years == "All_Years" )
-totrecruits_MOSP <- sum(MOSP_R$Tots_recs_peryear)
-
-```
-
-```{r Basic IPMs}
-
-options(stringsAsFactors=FALSE)
-
-# Global mesh variables 
-
-min.size <- -2.7  # 2*sqrt((10^-2.7)/pi)  # approx 5 cm  diameter coral
-max.size <- 2     # 2*sqrt((10^2)/pi)     # approx 11 m diameter coral (ridiculous, but avoids boundary issues)
-rec.size <- -2.5  # 2*sqrt((10^-2.5)/pi)  # approx 6 cm  diameter coral
-bin_size <- min.size + c(0:50) * (max.size - min.size)/50 #n aka mesh size = 50
-y <- 0.5 * (bin_size[1:50]+bin_size[2:(50+1)])
-I <- y >= rec.size
-delta_size <- y[2] - y[1]
-  
-inv.logit <- function(x) {
-  exp(x)/(1+exp(x))
-}
-
-################################################################################
-###### The growth model ########################################################
-################################################################################
-
-growth_function <- function(y, x, g.int, g.slp, g.var) {
-  mu <- (g.int + g.slp * x)
-  sig <- sqrt(g.var)
-  dnorm(y, mean=mu, sd=sig)
-}
-
-################################################################################
-###### The survival model ######################################################
-################################################################################
-
-survival_function <- function(x) {
-  #, s.int, s.slp)
-  Line <- s.slp * x + s.int
-  u <- inv.logit(Line) # From binomial glm, link = logit function
-  # removed bakground mortality due to temp. 
-  # Could add something in to add more stochasiticity?
-  return(u)
-}
-################################################################################
-###### The reproduction model ##################################################
-################################################################################
-
-reproduction_function <- function(y, x, rec, rec.size=-2.5,ind = TRUE) {
-  # 2*sqrt((10^-2.5)/pi)  # approx 6 cm  diameter coral
-  if (ind == TRUE){
-    out <- 10^x
-    out[1:3] <- out[1:3] * rec}
-    #out[x < rec.size | y >= rec.size] <- 0}
-
-  if (ind == FALSE){
-    out <-  (10^x) * rec
-    out[x < rec.size | y >= rec.size] <- 0 #if x is below recruitment size then it doesn't count 
-   }
-  return(out)
-}
-
-################################################################################
-########## ... Running the IPM ... #############################################
-################################################################################
-bigmatrix <- function(ModelParameters) {
-  rec <- ModelParameters$rec
-  g.int <- ModelParameters$g.int
-  g.slp <- ModelParameters$g.slp
-  g.var <- ModelParameters$g.var
-  s.int <- ModelParameters$s.int
-  s.slp <- ModelParameters$s.slp
-  
-  Reproduction_kernel <- delta_size * outer(y, y, 
-                                          reproduction_function, rec = rec)
-
-  Growth_kernel <- delta_size * outer(y, y, growth_function, g.int=g.int, 
-                                    g.slp=g.slp, g.var=g.var)
-  ## Growth Kernel
-  # only works inside the function or if you have done this by had
-  #image(y,y,t(Growth_kernel))
-  
-  Survival_kernel <- survival_function(y)
-  
-  P <- Growth_kernel
-  i <- 1:50
-
-  P[,i] <- Growth_kernel[,i]*Survival_kernel[i]
-  
-  K <- P + Reproduction_kernel
-  
-  lam <- Re(eigen(K)$values[1])
-  v <- Re(eigen(K)$vectors[,1])
-  v <- v/sum(v) # right eigenvector/stable distribution
-  
-  return(list(K=K, lam=lam, v=v))
-}
-
-```
-
-```{r}
-reproduction_function <- function(y, x, rec, rec.size=-2.5,ind = TRUE) {
-  # 2*sqrt((10^-2.5)/pi)  # approx 6 cm  diameter coral
-  if (ind == TRUE){
-    out <- rep(0,length(x))
-    out[1:2] <- rec/2}
-  
-    #out[x < rec.size | y >= rec.size] <- 0}
-
-  if (ind == FALSE){
-    out <-  (10^x) * rec
-    out[x < rec.size | y >= rec.size] <- 0 #if x is below recruitment size then it doesn't count 
-   }
-  return(out)
-}
-
-ModelParameters <- MP_POCS
-rec <- 21.5
-g.int <- ModelParameters$g.int
-g.slp <- ModelParameters$g.slp
-g.var <- ModelParameters$g.var
-s.int <- ModelParameters$s.int
-s.slp <- ModelParameters$s.slp
-
-Reproduction_kernel <- delta_size * outer(y, y, 
-                                        reproduction_function, rec = rec)
-
-Growth_kernel <- delta_size * outer(y, y, growth_function, g.int=g.int, 
-                                  g.slp=g.slp, g.var=g.var)
-
-Survival_kernel <- survival_function(y)
-
-P <- Growth_kernel
-i <- 1:50
-P[,i] <- Growth_kernel[,i]*Survival_kernel[i]
-
-K <- P + Reproduction_kernel
-
-lam <- Re(eigen(K)$values[1])
-v <- Re(eigen(K)$vectors[,1])
-v <- v/sum(v) # right eigenvector/stable distribution
-```
-
-#Full IPM w/ recruitment model 1 (constant recruitment for all)
-```{r}
-recvalpc <- 21.278
-recvalpp <- 20.998
-recvalmp <- 21.2745
-
-MP_POCS <- list(rec = recvalpc, 
-                g.int = POCS_g$g.int[1], 
-                g.slp = POCS_g$g.slp[1], 
-                g.var = 0.035, 
-                s.int = POCS_s$s.int[1], 
-                s.slp = POCS_s$s.slp[1])
-
-MP_POSP <- list(rec = recvalpp, 
-                g.int = POSP_g$g.int[1], 
-                g.slp = POSP_g$g.slp[1], 
-                g.var = 0.035, 
-                s.int = POSP_s$s.int[1], 
-                s.slp = POSP_s$s.slp[1])
-
-MP_MOSP <- list(rec = recvalmp, 
-                g.int = MOSP_g$g.int[1], 
-                g.slp = MOSP_g$g.slp[1], 
-                g.var = 0.035, 
-                s.int = MOSP_s$s.int[1], 
-                s.slp = MOSP_s$s.slp[1])
-
-pocs <- bigmatrix(MP_POCS)
-posp <- bigmatrix(MP_POSP)
-mosp <- bigmatrix(MP_MOSP)
-
-print(pocs$lam)
-print(posp$lam)
-print(mosp$lam)
-```
-
-
-#Plot IPM kernels
-```{r}
-y_a <- 2*(sqrt(10^y/pi))
-
-png(filename = "figs/POCS_fullK.png")
-image(y_a, y_a, t(pocs$K)^.1,)
-title(GeneraNames[1], line=-1)
-abline(0, 1, lty=2)
-legend("bottomright", bty = "n", lty = c(0,0,2), col = 1,
-       legend= c(sprintf("recruitment value = %.2f", recvalpc), sprintf("lambda = %.2f",  
-                         round(pocs$lam,2)), "1:1 line"))
-dev.off()
-
-png(filename = "figs/POSP_fullK.png")
-image(y, y, t(posp$K)^.1,)
-title(GeneraNames[2], line=-1)
-abline(0, 1, lty=2)
-legend("bottomright", bty = "n", lty = c(0,0,2), col = 1,
-       legend= c(sprintf("recruitment value = %.2f", recvalpp), sprintf("lambda = %.2f",  
-                         round(posp$lam,2)), "1:1 line"))
-dev.off()
-
-png(filename = "figs/MOSP_fullK.png")
-image(y, y, t(mosp$K)^.1,)
-title(GeneraNames[3], line=-1)
-abline(0, 1, lty=2)
-legend("bottomright", bty = "n", lty = c(0,0,2), col = 1,
-       legend= c(sprintf("recruitment value = %.2f", recvalmp), sprintf("lambda = %.2f",  
-                         round(mosp$lam,2)), "1:1 line"))
-dev.off()
-
-
-```
 
 
 # TO DO
@@ -1747,14 +1502,14 @@ ColonyLevel$ln_SS[ColonyLevel$ln_SS == -Inf] <-NA
 gn <- glm(surv ~ ln_SS, family = "binomial", data = ColonyLevel)
 gn
 
-png(filename = "figs/SurvivalLogisticRegression.png")
+#png(filename = "figs/SurvivalLogisticRegression.png")
 plot(jitter(surv, 0.1) ~ ln_SS, ColonyLevel, 
     xlab= "Log Transformed Starting Size", ylab = "Survival", main = "Survival model: Logistic Regression")
 ss <- seq(-3, 9, 0.1)
 lines(ss, predict(gn, list(ln_SS = ss), type="response"), pch=8)
 legend("bottomright", bty = "n", lty = c(0,2), col = 1,
        legend= c(sprintf("Slope = %.2f", round(gn$coefficients[2],2))) )
-dev.off()
+#dev.off()
 
 
 
