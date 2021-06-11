@@ -12,67 +12,28 @@ knitr::opts_chunk$set(cache = FALSE)
 
 ```{r}
 ## Loading libraries
-
+library(ggplot2)
+library(plyr)
+library(dplyr)
+library(tidyr)
+library(reshape2)
+library(stringr)
 ```
 
 
-```{r LoadData_Subsetting,}
-# Loading in the data from analysis.Rmd
-GrowthModel   <- load("data/Growth_intmod_params.rdata")
-SurvivalModel <- load("data/Survival_intmod_params.rdata")
-Recruit_indep <- load("data/Recruitment_sizeIndependent.rdata")
-Recruit_dep  <- load("data/Recruitment_sizeDependent.rdata")
-
-
-# Separating the growth data frame by genera #
-POCS_G <- subset(dt, Genus_Code == "POCS") 
-POSP_G <- subset(dt, Genus_Code == "POSP")
-MOSP_G <- subset(dt, Genus_Code == "MOSP")
-
-##############
-#SURVIVAL
-# subsetting the survival data frame by genera 
-POCS_S <- subset(dS, Genus_Code == "POCS")
-POSP_S <- subset(dS, Genus_Code == "POSP")
-MOSP_S <- subset(dS, Genus_Code == "MOSP")
-
-##############
-#RECRUITMENT
-POCS_R <- subset(dr, Genus_Code == "POCS")
-POSP_R <- subset(dr, Genus_Code == "POSP")
-MOSP_R <- subset(dr, Genus_Code == "MOSP")
-
-POCS_Rdep <- subset(dr_size, Genus_Code == "POCS")
-POSP_Rdep <- subset(dr_size, Genus_Code == "POSP")
-MOSP_Rdep <- subset(dr_size, Genus_Code == "MOSP")
-
-POCS_R <- subset(POCS_R,Years == "All_Years" )
-totrecruits_POCS <- sum(POCS_R$Tots_recs_peryear, na.rm = T)
-mean(POCS_R$Tots_recs_peryear, na.rm = T)
-
-POSP_R <- subset(POSP_R,Years == "All_Years" )
-totrecruits_POSP <- sum(POSP_R$Tots_recs_peryear, na.rm = T)
-mean(POSP_R$Tots_recs_peryear, na.rm = T)
-
-MOSP_R <- subset(MOSP_R,Years == "All_Years" )
-totrecruits_MOSP <- sum(MOSP_R$Tots_recs_peryear, na.rm = T)
-mean(MOSP_R$Tots_recs_peryear, na.rm = T)
-
-```
-
-```{r Basic IPMs}
+```{r BasicIPMsFunctions,}
 options(stringsAsFactors=FALSE)
 
 # Global mesh variables 
 
 #Run the first 2 chunks of analysis.Rmd ("Loading dataframes" and "Modify input")
 #then calculate the min and max observed sizes
-min.size <- 0.9*min(c(ColonyLevel$ln_SS, ColonyLevel$ln_ESc), na.rm = T)
-max.size <- 1.1*max(c(ColonyLevel$ln_SS, ColonyLevel$ln_ESc), na.rm = T)
+# min.size <- 0.9*min(c(ColonyLevel$ln_SS, ColonyLevel$ln_ESc), na.rm = T)
+# max.size <- 1.1*max(c(ColonyLevel$ln_SS, ColonyLevel$ln_ESc), na.rm = T)
 
 n = 50 #mesh size / number of cells in the discretized kernel
-#min.size <- -2.7  # 2*sqrt((10^-2.7)/pi)  # approx 5 cm  diameter coral
-#max.size <- 2     # 2*sqrt((10^2)/pi)     # approx 11 m diameter coral (ridiculous, but avoids boundary issues)
+min.size <- -2.7  # 2*sqrt((10^-2.7)/pi)  # approx 5 cm  diameter coral
+max.size <- 2     # 2*sqrt((10^2)/pi)     # approx 11 m diameter coral (ridiculous, but avoids boundary issues)
 rec.size <- -2.5  # 2*sqrt((10^-2.5)/pi)  # approx 6 cm  diameter coral
 bin_size <- min.size + c(0:n) * (max.size - min.size)/n #boundary points (the edges of the cells defining the kernel 
 y <- 0.5 * (bin_size[1:n]+bin_size[2:(n+1)]) #mesh points (midpoints of cells)
@@ -114,8 +75,9 @@ growth_function <- function(y, x, g.int, g.slp, g.var) {
 reproduction_function <- function(y, x, rec, rec.size=-2.5,ind = TRUE) {
   # 2*sqrt((10^-2.5)/pi)  # approx 6 cm  diameter coral
   if (ind == TRUE){
-    out <- 10^x
-    out[1:3] <- out[1:3] * rec}
+    out <- rep(0,length(x)) #changed
+    out[1:2] <- rec/2} #changed
+  
     #out[x < rec.size | y >= rec.size] <- 0}
 
   if (ind == FALSE){
@@ -161,26 +123,69 @@ bigmatrix <- function(ModelParameters) {
   v.eigen <- Re(eigen(t(K))$vectors[,1]) #left eigenvector
   reprodvalue <- v.eigen/v.eigen[1] #reproductive value
   
-  return(list(K=K, lam=lam, w=stabledist, v=reprodvalue))
+  # lam <- Re(eigen(K)$values[1])
+  # w <- Re(eigen(K)$vectors[,1])
+  # stabledist <- w/sum(w) # right eigenvector/stable distribution
+  # v.eigen <- Re(eigen(t(K))$vectors[,1]) #left eigenvector
+  # reprodvalue <- v.eigen/v.eigen[1] #reproductive value
+
+  #compute sensitivity and elasticity matrices using the eigenvectors and eigenvalue
+  v.dot.w <- sum(stabledist * reprodvalue) * delta_size
+  sens <- outer(reprodvalue,stabledist) / v.dot.w
+  elas <- matrix(as.vector(sens) * as.vector(K) / lam, nrow = n)
+  
+  return(list(K=K, lam=lam, w=stabledist, v=reprodvalue,
+              v.dot.w=v.dot.w, sens=sens, elas=elas))
 }
 
 ```
 
-```{r}
-reproduction_function <- function(y, x, rec, rec.size=-2.5,ind = TRUE) {
-  # 2*sqrt((10^-2.5)/pi)  # approx 6 cm  diameter coral
-  if (ind == TRUE){
-    out <- rep(0,length(x)) #changed
-    out[1:2] <- rec/2} #changed
-  
-    #out[x < rec.size | y >= rec.size] <- 0}
+```{r LoadData_Subsetting,}
+# Loading in the data from analysis.Rmd
+GrowthModel   <- load("data/Growth_intmod_params.rdata")
+SurvivalModel <- load("data/Survival_intmod_params.rdata")
+Recruit_indep <- load("data/Recruitment_sizeIndependent.rdata")
+Recruit_dep  <- load("data/Recruitment_sizeDependent.rdata")
 
-  if (ind == FALSE){
-    out <-  (10^x) * rec
-    out[x < rec.size | y >= rec.size] <- 0 #if x is below recruitment size then it doesn't count 
-   }
-  return(out)
-}
+
+# Separating the growth data frame by genera #
+POCS_G <- subset(dt, Genus_Code == "POCS") 
+POSP_G <- subset(dt, Genus_Code == "POSP")
+MOSP_G <- subset(dt, Genus_Code == "MOSP")
+
+##############
+#SURVIVAL
+# subsetting the survival data frame by genera 
+POCS_S <- subset(dS, Genus_Code == "POCS")
+POSP_S <- subset(dS, Genus_Code == "POSP")
+MOSP_S <- subset(dS, Genus_Code == "MOSP")
+
+##############
+#RECRUITMENT
+POCS_R <- subset(dr, Genus_Code == "POCS")
+POSP_R <- subset(dr, Genus_Code == "POSP")
+MOSP_R <- subset(dr, Genus_Code == "MOSP")
+
+POCS_Rdep <- subset(dr_size, Genus_Code == "POCS")
+POSP_Rdep <- subset(dr_size, Genus_Code == "POSP")
+MOSP_Rdep <- subset(dr_size, Genus_Code == "MOSP")
+
+POCS_R <- subset(POCS_R,Years == "All_Years" )
+totrecruits_POCS <- sum(POCS_R$Tots_recs_peryear, na.rm = T)
+mean(POCS_R$Tots_recs_peryear, na.rm = T)
+
+POSP_R <- subset(POSP_R,Years == "All_Years" )
+totrecruits_POSP <- sum(POSP_R$Tots_recs_peryear, na.rm = T)
+mean(POSP_R$Tots_recs_peryear, na.rm = T)
+
+MOSP_R <- subset(MOSP_R,Years == "All_Years" )
+totrecruits_MOSP <- sum(MOSP_R$Tots_recs_peryear, na.rm = T)
+mean(MOSP_R$Tots_recs_peryear, na.rm = T)
+
+```
+
+
+```{r}
 
 ModelParameters <- MP_MOSP
 rec <- 21.5
@@ -226,9 +231,9 @@ The value of the parameter (recruitment #) that maximizes the probability of obs
 
 #Full IPM w/ recruitment model 1 (constant recruitment for all)
 ```{r}
-recvalpc <- 5.161 #21.23 
-recvalpp <- 5.121 #20.8
-recvalmp <- 5.11 #20.94
+recvalpc <- 21.23 #5.161
+recvalpp <- 20.8  #5.121 
+recvalmp <- 20.94 #5.11
 
 MP_POCS <- list(rec = recvalpc, 
                 g.int = POCS_G$g.int[1], 
