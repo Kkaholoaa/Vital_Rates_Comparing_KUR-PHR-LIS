@@ -28,13 +28,24 @@ options(stringsAsFactors=FALSE)
 
 #Run the first 2 chunks of analysis.Rmd ("Loading dataframes" and "Modify input")
 #then calculate the min and max observed sizes
-min.size <- 0.9*min(c(ColonyLevel$ln_SS, ColonyLevel$ln_ESc), na.rm = T)
-#max.size <- 1.1*max(c(ColonyLevel$ln_SS, ColonyLevel$ln_ESc), na.rm = T)
+
+
+
+ggplot(ColonyLevel, aes(x=log10_ES))+
+  geom_histogram()+
+  facet_wrap("TransitionTypeSimple")+
+  theme_bw()
+```
+
+
+```{r BasicIPMsFunctions,}
+#min.size <- 0.9*min(c(ColonyLevel$log10_SS, ColonyLevel$log10_ES), na.rm = T)
+max.size <- 1.1*max(c(log10(ColonyLevel$StartingSize), log10(ColonyLevel$EndingSize)), na.rm = T)
 
 n = 50 #mesh size / number of cells in the discretized kernel
-#min.size <- -2.7  # 2*sqrt((10^-2.7)/pi)  # approx 5 cm  diameter coral
-max.size <- 2     # 2*sqrt((10^2)/pi)     # approx 11 m diameter coral (ridiculous, but avoids boundary issues)
-rec.size <- -2.5  # 2*sqrt((10^-2.5)/pi)  # approx 6 cm  diameter coral
+rec.size <- -0.1  # 2*sqrt((10^-0.1)/pi)  # approx 5 cm  diameter coral
+#max.size <- 2     # 2*sqrt((10^2)/pi)     # approx 11 m diameter coral (ridiculous, but avoids boundary issues)
+min.size <- -0.5   # 2*sqrt((10^-2.5)/pi)  # approx 6 cm  diameter coral
 bin_size <- min.size + c(0:n) * (max.size - min.size)/n #boundary points (the edges of the cells defining the kernel 
 y <- 0.5 * (bin_size[1:n]+bin_size[2:(n+1)]) #mesh points (midpoints of cells)
 I <- y >= rec.size
@@ -72,11 +83,11 @@ growth_function <- function(y, x, g.int, g.slp, g.var) {
 ###### The reproduction model ##################################################
 ################################################################################
 
-reproduction_function <- function(y, x, rec, rec.size=-2.5,ind = TRUE) {
+reproduction_function <- function(y, x, rec, rec.size=rec.size,ind = TRUE) {
   # 2*sqrt((10^-2.5)/pi)  # approx 6 cm  diameter coral
   if (ind == TRUE){
     out <- rep(0,length(x)) #changed
-    out[1:2] <- rec/2} #changed
+    out[1:4] <- rec/4} #changed
   
     #out[x < rec.size | y >= rec.size] <- 0}
 
@@ -222,10 +233,102 @@ The value of the parameter (recruitment #) that maximizes the probability of obs
 
 #Full IPM w/ recruitment model 1 (constant recruitment for all)
 ```{r}
-recvalpc <-  10.23 #21.23
-recvalpp <-  10.185 #20.8
-recvalmp <-  10.18 #20.94
 
+GrowthModel   <- load("data/Growth_intmod_params.rdata")
+SurvivalModel <- load("data/Survival_intmod_params.rdata")
+
+# Separating the growth data frame by genera #
+POCS_G <- subset(dt, Genus_Code == "POCS") 
+POSP_G <- subset(dt, Genus_Code == "POSP")
+MOSP_G <- subset(dt, Genus_Code == "MOSP")
+
+##############
+#SURVIVAL
+# subsetting the survival data frame by genera 
+POCS_S <- subset(dS, Genus_Code == "POCS")
+POSP_S <- subset(dS, Genus_Code == "POSP")
+MOSP_S <- subset(dS, Genus_Code == "MOSP")
+```
+
+```{r}
+recvalpc <-  4 #21.23
+recvalpp <-  16 #20.8
+recvalmp <-  30#20.94
+
+MP_POCS <- list(rec = recvalpc,
+                g.int = POCS_G$g.int[1],
+                g.slp = POCS_G$g.slp[1],
+                g.var = 0.230512176, #0.035
+                s.int = POCS_S$s.int[1],
+                s.slp = POCS_S$s.slp[1])
+MP_POSP <- list(rec = recvalpp,
+                g.int = POSP_G$g.int[1],
+                g.slp = POSP_G$g.slp[1],
+                g.var = 0.372585621, #0.035
+                s.int = POSP_S$s.int[1],
+                s.slp = POSP_S$s.slp[1])
+MP_MOSP <- list(rec = recvalmp,
+                g.int = MOSP_G$g.int[1],
+                g.slp = MOSP_G$g.slp[1],
+                g.var = 1.102913776, #0.035
+                s.int = MOSP_S$s.int[1],
+                s.slp = MOSP_S$s.slp[1])
+
+pocs <-  bigmatrix(MP_POCS)
+posp <-  bigmatrix(MP_POSP)
+mosp <-  bigmatrix(MP_MOSP)
+
+posc$lam
+posp$lam
+mosp$lam
+```
+
+
+load("data/SiteInterval_allmodfits_noNAs.rdata")
+POCS <- combo[combo$Genus_Code == "POCS",]
+drop_i <- which(POCS$GModel.n < 3)
+if(length(drop_i)> 0 ) POCS=POCS[-drop_i,]
+
+MOSP <- combo[combo$Genus_Code == "MOSP",]
+POSP <- combo[combo$Genus_Code == "POSP",]
+
+recvalpc <-  0 #21.23
+recvalpp <-  16 #20.8
+recvalmp <-  30#20.94
+i <- 1
+MP_POCS <- list(rec = recvalpc, 
+                  g.int = POCS$g.int[i], 
+                  g.slp = POCS$g.slp[i], 
+                  g.var = POCS$g.var[i], 
+                  s.int = POCS$s.int[i], 
+                  s.slp = POCS$s.slp[i])
+  
+pocs        <- bigmatrix(MP_POCS)
+print(pocs$lam)
+  
+MP_POSP <- list(rec = recvalpp, 
+                  g.int = POSP$g.int[i], 
+                  g.slp = POSP$g.slp[i], 
+                  g.var = POSP$g.var[i], 
+                  s.int = POSP$s.int[i], 
+                  s.slp = POSP$s.slp[i])
+posp        <- bigmatrix(MP_POSP)  
+print(posp$lam)
+
+MP_MOSP <- list(rec = recvalmp, 
+                  g.int = MOSP$g.int[i], 
+                  g.slp = MOSP$g.slp[i], 
+                  g.var = MOSP$g.var[i], 
+                  s.int = MOSP$s.int[i], 
+                  s.slp = MOSP$s.slp[i])
+  
+mosp        <- bigmatrix(MP_MOSP)
+print(mosp$lam)
+
+
+```
+
+```{r}
 load("data/SiteInterval_allmodfits_noNAs.rdata")
 POCS <- no_NAs[no_NAs$Genus_Code == "POCS",]
 POCS_lam <- c()

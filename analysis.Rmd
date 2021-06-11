@@ -36,9 +36,12 @@ AllDataFrame <- load("data/Patch_And_Colony_Data_20210531.rdata")
 #changing ln_ES/ln_SS from Na/-Inf to an actual value for recruitment/mortality
 ColonyLevel$ln_SS <- log(ColonyLevel$StartingSize)
 ColonyLevel$ln_ES <- log(ColonyLevel$EndingSize)
+
+ColonyLevel$log10_SS <- log10(ColonyLevel$StartingSize)
+ColonyLevel$log10_ES <- log10(ColonyLevel$EndingSize)
  
-ColonyLevel$ln_SS <- as.numeric(ColonyLevel$ln_SS)
-ColonyLevel$ln_SS[ColonyLevel$ln_SS == -Inf] <-NA
+ColonyLevel$log10_SS <- as.numeric(ColonyLevel$log10_SS)
+ColonyLevel$log10_SS[ColonyLevel$log10_SS == -Inf] <-NA
 
 ColonyLevel <- cbind(ColonyLevel, data.frame(Survival = 
                                                1 - ColonyLevel$Mortality))
@@ -47,7 +50,11 @@ ColonyLevel <- cbind(ColonyLevel, data.frame(Survival =
 GY <- (ColonyLevel$ln_ES - ColonyLevel$ln_SS)*(1/ColonyLevel$Interval_Year)
 ColonyLevel <- cbind(ColonyLevel, data.frame(ln_ESc = 
                                              ColonyLevel$ln_SS + GY))
-ColonyLevel$ln_ESc[ColonyLevel$ln_ESc == -Inf] <-NA
+
+GY <- (ColonyLevel$log10_ES - ColonyLevel$log10_SS)*(1/ColonyLevel$Interval_Year)
+ColonyLevel <- cbind(ColonyLevel, data.frame(log10_ESc = 
+                                             ColonyLevel$log10_SS + GY))
+ColonyLevel$log10_ESc[ColonyLevel$log10_ESc == -Inf] <-NA
 
 # Defining site IDs, genera names, and transition intervals (years) as lists
 SiteNames <- as.character(unique(ColonyLevel$Site))
@@ -79,7 +86,7 @@ surv_dat <- data.frame()
 for (i in 1:nrow(ColonyLevel)){
   if(ColonyLevel$Survival[i] == 0){
     surv_dat <- rbind(surv_dat, data.frame(ColonyID = ColonyLevel$ColonyID[i], 
-                                size = ColonyLevel$ln_SS[i-1], survival = 0, 
+                                size = ColonyLevel$log10_SS[i-1], survival = 0, 
                                 Genus_Code = ColonyLevel$Genus_Code[i],
                                 Interval = ColonyLevel$Interval[i],
                                 SiteInterval = ColonyLevel$SiteInterval[i],
@@ -87,7 +94,7 @@ for (i in 1:nrow(ColonyLevel)){
   }
   else{
     surv_dat <- rbind(surv_dat, data.frame(ColonyID = ColonyLevel$ColonyID[i], 
-                                size = ColonyLevel$ln_SS[i], survival = 1, 
+                                size = ColonyLevel$log10_SS[i], survival = 1, 
                                 Genus_Code = ColonyLevel$Genus_Code[i],
                                 Interval = ColonyLevel$Interval[i],
                                 SiteInterval = ColonyLevel$SiteInterval[i],
@@ -692,20 +699,20 @@ for (i in 1:LoopLength){
       #subsetting genera specific & Site specific into interval year specific
       subset4 <- subset(subset3, Interval == subFocus2[y])
       
-      ln_SS  <- subset4$ln_SS
-      ln_ESc <- subset4$ln_ESc
+      log10_SS  <- subset4$log10_SS
+      log10_ESc <- subset4$log10_ESc
       
-      if (length(ln_SS) > minTrans){
-        mod        <- lm(ln_ESc ~ ln_SS)
-        note[y]    <- length(ln_SS)
+      if (length(log10_SS) > minTrans){
+        mod        <- lm(log10_ESc ~ log10_SS)
+        note[y]    <- length(log10_SS)
         growth[,y] <- coef(mod)
-        Var[y]     <- (summary(mod)$sigma)**2
+        Var[y]     <- (summary(mod)$sigma)^2
         R2[y]      <- summary(mod)$adj.r.squared
         aic[y]     <- AIC(mod)}
       
-      if (length(ln_SS) <= minTrans){
+      if (length(log10_SS) <= minTrans){
         #setting values to NaNs
-        note[y] <- length(ln_SS)
+        note[y] <- length(log10_SS)
         growth[,y] <- NA
         Var[y]     <- NA
         R2[y]      <- NA
@@ -724,8 +731,8 @@ for (f in 1:length(Focus)){
   subset1 <- subset(ColonyLevel, Genus_Code == Focus[f])
   subset2 <- subset(subset1, TransitionTypeSimple == "GROWTH" | 
                  TransitionTypeSimple == "SHRINK")
-  modP <- lm(ln_ESc ~ ln_SS, subset2)
-  note    <- length(ln_SS)
+  modP <- lm(log10_ESc ~ log10_SS, subset2)
+  note    <- length(log10_SS)
   growth <- coef(mod)
   Var     <- (summary(mod)$sigma)**2
   R2      <- summary(mod)$adj.r.squared
@@ -832,8 +839,8 @@ save(SurvivalDataFrame, file = "data/SiteInterval_Smodfits.rdata")
 combo <- cbind(GrowthDataFrame,SurvivalDataFrame[4:7])
 save(combo, file = "data/SiteInterval_allmodfits.rdata")
 
-no_NAs <- na.omit(combo)
-save(no_NAs, file = "data/SiteInterval_allmodfits_noNAs.rdata")
+# no_NAs <- na.omit(combo)
+# save(no_NAs, file = "data/SiteInterval_allmodfits_noNAs.rdata")
 ```
 
 ```{r}
