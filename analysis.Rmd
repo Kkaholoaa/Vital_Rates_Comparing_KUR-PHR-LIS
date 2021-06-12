@@ -792,8 +792,9 @@ for (i in 1:LoopLength){
 # Survival model 
     if (length(subset3_S$size) >= minTrans){
       modS     <- glm(survival ~ size, family = "binomial" , data = subset3_S)
-      nullmodS <- glm(survival ~ 1, family = "binomial", data = subset1_S)
-      pR2[y]   <- 1 - logLik(modS) / logLik(nullmodS)
+      smodS <- summary(modS)
+      nullmodS <- glm(survival ~ 1, family = "binomial", data = subset3_S)
+      pR2[y]   <- 1-(smodS$deviance/smodS$null.deviance)#1 - logLik(modS) / logLik(nullmodS)
       Snote[y] <-  length(subset3_S$size)
       
       survival[,y] <- coef(modS)
@@ -824,8 +825,10 @@ for (i in 1:LoopLength){
 for (i in 1:length(Focus)){
   subset1_S <- subset(surv_dat, Genus_Code == Focus[i])
   modS      <- glm(survival ~ size, family = "binomial" , data = subset1_S)
+#  modS      <- glm(survival ~ size*SiteInterval, family = "binomial" , data = subset1_S)
+  smodS <- summary(modS)
   nullmodS  <- glm(survival ~ 1, family = "binomial", data = subset1_S)
-  pR2       <- 1 - logLik(modS) / logLik(nullmodS)
+  pR2       <- 1-(smodS$deviance/smodS$null.deviance)#1 - logLik(modS) / logLik(nullmodS)#
   Snote     <-  length(subset1_S$size)
   
   survival <- coef(modS)

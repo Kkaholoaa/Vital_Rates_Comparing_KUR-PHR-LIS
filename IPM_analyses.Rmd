@@ -247,7 +247,7 @@ MOSP_S <- subset(dS, Genus_Code == "MOSP")
 ```
 
 ```{r}
-<<<<<<< Updated upstream
+
 recvalpc <-  4 #21.23
 recvalpp <-  16 #20.8
 recvalmp <-  30#20.94
@@ -281,9 +281,54 @@ mosp$lam
 ```
 
 ```{r}
-=======
+load("./data/all_Lambdas.rdata")
+load("./data/SiteInterval_allmodfits_noNAs.rdata")
+AllD=merge(data,Lambdas)
+AllD$AY=c(T,T,T,rep(F,nrow(AllD)-3))
+AllD$Island=substr(AllD$Sites,1,3)
+names(AllD)[which(names(AllD)=="AIC")]=c("g.AIC","s.AIC")
+AllD$Sites=factor(AllD$Sites,levels=
+  sort(unique(AllD$Sites))[c(1,9,16,2,3,14,15,10:13,4:8)])
+AllD$Years=factor(AllD$Years,levels=
+  sort(unique(AllD$Years)))
+AllD$EndYear=as.numeric(substr(AllD$Years,4,5))
+AllD$EndYear[AllD$Years=="All Years"]=20
+AllD$StartYear=as.numeric(substr(AllD$Years,1,2))
+AllD$StartYear[AllD$Years=="All Years"]=12
 
->>>>>>> Stashed changes
+ggplot(AllD,aes(x=R.sqd,y=pR2,size=g,fill=log2(Lambdas)))+
+  geom_point(aes(shape=AY),color="black",alpha=.65)+
+  facet_grid(.~Genus_Code)+
+  scale_fill_gradient2(midpoint = 0)+
+  scale_shape_manual(values = c(22,21))+
+  coord_equal()+
+  theme_bw()
+
+library(scales)
+ggplot(AllD,aes(group=Genus_Code))+
+  geom_hline(yintercept = c(14),size=3,color="gold")+
+  geom_hline(yintercept = c(15),size=3,color="red")+
+  geom_hline(yintercept = c(19),size=3,color="orange")+
+  geom_point(aes(shape=Genus_Code,y=EndYear,x=Sites,size=log2(Lambdas),fill=log2(Lambdas)),position=position_dodge(width=.5),color="black",alpha=1)+
+  geom_point(aes(shape=Genus_Code,y=StartYear,x=Sites),fill="black",size=1,position=position_dodge(width=.5),color="black",alpha=1)+#,data=subset(AllD,Genus_Code=="POCS"))+
+  geom_linerange(aes(ymin=StartYear,ymax=EndYear,x=Sites,color=log2(Lambdas)),size=2,position=position_dodge(width=.5),alpha=1)+#,data=subset(AllD,Genus_Code=="POCS"))+
+  geom_vline(xintercept = c(1.5,2.5,3.5,5.5,7.5,11.5))+
+  scale_fill_gradient2(name="Lambda",midpoint = 0)+
+  scale_color_gradient2(name="Lambda",midpoint = 0)+
+  scale_shape_manual(values = c(22,21,23))+
+#  scale_size_area(limits=log2(c(.5,2)),breaks=log2(seq(.5,2,length.out = 5)),labels=seq(.5,2,length.out = 5),oob=squish)+
+  coord_equal()+
+  coord_flip()+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle=90,size = 10,hjust = 0),panel.background=element_rect(fill = "gray50"))
+
+
+ggplot(AllD,aes(x=log2(Lambdas)))+
+  geom_histogram(aes(fill=R.sqd,color=pR2))+
+  geom_vline(aes(xintercept = log2(Lambdas)),color="red",data=subset(AllD,Sites=="All Sites"))+
+  facet_grid(.~Genus_Code)+
+  theme_bw()
+
 load("data/SiteInterval_allmodfits_noNAs.rdata")
 POCS <- data[data$Genus_Code == "POCS",]
 POSP <- data[data$Genus_Code == "POSP",]
