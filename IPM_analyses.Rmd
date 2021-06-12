@@ -283,7 +283,7 @@ posp$lam
 mosp$lam
 ```
 
-
+```{r}
 load("data/SiteInterval_allmodfits_noNAs.rdata")
 POCS <- combo[combo$Genus_Code == "POCS",]
 drop_i <- which(POCS$GModel.n < 3)

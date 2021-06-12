@@ -338,28 +338,26 @@ df               <- cbind(df, data.frame(Genus_Code = rep(Choice$Genus_Code[1],
                                      dim(df["Estimate"])[1])))
 df_SiteYear_coef <- rbind(df_SiteYear_coef, df)
 
-#Compare model fits
-AIC(mod)
-AIC(mod_site)
-AIC(mod_year)
-AIC(mod_site_year)
+#Compare survival model fits
+survivalAICs <- AIC(modS,modS_site,modS_year,modS_site_year)
+survivalAICs
 
-anova(mod, mod_site)
-anova(mod,mod_year)
-anova(mod, mod_site_year)
-anova(mod_year,mod_site_year)
+anova(modS, modS_site)
+anova(modS,modS_year)
+anova(modS, modS_site_year)
+anova(modS_year,modS_site_year)
 
-#Calculate Area Under Curve (AUC)
-#library(ROCR)
-#library(Metrics)
-library(pROC)
 
-survivalPOCS <- subset(surv_dat, Genus_Code == "POCS")
-survivalPOSP <- subset(surv_dat, Genus_Code == "POSP")
-survivalMOSP <- subset(surv_dat, Genus_Code == "MOSP")
-auc(survivalPOCS$survival, survivalPOCS$size)
-auc(survivalPOSP$survival, survivalPOSP$size)
-auc(survivalMOSP$survival, survivalMOSP$size)
+#Calculate McFadden's Pseudo R2
+nullmodS <- glm(survival ~ 1, family = "binomial", data = Choice)
+1- logLik(modS) / logLik(nullmodS)
+nullmodS_site <- glm(survival ~ 1, family = "binomial", data = Choice)
+1- logLik(modS_site) / logLik(nullmodS_site)
+nullmodS_year <- glm(survival ~ 1, family = "binomial", data = Choice)
+1- logLik(modS_year) / logLik(nullmodS_year)
+nullmodS_site_year <- glm(survival ~ 1, family = "binomial", data = Choice)
+1- logLik(modS_site_year) / logLik(nullmodS_site_year)
+
 
 
 #plot model residuals
