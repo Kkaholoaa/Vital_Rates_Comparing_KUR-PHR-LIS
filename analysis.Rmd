@@ -60,6 +60,8 @@ ColonyLevel$log10_ESc[ColonyLevel$log10_ESc == -Inf] <-NA
 SiteNames <- as.character(unique(ColonyLevel$Site))
 GeneraNames <- as.character(unique(ColonyLevel$Genus_Code))
 IntervalYears <- unique(ColonyLevel$Interval)
+
+save(ColonyLevel, file="data/Colony_Data_20210531_edited.rdata")
 ```
 
 
@@ -101,6 +103,7 @@ for (i in 1:nrow(ColonyLevel)){
                                 Site = ColonyLevel$Site[i]))}
 }
 
+save(surv_dat, file="data/Colony_Data_20210531_edited_survival.rdata")
 ```
 ## Notes for Caroline & Devynn with understanding interactions (and R's models in general).
 
@@ -730,7 +733,7 @@ for (f in 1:length(Focus)){
   subset2 <- subset(subset1, TransitionTypeSimple == "GROWTH" | 
                  TransitionTypeSimple == "SHRINK")
   modP <- lm(log10_ESc ~ log10_SS, subset2)
-  note    <- length(log10_SS)
+  note    <- length(subset2$log10_SS)
   growth <- coef(mod)
   Var     <- (summary(mod)$sigma)**2
   R2      <- summary(mod)$adj.r.squared
@@ -795,6 +798,7 @@ for (i in 1:LoopLength){
       survival[,y] <- coef(modS)
       aic_S[y]     <- AIC(modS)
       #AUC[y]       <- auc(modS)
+      
       }
     
     if (length(subset3_S$size) < minTrans){
@@ -821,13 +825,13 @@ for (i in 1:length(Focus)){
   subset1_S <- subset(surv_dat, Genus_Code == Focus[i])
   modS     <- glm(survival ~ size, family = "binomial" , data = subset1_S)
   #rocS     <- roc(data = subset3_S, predictor = size, response = survival)
-  Snote <-  length(subset3_S$size)
+  Snote <-  length(subset1_S$size)
   
   survival <- coef(modS)
   aic_S    <- AIC(modS)
   dfS <- data.frame(Sites = "All Sites", Years = "All Years", Genus_Code = Focus[i],
                                     s.int = survival[1], s.slp = survival[2], 
-                                    AIC = aic_S, SModel.n = Snote[y]) #AUC=AUC[y],
+                                    AIC = aic_S, SModel.n = Snote) #AUC=AUC[y],
       
   SurvivalDataFrame <- rbind(SurvivalDataFrame,dfS)
 }
@@ -837,8 +841,9 @@ save(SurvivalDataFrame, file = "data/SiteInterval_Smodfits.rdata")
 combo <- cbind(GrowthDataFrame,SurvivalDataFrame[4:7])
 save(combo, file = "data/SiteInterval_allmodfits.rdata")
 
-# no_NAs <- na.omit(combo)
-# save(no_NAs, file = "data/SiteInterval_allmodfits_noNAs.rdata")
+no_NAs <- na.omit(combo)
+data <- no_NAs[order(no_NAs$Sites),]
+save(data, file = "data/SiteInterval_allmodfits_noNAs.rdata")
 ```
 
 ```{r}

@@ -29,16 +29,12 @@ options(stringsAsFactors=FALSE)
 #Run the first 2 chunks of analysis.Rmd ("Loading dataframes" and "Modify input")
 #then calculate the min and max observed sizes
 
+# 
+# ggplot(ColonyLevel, aes(x=log10_ES))+
+#   geom_histogram()+
+#   facet_wrap("TransitionTypeSimple")+
+#   theme_bw()
 
-
-ggplot(ColonyLevel, aes(x=log10_ES))+
-  geom_histogram()+
-  facet_wrap("TransitionTypeSimple")+
-  theme_bw()
-```
-
-
-```{r BasicIPMsFunctions,}
 #min.size <- 0.9*min(c(ColonyLevel$log10_SS, ColonyLevel$log10_ES), na.rm = T)
 max.size <- 1.1*max(c(log10(ColonyLevel$StartingSize), log10(ColonyLevel$EndingSize)), na.rm = T)
 
@@ -251,6 +247,7 @@ MOSP_S <- subset(dS, Genus_Code == "MOSP")
 ```
 
 ```{r}
+<<<<<<< Updated upstream
 recvalpc <-  4 #21.23
 recvalpp <-  16 #20.8
 recvalmp <-  30#20.94
@@ -284,17 +281,17 @@ mosp$lam
 ```
 
 ```{r}
+=======
+
+>>>>>>> Stashed changes
 load("data/SiteInterval_allmodfits_noNAs.rdata")
-POCS <- combo[combo$Genus_Code == "POCS",]
-drop_i <- which(POCS$GModel.n < 3)
-if(length(drop_i)> 0 ) POCS=POCS[-drop_i,]
+POCS <- data[data$Genus_Code == "POCS",]
+POSP <- data[data$Genus_Code == "POSP",]
+MOSP <- data[data$Genus_Code == "MOSP",]
+recvalpc <-  28.55 #21.23
+recvalpp <-  24.85 #20.8
+recvalmp <-  25.25#20.94
 
-MOSP <- combo[combo$Genus_Code == "MOSP",]
-POSP <- combo[combo$Genus_Code == "POSP",]
-
-recvalpc <-  0 #21.23
-recvalpp <-  16 #20.8
-recvalmp <-  30#20.94
 i <- 1
 MP_POCS <- list(rec = recvalpc, 
                   g.int = POCS$g.int[i], 
@@ -323,6 +320,8 @@ MP_MOSP <- list(rec = recvalmp,
                   s.slp = MOSP$s.slp[i])
   
 mosp        <- bigmatrix(MP_MOSP)
+
+
 print(mosp$lam)
 
 
@@ -330,8 +329,20 @@ print(mosp$lam)
 
 ```{r}
 load("data/SiteInterval_allmodfits_noNAs.rdata")
-POCS <- no_NAs[no_NAs$Genus_Code == "POCS",]
+#POCS <- no_NAs[no_NAs$Genus_Code == "POCS",]
+
+POCS <- data[data$Genus_Code == "POCS",]
+POSP <- data[data$Genus_Code == "POSP",]
+MOSP <- data[data$Genus_Code == "MOSP",]
+
+recvalpc <-  28.55 #21.23
+recvalpp <-  24.85 #20.8
+recvalmp <-  25.25#20.94
+
+POSP_lam <- c()
 POCS_lam <- c()
+MOSP_lam <- c()
+
 for (i in 1:nrow(POCS)){ 
   MP_POCS <- list(rec = recvalpc, 
                   g.int = POCS$g.int[i], 
@@ -356,8 +367,6 @@ L_POCS <- data.frame(Sites = POCS$Sites, Years = POCS$Years,
                      Genus_Code = POCS$Genus_Code, Lambdas = POCS_lam)
 
 
-POSP <- no_NAs[no_NAs$Genus_Code == "POSP",]
-POSP_lam <- c()
 for (i in 1:nrow(POSP)){
   MP_POSP <- list(rec = recvalpp, 
                   g.int = POSP$g.int[i], 
@@ -380,8 +389,6 @@ for (i in 1:nrow(POSP)){
 L_POSP <- data.frame(Sites = POSP$Sites, Years = POSP$Years, 
                      Genus_Code = POSP$Genus_Code, Lambdas = POSP_lam)
 
-MOSP <- no_NAs[no_NAs$Genus_Code == "MOSP",]
-MOSP_lam <- c()
 for (i in 1:nrow(MOSP)){
   MP_MOSP <- list(rec = recvalmp, 
                   g.int = MOSP$g.int[i], 
