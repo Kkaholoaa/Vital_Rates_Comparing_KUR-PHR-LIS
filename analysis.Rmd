@@ -780,7 +780,7 @@ for (i in 1:LoopLength){
     
     # redefine the matrix for each Focus step
     survival <- matrix(0, nrow = 2, ncol = LoopLengthSF2)
-    Snote <- aic_S <- AUC <- c()
+    Snote <- aic_S <- pR2 <- c()
     
     #subsetting genera specific into Site specific
     subset2_S <- subset(subset1_S, Site == subFocus[v])
@@ -792,12 +792,12 @@ for (i in 1:LoopLength){
 # Survival model 
     if (length(subset3_S$size) >= minTrans){
       modS     <- glm(survival ~ size, family = "binomial" , data = subset3_S)
-      #rocS     <- roc(data = subset3_S, predictor = size, response = survival)
+      nullmodS <- glm(survival ~ 1, family = "binomial", data = subset1_S)
+      pR2[y]   <- 1 - logLik(modS) / logLik(nullmodS)
       Snote[y] <-  length(subset3_S$size)
       
       survival[,y] <- coef(modS)
       aic_S[y]     <- AIC(modS)
-      #AUC[y]       <- auc(modS)
       
       }
     
@@ -806,7 +806,7 @@ for (i in 1:LoopLength){
       Snote[y]     <- length(subset3_S$size)
       survival[,y] <- NA
       aic_S[y]     <- NA
-     # AUC[y]       <- NA
+      pR2[y]       <- NA
       }
     
   
@@ -814,8 +814,8 @@ for (i in 1:LoopLength){
     
     dfS <- data.frame(Sites = subFocus[v], Years = subFocus2[y], Genus_Code = Focus[i],
                                   s.int = survival[1,y], s.slp = survival[2,y], 
-                                  AIC = aic_S[y], 
-                                  SModel.n = Snote[y]) #AUC=AUC[y],
+                                  AIC = aic_S[y], pR2=pR2[y],
+                                  SModel.n = Snote[y]) 
     
     SurvivalDataFrame <- rbind(SurvivalDataFrame,dfS)
       
@@ -823,27 +823,34 @@ for (i in 1:LoopLength){
 
 for (i in 1:length(Focus)){
   subset1_S <- subset(surv_dat, Genus_Code == Focus[i])
-  modS     <- glm(survival ~ size, family = "binomial" , data = subset1_S)
-  #rocS     <- roc(data = subset3_S, predictor = size, response = survival)
-  Snote <-  length(subset1_S$size)
+  modS      <- glm(survival ~ size, family = "binomial" , data = subset1_S)
+  nullmodS  <- glm(survival ~ 1, family = "binomial", data = subset1_S)
+  pR2       <- 1 - logLik(modS) / logLik(nullmodS)
+  Snote     <-  length(subset1_S$size)
   
   survival <- coef(modS)
   aic_S    <- AIC(modS)
   dfS <- data.frame(Sites = "All Sites", Years = "All Years", Genus_Code = Focus[i],
                                     s.int = survival[1], s.slp = survival[2], 
-                                    AIC = aic_S, SModel.n = Snote) #AUC=AUC[y],
+                                    AIC = aic_S, pR2=pR2, SModel.n = Snote) 
       
   SurvivalDataFrame <- rbind(SurvivalDataFrame,dfS)
 }
 
 save(SurvivalDataFrame, file = "data/SiteInterval_Smodfits.rdata")
 
-combo <- cbind(GrowthDataFrame,SurvivalDataFrame[4:7])
+combo <- cbind(GrowthDataFrame,SurvivalDataFrame[4:8])
 save(combo, file = "data/SiteInterval_allmodfits.rdata")
 
 no_NAs <- na.omit(combo)
 data <- no_NAs[order(no_NAs$Sites),]
 save(data, file = "data/SiteInterval_allmodfits_noNAs.rdata")
+
+
+
+
+
+
 ```
 
 ```{r}
