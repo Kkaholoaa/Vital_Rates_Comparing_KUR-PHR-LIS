@@ -92,7 +92,8 @@ for (i in 1:nrow(ColonyLevel)){
                                 Genus_Code = ColonyLevel$Genus_Code[i],
                                 Interval = ColonyLevel$Interval[i],
                                 SiteInterval = ColonyLevel$SiteInterval[i],
-                                Site = ColonyLevel$Site[i])) 
+                                Site = ColonyLevel$Site[i],
+                                N_t0=ColonyLevel$N_t0[i])) 
   }
   else{
     surv_dat <- rbind(surv_dat, data.frame(ColonyID = ColonyLevel$ColonyID[i], 
@@ -100,7 +101,8 @@ for (i in 1:nrow(ColonyLevel)){
                                 Genus_Code = ColonyLevel$Genus_Code[i],
                                 Interval = ColonyLevel$Interval[i],
                                 SiteInterval = ColonyLevel$SiteInterval[i],
-                                Site = ColonyLevel$Site[i]))}
+                                Site = ColonyLevel$Site[i],
+                                N_t0=ColonyLevel$N_t0[i]))}
 }
 
 save(surv_dat, file="data/Colony_Data_20210531_edited_survival.rdata")
@@ -170,6 +172,8 @@ x2_Y   <- sort(unique(Choice$Interval)) # another predictor for time
 x2_SY  <- sort(unique(Choice$SiteInterval)) # another predictor where time & site are together 
 
 mod           <- lm(ln_ESc ~ ln_SS, data = Choice)
+mod_frag       <- lm(ln_ESc ~ ln_SS+N_t0, data = Choice)
+
 mod_site      <- lm(ln_ESc ~ ln_SS + Site + Site*ln_SS, data = Choice)
 mod_year      <- lm(ln_ESc ~ ln_SS + Interval + Interval*ln_SS, data = Choice)
 mod_site_year <- lm(ln_ESc ~ ln_SS + 
@@ -290,7 +294,17 @@ x2_S   <- sort(unique(Choice$Site)) # your second predictor
 x2_Y   <- sort(unique(Choice$Interval)) # another predictor for time
 x2_SY  <- sort(unique(Choice$SiteInterval)) # another predictor where time & site are together 
 
+nullmodS <- glm(survival ~ 1, family = "binomial", data = Choice)
 modS           <- glm(survival ~ size, family = "binomial", data = Choice) #subset by site and interval and run the mod to get the g.var
+modS_frag           <- glm(survival ~ size+N_t0, family = "binomial", data = Choice) #subset by site and interval and run the mod to get the g.var
+1- (logLik(modS) / logLik(nullmodS))
+1- (logLik(modS_frag) / logLik(nullmodS))
+
+
+s.modS=summary(modS)
+s.modS_frag=summary(modS_frag)
+pr2=1-(s.modS$deviance/s.modS$null.deviance)
+pr2=1-(s.modS_frag$deviance/s.modS_frag$null.deviance)
 modS_site      <- glm(survival ~ size + Site + Site*size, 
                       family = "binomial", data = Choice)
 modS_year      <- glm(survival ~ size + Interval + 
