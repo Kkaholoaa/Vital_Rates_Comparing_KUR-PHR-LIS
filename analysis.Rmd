@@ -21,17 +21,34 @@ library(stringr)
 library(pROC)
 ```
 
-# Loading dataframes and modifications
-```{r}
+# Have you already run and saved the data from this file?
+
+## Yes:
+We have already run and manipulated the raw data. We can just start working on the IPM parameterizations. 
+```{r LoadingEDITEDdata,}
+load("data/Colony_Data_20210531_edited.rdata")
+load("data/Colony_Data_20210531_edited_survival.rdata")
+
+SiteNames     <- as.character(unique(ColonyLevel$Site))
+GeneraNames   <- as.character(unique(ColonyLevel$Genus_Code))
+IntervalYears <- unique(ColonyLevel$Interval)
+No2015_int    <- c(IntervalYears[1], IntervalYears[3], IntervalYears[6],
+                   IntervalYears[8], IntervalYears[10], IntervalYears[11],
+                   IntervalYears[13])
+```
+
+Skip down to 
+
+## No:
+We need to load in the raw transition level dataset, they need to be cleaned up slightly and manipulated into a format that can be used tp parameterize the IPMs.
+### Loading dataframes and modifications
+```{r RAWdata.}
 # Loading dataframe(s)
+
 #AllDataFrame <- load("data/Patch_And_Colony_Data_20201103.rdata") #old dataframe
 
 #load updated dataframe
-AllDataFrame <- load("data/Patch_And_Colony_Data_20210531.rdata")
-
-```
-#Modify input dataframe
-```{r}
+load("data/Patch_And_Colony_Data_20210531.rdata")
 
 #changing ln_ES/ln_SS from Na/-Inf to an actual value for recruitment/mortality
 ColonyLevel$ln_SS <- log(ColonyLevel$StartingSize)
@@ -61,28 +78,12 @@ SiteNames <- as.character(unique(ColonyLevel$Site))
 GeneraNames <- as.character(unique(ColonyLevel$Genus_Code))
 IntervalYears <- unique(ColonyLevel$Interval)
 
-save(ColonyLevel, file="data/Colony_Data_20210531_edited.rdata")
-```
-
-
-# Model parameterization
-The aim of this analysis is to calculate the kernel fits (growth, survival, & reproduction) for each combination of genera-site-year and then each separately. 
-
-## Full models:
-(1) All terms together, no separation
-(2) Each Genera for all sites & interval years
-(3) Each Site for all genera & interval years
-(4) Each Interval Year for all sites & genera
-
-## Individual models: (the more realistic models that we are more interested in)
-(5) Each Genera by interval year, sites are not separated
-(6) Each Genera by site, interval years are not separated
-(7) Each Site by interval year, genera not separated
-(8) Each genera by site and interval year (we will have parameter values that equal site * interval years * genera)
-
-_*these separations only apply to our growth and survival models, reproduction is not modeled this way_
-
-```{r,}
+# You need to change this to reflect the years where 2015 is not in the interval
+fix Interval Years !! Stop here
+# Want to do it nicer, but will figure that out later
+# No2015_int    <- c(IntervalYears[1], IntervalYears[3], IntervalYears[6],
+#                    IntervalYears[8], IntervalYears[10], IntervalYears[11],
+#                    IntervalYears[13])
 
 surv_dat <- data.frame()
 for (i in 1:nrow(ColonyLevel)){
@@ -105,9 +106,242 @@ for (i in 1:nrow(ColonyLevel)){
                                 N_t0=ColonyLevel$N_t0[i]))}
 }
 
+# Change these file names when saving data to refect the new changes
+save(ColonyLevel, file="data/Colony_Data_20210531_edited.rdata")
 save(surv_dat, file="data/Colony_Data_20210531_edited_survival.rdata")
 ```
-## Notes for Caroline & Devynn with understanding interactions (and R's models in general).
+
+
+# Where we run the models
+## Full growth and survival models
+The two chunks below will fit the growth and survival data for the full set of site and year interval combinations as well as the full model. The outputs are .rdata files that have (1) the site/interval combinations alone, (2) the combined dataframes with the regional model, and (3) the combined data with the NAs removed so that it is easier to manipulate in the IPM one.
+
+Make sure to change the name of the file so that you do not over write an old file if that is something you care about!! 
+```{r Genera + Site + Years Mod Growth,}
+GrowthDataFrame <- data.frame()
+
+################################################################################
+######### Genera + Site + Interval Years  models ###############################
+########## GROWTH ! ############################################################
+################################################################################
+# define the parms for model loop
+
+Focus          <- GeneraNames
+subFocus       <- SiteNames
+subFocus2      <- IntervalYears
+altsFocus2     <- No2015_int
+LoopLength     <- length(Focus)
+LoopLengthSF   <- length(subFocus)
+LoopLengthSF2  <- length(subFocus2)
+LoopLengthaSF2 <- length(altsFocus2)
+
+# Change this value to change the # of minimum data points at each site interval. If it is below this value then the model will not run and will skip this site/interval combination
+minTrans <- 2 
+
+# Change these parameters to change which intervals we are using
+Ints <- altsFocus2
+Leng <- LoopLengthaSF2
+
+# Change the file name that the data is being saved as
+# Just change it here, this should be the main name (it will be modified below too, but not by you)
+
+Name <- "SiteInterval_no2015"
+
+for (i in 1:LoopLength){
+  
+  # subset Genus_Code for specific genera
+  subset1 <- subset(ColonyLevel, Genus_Code == Focus[i])
+
+  for (v in 1:LoopLengthSF){
+    
+    # redefine the matrix for each Focus step
+    growth <- matrix(0, nrow = 2, ncol = Leng)
+    note   <- Var <- aic <- R2 <- c()
+    
+    # subsetting for growth & shrinkage
+    subset2 <- subset(subset1, TransitionTypeSimple == "GROWTH" | 
+                 TransitionTypeSimple == "SHRINK")
+    
+    # subsetting growth & shrinkage for specific Site
+    subset3 <- subset(subset2, Site == subFocus[v])
+    
+    for (y in 1:Leng){
+      
+      #subsetting genera specific & Site specific into interval year specific
+      subset4 <- subset(subset3, Interval == Ints[y])
+      
+      log10_SS  <- subset4$log10_SS
+      log10_ESc <- subset4$log10_ESc
+      
+      if (length(log10_SS) > minTrans){
+        mod        <- lm(log10_ESc ~ log10_SS)
+        note[y]    <- length(log10_SS)
+        growth[,y] <- coef(mod)
+        Var[y]     <- (summary(mod)$sigma)^2
+        R2[y]      <- summary(mod)$adj.r.squared
+        aic[y]     <- AIC(mod)}
+      
+      if (length(log10_SS) <= minTrans){
+        #setting values to NaNs
+        note[y] <- length(log10_SS)
+        growth[,y] <- NA
+        Var[y]     <- NA
+        R2[y]      <- NA
+        aic[y]     <- NA}
+
+      df <- data.frame(Sites = subFocus[v], Years = Ints[y], 
+                       Genus_Code = Focus[i], g.int = growth[1,y], 
+                       g.slp = growth[2,y], g.var = Var[y], AIC = aic[y], 
+                       R.sqd = R2[y], GModel.n = note[y])
+      
+      GrowthDataFrame <- rbind(GrowthDataFrame,df)
+}}}
+
+for (f in 1:length(Focus)){
+  
+  subset1 <- subset(ColonyLevel, Genus_Code == Focus[f])
+  subset2 <- subset(subset1, TransitionTypeSimple == "GROWTH" | 
+                 TransitionTypeSimple == "SHRINK")
+  modP <- lm(log10_ESc ~ log10_SS, subset2)
+  note    <- length(subset2$log10_SS)
+  growth <- coef(mod)
+  Var     <- (summary(mod)$sigma)**2
+  R2      <- summary(mod)$adj.r.squared
+  aic     <- AIC(mod)
+  
+  df <- data.frame(Sites = "All Sites", Years = "All Years", Genus_Code = Focus[f],
+                   g.int = growth[1], g.slp = growth[2], 
+                   g.var = Var, AIC = aic, R.sqd = R2, 
+                   GModel.n = note)
+        
+  GrowthDataFrame <- rbind(GrowthDataFrame,df)
+}
+
+
+save(GrowthDataFrame, file = sprintf("data/%s_Gmodfits.rdata",Name))
+```
+
+
+```{r Genera + Site + Years Mod Survival,}
+
+SurvivalDataFrame <- data.frame()
+################################################################################
+######### Genera + Site + Interval Years  models ###############################
+## SURVIVAL ! ##################################################################
+################################################################################
+# define the parms for model loop
+# Now with a second "Focus"
+
+Focus          <- GeneraNames
+subFocus       <- SiteNames
+subFocus2      <- IntervalYears
+altsFocus2     <- No2015_int
+LoopLength     <- length(Focus)
+LoopLengthSF   <- length(subFocus)
+LoopLengthSF2  <- length(subFocus2)
+LoopLengthaSF2 <- length(altsFocus2)
+
+# Change this value to change the # of minimum data points at each site interval. If it is below this value then the model will not run and will skip this site/interval combination
+minTrans <- 2 
+
+# Change these parameters to change which intervals we are using
+Ints <- altsFocus2
+Leng <- LoopLengthaSF2
+
+# Change the file name that the data is being saved as
+# Just change it here, this should be the main name (it will be modified below too, but not by you)
+
+Name <- "SiteInterval_no2015"
+
+for (i in 1:LoopLength){
+  
+  # subset Genus_Code for specific genera
+  subset1_S <- subset(surv_dat, Genus_Code == Focus[i])
+
+  for (v in 1:LoopLengthSF){
+    
+    # redefine the matrix for each Focus step
+    survival <- matrix(0, nrow = 2, ncol = Leng)
+    Snote <- aic_S <- pR2 <- c()
+    
+    #subsetting genera specific into Site specific
+    subset2_S <- subset(subset1_S, Site == subFocus[v])
+    
+    for (y in 1:Leng){
+      #subsetting genera specific & Site specific into interval year specific
+      subset3_S <- subset(subset2_S, Interval == Ints[y])
+
+# Survival model 
+    if (length(subset3_S$size) >= minTrans){
+      modS     <- glm(survival ~ size, family = "binomial" , data = subset3_S)
+      smodS <- summary(modS)
+      nullmodS <- glm(survival ~ 1, family = "binomial", data = subset3_S)
+      pR2[y]   <- 1-(smodS$deviance/smodS$null.deviance)#1 - logLik(modS) / logLik(nullmodS)
+      Snote[y] <-  length(subset3_S$size)
+      
+      survival[,y] <- coef(modS)
+      aic_S[y]     <- AIC(modS)
+      
+      }
+    
+    if (length(subset3_S$size) < minTrans){
+      #setting values to NaNs
+      Snote[y]     <- length(subset3_S$size)
+      survival[,y] <- NA
+      aic_S[y]     <- NA
+      pR2[y]       <- NA
+      }
+    
+  
+    # Row binding the model results into the survival model dataframe
+    
+    dfS <- data.frame(Sites = subFocus[v], Years = Ints[y], Genus_Code = Focus[i],
+                                  s.int = survival[1,y], s.slp = survival[2,y], 
+                                  AIC = aic_S[y], pR2=pR2[y],
+                                  SModel.n = Snote[y]) 
+    
+    SurvivalDataFrame <- rbind(SurvivalDataFrame,dfS)
+      
+    }}}
+
+for (i in 1:length(Focus)){
+  subset1_S <- subset(surv_dat, Genus_Code == Focus[i])
+  modS      <- glm(survival ~ size, family = "binomial" , data = subset1_S)
+#  modS      <- glm(survival ~ size*SiteInterval, family = "binomial" , data = subset1_S)
+  smodS <- summary(modS)
+  nullmodS  <- glm(survival ~ 1, family = "binomial", data = subset1_S)
+  pR2       <- 1-(smodS$deviance/smodS$null.deviance)#1 - logLik(modS) / logLik(nullmodS)#
+  Snote     <-  length(subset1_S$size)
+  
+  survival <- coef(modS)
+  aic_S    <- AIC(modS)
+  dfS <- data.frame(Sites = "All Sites", Years = "All Years", Genus_Code = Focus[i],
+                                    s.int = survival[1], s.slp = survival[2], 
+                                    AIC = aic_S, pR2=pR2, SModel.n = Snote) 
+      
+  SurvivalDataFrame <- rbind(SurvivalDataFrame,dfS)
+}
+
+save(SurvivalDataFrame, file = sprintf("data/%s_Smodfits.rdata", Name))
+
+combo <- cbind(GrowthDataFrame,SurvivalDataFrame[4:8])
+save(combo, file = sprintf("data/%s_allmodfits.rdata",Name))
+
+no_NAs <- na.omit(combo)
+data <- no_NAs[order(no_NAs$Sites),]
+save(data, file = sprintf("data/%s_allmodfits_noNAs.rdata",Name))
+
+
+
+
+
+
+```
+
+# Do you care about the interactions? 
+## Yes? Then continue on!
+## No? Then move to IPM analysis Markdown! 
+#### Notes for Caroline & Devynn with understanding interactions (and R's models in general).
 
 The interaction models return the differences from intercept & slope for each interaction. You have to calculate the differences when you have run the model to get the actual values for slope and intercept. That is what the following functions do, they were edited from material given to me by Mike McWilliam.
 
@@ -671,204 +905,6 @@ ggsave(filename = sprintf("Figures/%s_indeprecruitmatrix.png",
 
 ```
 
-# Site & Interval Models
-```{r 7 Genera + Site + Years Mod Growth,}
-GrowthDataFrame <- data.frame()
-
-################################################################################
-######### Genera + Site + Interval Years  models ###############################
-########## GROWTH ! ############################################################
-################################################################################
-# define the parms for model loop
-# Now with a second "Focus"
-
-Focus         <- GeneraNames
-subFocus      <- SiteNames
-subFocus2     <- IntervalYears
-LoopLength    <- length(Focus)
-LoopLengthSF  <- length(subFocus)
-LoopLengthSF2 <- length(subFocus2)
-
-minTrans <- 2 
-
-for (i in 1:LoopLength){
-  
-  # subset Genus_Code for specific genera
-  subset1 <- subset(ColonyLevel, Genus_Code == Focus[i])
-
-  for (v in 1:LoopLengthSF){
-    
-    # redefine the matrix for each Focus step
-    growth <- matrix(0, nrow = 2, ncol = LoopLengthSF2)
-    note   <- Var <- aic <- R2 <- c()
-    
-    # subsetting for growth & shrinkage
-    subset2 <- subset(subset1, TransitionTypeSimple == "GROWTH" | 
-                 TransitionTypeSimple == "SHRINK")
-    
-    # subsetting growth & shrinkage for specific Site
-    subset3 <- subset(subset2, Site == subFocus[v])
-    
-    for (y in 1:LoopLengthSF2){
-      
-      #subsetting genera specific & Site specific into interval year specific
-      subset4 <- subset(subset3, Interval == subFocus2[y])
-      
-      log10_SS  <- subset4$log10_SS
-      log10_ESc <- subset4$log10_ESc
-      
-      if (length(log10_SS) > minTrans){
-        mod        <- lm(log10_ESc ~ log10_SS)
-        note[y]    <- length(log10_SS)
-        growth[,y] <- coef(mod)
-        Var[y]     <- (summary(mod)$sigma)^2
-        R2[y]      <- summary(mod)$adj.r.squared
-        aic[y]     <- AIC(mod)}
-      
-      if (length(log10_SS) <= minTrans){
-        #setting values to NaNs
-        note[y] <- length(log10_SS)
-        growth[,y] <- NA
-        Var[y]     <- NA
-        R2[y]      <- NA
-        aic[y]     <- NA}
-
-      df <- data.frame(Sites = subFocus[v], Years = subFocus2[y], 
-                       Genus_Code = Focus[i], g.int = growth[1,y], 
-                       g.slp = growth[2,y], g.var = Var[y], AIC = aic[y], 
-                       R.sqd = R2[y], GModel.n = note[y])
-      
-      GrowthDataFrame <- rbind(GrowthDataFrame,df)
-}}}
-
-for (f in 1:length(Focus)){
-  
-  subset1 <- subset(ColonyLevel, Genus_Code == Focus[f])
-  subset2 <- subset(subset1, TransitionTypeSimple == "GROWTH" | 
-                 TransitionTypeSimple == "SHRINK")
-  modP <- lm(log10_ESc ~ log10_SS, subset2)
-  note    <- length(subset2$log10_SS)
-  growth <- coef(mod)
-  Var     <- (summary(mod)$sigma)**2
-  R2      <- summary(mod)$adj.r.squared
-  aic     <- AIC(mod)
-  
-  df <- data.frame(Sites = "All Sites", Years = "All Years", Genus_Code = Focus[f],
-                   g.int = growth[1], g.slp = growth[2], 
-                   g.var = Var, AIC = aic, R.sqd = R2, 
-                   GModel.n = note)
-        
-  GrowthDataFrame <- rbind(GrowthDataFrame,df)
-}
-
-
-save(GrowthDataFrame, file = "data/SiteInterval_Gmodfits.rdata")
-```
-
-
-```{r 7 Genera + Site + Years Mod Survival,}
-
-SurvivalDataFrame <- data.frame()
-################################################################################
-######### Genera + Site + Interval Years  models ###############################
-## SURVIVAL ! ##################################################################
-################################################################################
-# define the parms for model loop
-# Now with a second "Focus"
-
-Focus         <- GeneraNames
-subFocus      <- SiteNames
-subFocus2     <- IntervalYears
-LoopLength    <- length(Focus)
-LoopLengthSF  <- length(subFocus)
-LoopLengthSF2 <- length(subFocus2)
-
-minTrans <- 2 
-
-for (i in 1:LoopLength){
-  
-  # subset Genus_Code for specific genera
-  subset1_S <- subset(surv_dat, Genus_Code == Focus[i])
-
-  for (v in 1:LoopLengthSF){
-    
-    # redefine the matrix for each Focus step
-    survival <- matrix(0, nrow = 2, ncol = LoopLengthSF2)
-    Snote <- aic_S <- pR2 <- c()
-    
-    #subsetting genera specific into Site specific
-    subset2_S <- subset(subset1_S, Site == subFocus[v])
-    
-    for (y in 1:LoopLengthSF2){
-      #subsetting genera specific & Site specific into interval year specific
-      subset3_S <- subset(subset2_S, Interval == subFocus2[y])
-
-# Survival model 
-    if (length(subset3_S$size) >= minTrans){
-      modS     <- glm(survival ~ size, family = "binomial" , data = subset3_S)
-      smodS <- summary(modS)
-      nullmodS <- glm(survival ~ 1, family = "binomial", data = subset3_S)
-      pR2[y]   <- 1-(smodS$deviance/smodS$null.deviance)#1 - logLik(modS) / logLik(nullmodS)
-      Snote[y] <-  length(subset3_S$size)
-      
-      survival[,y] <- coef(modS)
-      aic_S[y]     <- AIC(modS)
-      
-      }
-    
-    if (length(subset3_S$size) < minTrans){
-      #setting values to NaNs
-      Snote[y]     <- length(subset3_S$size)
-      survival[,y] <- NA
-      aic_S[y]     <- NA
-      pR2[y]       <- NA
-      }
-    
-  
-    # Row binding the model results into the survival model dataframe
-    
-    dfS <- data.frame(Sites = subFocus[v], Years = subFocus2[y], Genus_Code = Focus[i],
-                                  s.int = survival[1,y], s.slp = survival[2,y], 
-                                  AIC = aic_S[y], pR2=pR2[y],
-                                  SModel.n = Snote[y]) 
-    
-    SurvivalDataFrame <- rbind(SurvivalDataFrame,dfS)
-      
-    }}}
-
-for (i in 1:length(Focus)){
-  subset1_S <- subset(surv_dat, Genus_Code == Focus[i])
-  modS      <- glm(survival ~ size, family = "binomial" , data = subset1_S)
-#  modS      <- glm(survival ~ size*SiteInterval, family = "binomial" , data = subset1_S)
-  smodS <- summary(modS)
-  nullmodS  <- glm(survival ~ 1, family = "binomial", data = subset1_S)
-  pR2       <- 1-(smodS$deviance/smodS$null.deviance)#1 - logLik(modS) / logLik(nullmodS)#
-  Snote     <-  length(subset1_S$size)
-  
-  survival <- coef(modS)
-  aic_S    <- AIC(modS)
-  dfS <- data.frame(Sites = "All Sites", Years = "All Years", Genus_Code = Focus[i],
-                                    s.int = survival[1], s.slp = survival[2], 
-                                    AIC = aic_S, pR2=pR2, SModel.n = Snote) 
-      
-  SurvivalDataFrame <- rbind(SurvivalDataFrame,dfS)
-}
-
-save(SurvivalDataFrame, file = "data/SiteInterval_Smodfits.rdata")
-
-combo <- cbind(GrowthDataFrame,SurvivalDataFrame[4:8])
-save(combo, file = "data/SiteInterval_allmodfits.rdata")
-
-no_NAs <- na.omit(combo)
-data <- no_NAs[order(no_NAs$Sites),]
-save(data, file = "data/SiteInterval_allmodfits_noNAs.rdata")
-
-
-
-
-
-
-```
 
 ```{r}
 ##############
