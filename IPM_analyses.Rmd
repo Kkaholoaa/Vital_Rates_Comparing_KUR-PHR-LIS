@@ -155,9 +155,9 @@ MOSP <- data[data$Genus_Code == "MOSP",]
 ```{r CalculatingRecVals,}
 # Run this and change the recruitment values until you get a value for each Genera that returns a lambda of 1.000__ (we don't care about the values in the digits after the three zeros)
 
-recvalpc <-  28.55 #21.23
-recvalpp <-  24.85 #20.8
-recvalmp <-  25.25#20.94
+recvalpc <- 34.169  #excl 2015 #28.55 incl all intervals  
+recvalpp <- 26.259  #excl 2015#24.85 incl all intervals  
+recvalmp <- 30.13  #excl 2015 #25.25 incl all intervals
 
 i <- 1
 MP_POCS <- list(rec = recvalpc, 
@@ -271,7 +271,7 @@ for (i in 1:nrow(MOSP)){
 L_MOSP <- data.frame(Sites = MOSP$Sites, Years = MOSP$Years, 
                      Genus_Code = MOSP$Genus_Code, Lambdas = MOSP_lam)
 
-Lambdas_no2015 <- rbind(L_POCS, L_POSP, L_MOSP)
+Lambdas <- rbind(L_POCS, L_POSP, L_MOSP)
 save(Lambdas, file = sprintf("data/%s_all_Lambdas.rdata"),Name)
 
 
