@@ -145,7 +145,8 @@ bigmatrix <- function(ModelParameters) {
               v.dot.w=v.dot.w, sens=sens, elas=elas))
 }
 
-load("./data/SiteInterval_allmodfits_noNAs.rdata")
+#load("./data/SiteInterval_allmodfits_noNAs.rdata")
+load("./data/SiteInterval_no2015_allmodfits_noNAs.rdata")
 POCS <- data[data$Genus_Code == "POCS",]
 POSP <- data[data$Genus_Code == "POSP",]
 MOSP <- data[data$Genus_Code == "MOSP",]
@@ -270,8 +271,9 @@ for (i in 1:nrow(MOSP)){
 L_MOSP <- data.frame(Sites = MOSP$Sites, Years = MOSP$Years, 
                      Genus_Code = MOSP$Genus_Code, Lambdas = MOSP_lam)
 
-Lambdas <- rbind(L_POCS, L_POSP, L_MOSP)
+Lambdas_no2015 <- rbind(L_POCS, L_POSP, L_MOSP)
 save(Lambdas, file = sprintf("data/%s_all_Lambdas.rdata"),Name)
+
 
 ```
 

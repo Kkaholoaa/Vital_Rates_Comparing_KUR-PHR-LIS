@@ -49,6 +49,7 @@ We need to load in the raw transition level dataset, they need to be cleaned up 
 
 #load updated dataframe
 load("data/Patch_And_Colony_Data_20210531.rdata")
+#load("data/Patch_And_Colony_Data_20210619.rdata")
 
 #changing ln_ES/ln_SS from Na/-Inf to an actual value for recruitment/mortality
 ColonyLevel$ln_SS <- log(ColonyLevel$StartingSize)
@@ -81,9 +82,12 @@ IntervalYears <- unique(ColonyLevel$Interval)
 # You need to change this to reflect the years where 2015 is not in the interval
 fix Interval Years !! Stop here
 # Want to do it nicer, but will figure that out later
-# No2015_int    <- c(IntervalYears[1], IntervalYears[3], IntervalYears[6],
-#                    IntervalYears[8], IntervalYears[10], IntervalYears[11],
-#                    IntervalYears[13])
+#need to fix the 20210619.rdata file. Once I do, these are the interval years:
+#No2015_int    <- c(IntervalYears[2], IntervalYears[4], IntervalYears[6], IntervalYears[9],IntervalYears[10], IntervalYears[11], IntervalYears[13])
+No2015_int    <- c(IntervalYears[1], IntervalYears[3], IntervalYears[6],
+                   IntervalYears[8], IntervalYears[10], IntervalYears[11],
+                   IntervalYears[13])
+
 
 surv_dat <- data.frame()
 for (i in 1:nrow(ColonyLevel)){
@@ -144,7 +148,6 @@ Leng <- LoopLengthaSF2
 
 # Change the file name that the data is being saved as
 # Just change it here, this should be the main name (it will be modified below too, but not by you)
-
 Name <- "SiteInterval_no2015"
 
 for (i in 1:LoopLength){
