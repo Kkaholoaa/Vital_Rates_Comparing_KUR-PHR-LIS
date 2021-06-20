@@ -20,7 +20,7 @@ library(reshape2)
 library(stringr)
 ```
 
-
+Run This!
 ```{r BasicIPMsFunctions,}
 options(stringsAsFactors=FALSE)
 
@@ -145,7 +145,216 @@ bigmatrix <- function(ModelParameters) {
               v.dot.w=v.dot.w, sens=sens, elas=elas))
 }
 
+load("./data/SiteInterval_allmodfits_noNAs.rdata")
+POCS <- data[data$Genus_Code == "POCS",]
+POSP <- data[data$Genus_Code == "POSP",]
+MOSP <- data[data$Genus_Code == "MOSP",]
 ```
+
+```{r CalculatingRecVals,}
+# Run this and change the recruitment values until you get a value for each Genera that returns a lambda of 1.000__ (we don't care about the values in the digits after the three zeros)
+
+recvalpc <-  28.55 #21.23
+recvalpp <-  24.85 #20.8
+recvalmp <-  25.25#20.94
+
+i <- 1
+MP_POCS <- list(rec = recvalpc, 
+                  g.int = POCS$g.int[i], 
+                  g.slp = POCS$g.slp[i], 
+                  g.var = POCS$g.var[i], 
+                  s.int = POCS$s.int[i], 
+                  s.slp = POCS$s.slp[i])
+  
+pocs        <- bigmatrix(MP_POCS)
+print(pocs$lam)
+  
+MP_POSP <- list(rec = recvalpp, 
+                  g.int = POSP$g.int[i], 
+                  g.slp = POSP$g.slp[i], 
+                  g.var = POSP$g.var[i], 
+                  s.int = POSP$s.int[i], 
+                  s.slp = POSP$s.slp[i])
+posp        <- bigmatrix(MP_POSP)  
+print(posp$lam)
+
+MP_MOSP <- list(rec = recvalmp, 
+                  g.int = MOSP$g.int[i], 
+                  g.slp = MOSP$g.slp[i], 
+                  g.var = MOSP$g.var[i], 
+                  s.int = MOSP$s.int[i], 
+                  s.slp = MOSP$s.slp[i])
+  
+mosp        <- bigmatrix(MP_MOSP)
+print(mosp$lam)
+
+# Continue onto the next chunk to calculate the change in lambdas at the different site/intervals
+```
+
+
+```{r CalculatingLamsSensElas,}
+# Run this chunk to calculate the lambdas and the elas/sens
+
+POSP_lam <- c()
+POCS_lam <- c()
+MOSP_lam <- c()
+
+# Change this to save the files as a new name, so they do not overwrite anything
+Name <- "No_2015"
+for (i in 1:nrow(POCS)){ 
+  MP_POCS <- list(rec = recvalpc, 
+                  g.int = POCS$g.int[i], 
+                  g.slp = POCS$g.slp[i], 
+                  g.var = POCS$g.var[i], 
+                  s.int = POCS$s.int[i], 
+                  s.slp = POCS$s.slp[i])
+  
+  pocs        <- bigmatrix(MP_POCS)
+  POCS_lam[i] <- pocs$lam
+  K <- pocs$K
+  Sens<- pocs$sens
+  Elas <- pocs$elas
+  write.csv(K, sprintf("data/Kernels/%s_Kernel_POCS_%s_%s.csv", 
+                       Name,POCS$Sites[i], POCS$Years[i]))
+  write.csv(Sens, sprintf("data/Sens/%s_Sens_POCS_%s_%s.csv", 
+                          Name,POCS$Sites[i], POCS$Years[i]))
+  write.csv(Elas, sprintf("data/Elas/%s_Elas_POCS_%s_%s.csv", 
+                          Name,POCS$Sites[i], POCS$Years[i]))
+}
+L_POCS <- data.frame(Sites = POCS$Sites, Years = POCS$Years, 
+                     Genus_Code = POCS$Genus_Code, Lambdas = POCS_lam)
+
+
+for (i in 1:nrow(POSP)){
+  MP_POSP <- list(rec = recvalpp, 
+                  g.int = POSP$g.int[i], 
+                  g.slp = POSP$g.slp[i], 
+                  g.var = POSP$g.var[i], 
+                  s.int = POSP$s.int[i], 
+                  s.slp = POSP$s.slp[i])
+  posp        <- bigmatrix(MP_POSP)
+  POSP_lam[i] <- posp$lam
+  K    <- posp$K
+  Sens <- posp$sens
+  Elas <- posp$elas
+  write.csv(K, sprintf("data/Kernels/%s_Kernel_POSP_%s_%s.csv", 
+                       Name,POSP$Sites[i], POSP$Years[i]))
+  write.csv(Sens, sprintf("data/Sens/%s_Sens_POSP_%s_%s.csv", 
+                          Name,POSP$Sites[i], POSP$Years[i]))
+  write.csv(Elas, sprintf("data/Elas/%s_Elas_POSP_%s_%s.csv", 
+                          Name,POSP$Sites[i], POSP$Years[i]))      
+}
+L_POSP <- data.frame(Sites = POSP$Sites, Years = POSP$Years, 
+                     Genus_Code = POSP$Genus_Code, Lambdas = POSP_lam)
+
+for (i in 1:nrow(MOSP)){
+  MP_MOSP <- list(rec = recvalmp, 
+                  g.int = MOSP$g.int[i], 
+                  g.slp = MOSP$g.slp[i], 
+                  g.var = MOSP$g.var[i], 
+                  s.int = MOSP$s.int[i], 
+                  s.slp = MOSP$s.slp[i])
+  
+  mosp        <- bigmatrix(MP_MOSP)
+  MOSP_lam[i] <- mosp$lam
+  K    <- mosp$K
+  Sens <- mosp$sens
+  Elas <- mosp$elas
+  write.csv(K, sprintf("data/Kernels/%s_Kernel_ MOSP_%s_%s.csv", 
+                        Name,MOSP$Sites[i],  MOSP$Years[i]))
+  write.csv(Sens, sprintf("data/Sens/%s_Sens_ MOSP_%s_%s.csv", 
+                           Name,MOSP$Sites[i],  MOSP$Years[i]))
+  write.csv(Elas, sprintf("data/Elas/%s_Elas_MOSP_%s_%s.csv", 
+                           Name,MOSP$Sites[i],  MOSP$Years[i]))
+}
+L_MOSP <- data.frame(Sites = MOSP$Sites, Years = MOSP$Years, 
+                     Genus_Code = MOSP$Genus_Code, Lambdas = MOSP_lam)
+
+Lambdas <- rbind(L_POCS, L_POSP, L_MOSP)
+save(Lambdas, file = sprintf("data/%s_all_Lambdas.rdata"),Name)
+
+```
+
+The next chunk is for the plots Tom made
+```{r TomsPlots,}
+AllD=merge(data,Lambdas)
+AllD$AY=c(T,T,T,rep(F,nrow(AllD)-3))
+AllD$Island=substr(AllD$Sites,1,3)
+names(AllD)[which(names(AllD)=="AIC")]=c("g.AIC","s.AIC")
+AllD$Sites=factor(AllD$Sites,levels=
+  sort(unique(AllD$Sites))[c(1,9,16,2,3,14,15,10:13,4:8)])
+AllD$Years=factor(AllD$Years,levels=
+  sort(unique(AllD$Years)))
+AllD$EndYear=as.numeric(substr(AllD$Years,4,5))
+AllD$EndYear[AllD$Years=="All Years"]=20
+AllD$StartYear=as.numeric(substr(AllD$Years,1,2))
+AllD$StartYear[AllD$Years=="All Years"]=12
+
+
+ggplot(AllD,aes(x=R.sqd,y=pR2,size=GModel.n,fill=log2(Lambdas)))+
+  geom_point(aes(shape=AY),color="black",alpha=.65)+
+  facet_grid(.~Genus_Code)+
+  scale_fill_gradient2(midpoint = 0)+
+  scale_shape_manual(values = c(22,21))+
+  coord_equal()+
+  theme_bw()
+
+library(scales)
+ggplot(AllD,aes(group=Genus_Code))+
+  geom_hline(yintercept = c(14.75),size=3,color="gold")+
+  geom_hline(yintercept = c(15.75),size=3,color="red")+
+  geom_hline(yintercept = c(19.75),size=3,color="orange")+
+  geom_linerange(aes(ymin=StartYear,ymax=EndYear,x=Sites,color=log2(Lambdas),size=log2(Lambdas)),
+                 position=position_dodge(width=.5),alpha=1)+#,data=subset(AllD,Genus_Code=="POCS"))+
+  geom_point(aes(shape=Genus_Code,y=StartYear,x=Sites),fill="black",size=2,position=position_dodge(width=.5),color="black",alpha=1)+#,data=subset(AllD,Genus_Code=="POCS"))+
+  geom_point(aes(shape=Genus_Code,y=EndYear,x=Sites,size=log2(Lambdas),fill=log2(Lambdas)),position=position_dodge(width=.5),color="black",alpha=1)+
+  geom_vline(xintercept = c(1.5,2.5,3.5,5.5,7.5,11.5))+
+  scale_fill_distiller(type = "div",name="Lambda",palette = "Spectral",direction = 1,limits = c(-1,1))+
+  #scale_fill_gradient2(name="Lambda",mid = "yellow",high="blue",low="red")+
+  scale_size_area(name="Lambda")+
+  scale_color_distiller(type = "div",name="Lambda",palette = "Spectral",direction = 1,limits = c(-1,1))+
+  #scale_color_gradient2(name="Lambda",mid = "yellow",high="blue",low="red")+
+  scale_shape_manual(name="Genus",values = c(22,21,23))+
+#  scale_size_area(limits=log2(c(.5,2)),breaks=log2(seq(.5,2,length.out = 5)),labels=seq(.5,2,length.out = 5),oob=squish)+
+  coord_equal()+
+  coord_flip()+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle=90,size = 10,hjust = 0),panel.background=element_rect(fill = "white"),panel.grid = element_blank())
+
+ggplot(AllD,aes(group=Genus_Code))+
+  geom_hline(yintercept = c(14.75),size=3,color="gold")+
+  geom_hline(yintercept = c(15.75),size=3,color="red")+
+  geom_hline(yintercept = c(19.75),size=3,color="orange")+
+  geom_linerange(aes(ymin=StartYear,ymax=EndYear,x=Sites,color=log2(Lambdas),size=log2(Lambdas)),
+                 position=position_dodge(width=.5),alpha=1)+#,data=subset(AllD,Genus_Code=="POCS"))+
+  geom_point(aes(shape=Genus_Code,y=StartYear,x=Sites),fill="black",size=2,position=position_dodge(width=.5),color="black",alpha=1)+#,data=subset(AllD,Genus_Code=="POCS"))+
+  geom_point(aes(shape=Genus_Code,y=EndYear,x=Sites,size=log2(Lambdas),fill=log2(Lambdas)),position=position_dodge(width=.5),color="black",alpha=1)+
+  geom_vline(xintercept = c(1.5,2.5,3.5,5.5,7.5,11.5))+
+  scale_fill_distiller(type = "div",name="Lambda",palette = "Spectral",direction = 1,limits = c(-1,1))+
+  #scale_fill_gradient2(name="Lambda",mid = "yellow",high="blue",low="red")+
+  scale_size_area(name="Lambda")+
+  scale_color_distiller(type = "div",name="Lambda",palette = "Spectral",direction = 1,limits = c(-1,1))+
+  #scale_color_gradient2(name="Lambda",mid = "yellow",high="blue",low="red")+
+  scale_shape_manual(name="Genus",values = c(22,21,23))+
+#  scale_size_area(limits=log2(c(.5,2)),breaks=log2(seq(.5,2,length.out = 5)),labels=seq(.5,2,length.out = 5),oob=squish)+
+  coord_equal()+
+  coord_flip()+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle=90,size = 10,hjust = 0),panel.background=element_rect(fill = "white"),panel.grid = element_blank())
+
+
+
+ggplot(subset(AllD,Sites=="MAI_SIO_K02"),aes(x=log2(Lambdas)))+
+  geom_histogram(aes(fill=R.sqd,color=pR2))+
+  geom_vline(aes(xintercept = log2(Lambdas)),color="red",data=subset(AllD,Sites=="All Sites"))+
+  facet_grid(.~Genus_Code)+
+  theme_bw()
+
+
+
+```
+Ignore the stuff below!!
+
 
 ```{r LoadData_Subsetting,}
 # Loading in the data from analysis.Rmd
@@ -244,216 +453,6 @@ MOSP_G <- subset(dt, Genus_Code == "MOSP")
 POCS_S <- subset(dS, Genus_Code == "POCS")
 POSP_S <- subset(dS, Genus_Code == "POSP")
 MOSP_S <- subset(dS, Genus_Code == "MOSP")
-```
-
-
-```{r}
-load("./data/all_Lambdas.rdata")
-load("./data/SiteInterval_allmodfits_noNAs.rdata")
-POCS <- data[data$Genus_Code == "POCS",]
-POSP <- data[data$Genus_Code == "POSP",]
-MOSP <- data[data$Genus_Code == "MOSP",]
-recvalpc <-  28.55 #21.23
-recvalpp <-  24.85 #20.8
-recvalmp <-  25.25#20.94
-
-i <- 1
-MP_POCS <- list(rec = recvalpc, 
-                  g.int = POCS$g.int[i], 
-                  g.slp = POCS$g.slp[i], 
-                  g.var = POCS$g.var[i], 
-                  s.int = POCS$s.int[i], 
-                  s.slp = POCS$s.slp[i])
-  
-pocs        <- bigmatrix(MP_POCS)
-print(pocs$lam)
-  
-MP_POSP <- list(rec = recvalpp, 
-                  g.int = POSP$g.int[i], 
-                  g.slp = POSP$g.slp[i], 
-                  g.var = POSP$g.var[i], 
-                  s.int = POSP$s.int[i], 
-                  s.slp = POSP$s.slp[i])
-posp        <- bigmatrix(MP_POSP)  
-print(posp$lam)
-
-MP_MOSP <- list(rec = recvalmp, 
-                  g.int = MOSP$g.int[i], 
-                  g.slp = MOSP$g.slp[i], 
-                  g.var = MOSP$g.var[i], 
-                  s.int = MOSP$s.int[i], 
-                  s.slp = MOSP$s.slp[i])
-  
-mosp        <- bigmatrix(MP_MOSP)
-print(mosp$lam)
-
-
-AllD=merge(data,Lambdas)
-AllD$AY=c(T,T,T,rep(F,nrow(AllD)-3))
-AllD$Island=substr(AllD$Sites,1,3)
-names(AllD)[which(names(AllD)=="AIC")]=c("g.AIC","s.AIC")
-AllD$Sites=factor(AllD$Sites,levels=
-  sort(unique(AllD$Sites))[c(1,9,16,2,3,14,15,10:13,4:8)])
-AllD$Years=factor(AllD$Years,levels=
-  sort(unique(AllD$Years)))
-AllD$EndYear=as.numeric(substr(AllD$Years,4,5))
-AllD$EndYear[AllD$Years=="All Years"]=20
-AllD$StartYear=as.numeric(substr(AllD$Years,1,2))
-AllD$StartYear[AllD$Years=="All Years"]=12
-
-
-ggplot(AllD,aes(x=R.sqd,y=pR2,size=GModel.n,fill=log2(Lambdas)))+
-  geom_point(aes(shape=AY),color="black",alpha=.65)+
-  facet_grid(.~Genus_Code)+
-  scale_fill_gradient2(midpoint = 0)+
-  scale_shape_manual(values = c(22,21))+
-  coord_equal()+
-  theme_bw()
-
-library(scales)
-ggplot(AllD,aes(group=Genus_Code))+
-  geom_hline(yintercept = c(14.75),size=3,color="gold")+
-  geom_hline(yintercept = c(15.75),size=3,color="red")+
-  geom_hline(yintercept = c(19.75),size=3,color="orange")+
-  geom_linerange(aes(ymin=StartYear,ymax=EndYear,x=Sites,color=log2(Lambdas),size=log2(Lambdas)),
-                 position=position_dodge(width=.5),alpha=1)+#,data=subset(AllD,Genus_Code=="POCS"))+
-  geom_point(aes(shape=Genus_Code,y=StartYear,x=Sites),fill="black",size=2,position=position_dodge(width=.5),color="black",alpha=1)+#,data=subset(AllD,Genus_Code=="POCS"))+
-  geom_point(aes(shape=Genus_Code,y=EndYear,x=Sites,size=log2(Lambdas),fill=log2(Lambdas)),position=position_dodge(width=.5),color="black",alpha=1)+
-  geom_vline(xintercept = c(1.5,2.5,3.5,5.5,7.5,11.5))+
-  scale_fill_distiller(type = "div",name="Lambda",palette = "Spectral",direction = 1,limits = c(-1,1))+
-  #scale_fill_gradient2(name="Lambda",mid = "yellow",high="blue",low="red")+
-  scale_size_area(name="Lambda")+
-  scale_color_distiller(type = "div",name="Lambda",palette = "Spectral",direction = 1,limits = c(-1,1))+
-  #scale_color_gradient2(name="Lambda",mid = "yellow",high="blue",low="red")+
-  scale_shape_manual(name="Genus",values = c(22,21,23))+
-#  scale_size_area(limits=log2(c(.5,2)),breaks=log2(seq(.5,2,length.out = 5)),labels=seq(.5,2,length.out = 5),oob=squish)+
-  coord_equal()+
-  coord_flip()+
-  theme_bw()+
-  theme(axis.text.x = element_text(angle=90,size = 10,hjust = 0),panel.background=element_rect(fill = "white"),panel.grid = element_blank())
-
-ggplot(AllD,aes(group=Genus_Code))+
-  geom_hline(yintercept = c(14.75),size=3,color="gold")+
-  geom_hline(yintercept = c(15.75),size=3,color="red")+
-  geom_hline(yintercept = c(19.75),size=3,color="orange")+
-  geom_linerange(aes(ymin=StartYear,ymax=EndYear,x=Sites,color=log2(Lambdas),size=log2(Lambdas)),
-                 position=position_dodge(width=.5),alpha=1)+#,data=subset(AllD,Genus_Code=="POCS"))+
-  geom_point(aes(shape=Genus_Code,y=StartYear,x=Sites),fill="black",size=2,position=position_dodge(width=.5),color="black",alpha=1)+#,data=subset(AllD,Genus_Code=="POCS"))+
-  geom_point(aes(shape=Genus_Code,y=EndYear,x=Sites,size=log2(Lambdas),fill=log2(Lambdas)),position=position_dodge(width=.5),color="black",alpha=1)+
-  geom_vline(xintercept = c(1.5,2.5,3.5,5.5,7.5,11.5))+
-  scale_fill_distiller(type = "div",name="Lambda",palette = "Spectral",direction = 1,limits = c(-1,1))+
-  #scale_fill_gradient2(name="Lambda",mid = "yellow",high="blue",low="red")+
-  scale_size_area(name="Lambda")+
-  scale_color_distiller(type = "div",name="Lambda",palette = "Spectral",direction = 1,limits = c(-1,1))+
-  #scale_color_gradient2(name="Lambda",mid = "yellow",high="blue",low="red")+
-  scale_shape_manual(name="Genus",values = c(22,21,23))+
-#  scale_size_area(limits=log2(c(.5,2)),breaks=log2(seq(.5,2,length.out = 5)),labels=seq(.5,2,length.out = 5),oob=squish)+
-  coord_equal()+
-  coord_flip()+
-  theme_bw()+
-  theme(axis.text.x = element_text(angle=90,size = 10,hjust = 0),panel.background=element_rect(fill = "white"),panel.grid = element_blank())
-
-
-
-ggplot(subset(AllD,Sites=="MAI_SIO_K02"),aes(x=log2(Lambdas)))+
-  geom_histogram(aes(fill=R.sqd,color=pR2))+
-  geom_vline(aes(xintercept = log2(Lambdas)),color="red",data=subset(AllD,Sites=="All Sites"))+
-  facet_grid(.~Genus_Code)+
-  theme_bw()
-
-
-
-```
-
-```{r}
-load("data/SiteInterval_allmodfits_noNAs.rdata")
-#POCS <- no_NAs[no_NAs$Genus_Code == "POCS",]
-
-POCS <- data[data$Genus_Code == "POCS",]
-POSP <- data[data$Genus_Code == "POSP",]
-MOSP <- data[data$Genus_Code == "MOSP",]
-
-recvalpc <-  28.55 #21.23
-recvalpp <-  24.85 #20.8
-recvalmp <-  25.25#20.94
-
-POSP_lam <- c()
-POCS_lam <- c()
-MOSP_lam <- c()
-
-for (i in 1:nrow(POCS)){ 
-  MP_POCS <- list(rec = recvalpc, 
-                  g.int = POCS$g.int[i], 
-                  g.slp = POCS$g.slp[i], 
-                  g.var = POCS$g.var[i], 
-                  s.int = POCS$s.int[i], 
-                  s.slp = POCS$s.slp[i])
-  
-  pocs        <- bigmatrix(MP_POCS)
-  POCS_lam[i] <- pocs$lam
-  K <- pocs$K
-  Sens<- pocs$sens
-  Elas <- pocs$elas
-  write.csv(K, sprintf("data/Kernels/Kernel_POCS_%s_%s.csv", 
-                       POCS$Sites[i], POCS$Years[i]))
-  write.csv(Sens, sprintf("data/Sens/Sens_POCS_%s_%s.csv", 
-                          POCS$Sites[i], POCS$Years[i]))
-  write.csv(Elas, sprintf("data/Elas/Elas_POCS_%s_%s.csv", 
-                          POCS$Sites[i], POCS$Years[i]))
-}
-L_POCS <- data.frame(Sites = POCS$Sites, Years = POCS$Years, 
-                     Genus_Code = POCS$Genus_Code, Lambdas = POCS_lam)
-
-
-for (i in 1:nrow(POSP)){
-  MP_POSP <- list(rec = recvalpp, 
-                  g.int = POSP$g.int[i], 
-                  g.slp = POSP$g.slp[i], 
-                  g.var = POSP$g.var[i], 
-                  s.int = POSP$s.int[i], 
-                  s.slp = POSP$s.slp[i])
-  posp        <- bigmatrix(MP_POSP)
-  POSP_lam[i] <- posp$lam
-  K    <- posp$K
-  Sens <- posp$sens
-  Elas <- posp$elas
-  write.csv(K, sprintf("data/Kernels/Kernel_POSP_%s_%s.csv", 
-                       POSP$Sites[i], POSP$Years[i]))
-  write.csv(Sens, sprintf("data/Sens/Sens_POSP_%s_%s.csv", 
-                          POSP$Sites[i], POSP$Years[i]))
-  write.csv(Elas, sprintf("data/Elas/Elas_POSP_%s_%s.csv", 
-                          POSP$Sites[i], POSP$Years[i]))      
-}
-L_POSP <- data.frame(Sites = POSP$Sites, Years = POSP$Years, 
-                     Genus_Code = POSP$Genus_Code, Lambdas = POSP_lam)
-
-for (i in 1:nrow(MOSP)){
-  MP_MOSP <- list(rec = recvalmp, 
-                  g.int = MOSP$g.int[i], 
-                  g.slp = MOSP$g.slp[i], 
-                  g.var = MOSP$g.var[i], 
-                  s.int = MOSP$s.int[i], 
-                  s.slp = MOSP$s.slp[i])
-  
-  mosp        <- bigmatrix(MP_MOSP)
-  MOSP_lam[i] <- mosp$lam
-  K    <- mosp$K
-  Sens <- mosp$sens
-  Elas <- mosp$elas
-  write.csv(K, sprintf("data/Kernels/Kernel_ MOSP_%s_%s.csv", 
-                        MOSP$Sites[i],  MOSP$Years[i]))
-  write.csv(Sens, sprintf("data/Sens/Sens_ MOSP_%s_%s.csv", 
-                           MOSP$Sites[i],  MOSP$Years[i]))
-  write.csv(Elas, sprintf("data/Elas/Elas_ MOSP_%s_%s.csv", 
-                           MOSP$Sites[i],  MOSP$Years[i]))
-}
-L_MOSP <- data.frame(Sites = MOSP$Sites, Years = MOSP$Years, 
-                     Genus_Code = MOSP$Genus_Code, Lambdas = MOSP_lam)
-
-Lambdas <- rbind(L_POCS, L_POSP, L_MOSP)
-save(Lambdas, file = "data/all_Lambdas.rdata")
-
-
 ```
 
 
