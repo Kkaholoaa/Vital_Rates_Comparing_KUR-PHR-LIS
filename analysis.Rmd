@@ -202,7 +202,9 @@ for (f in 1:length(Focus)){
   subset1 <- subset(ColonyLevel, Genus_Code == Focus[f])
   subset2 <- subset(subset1, TransitionTypeSimple == "GROWTH" | 
                  TransitionTypeSimple == "SHRINK")
-  modP <- lm(log10_ESc ~ log10_SS, subset2)
+  subset3 <- subset(subset2, Interval == Ints)
+  
+  mod <- lm(log10_ESc ~ log10_SS, subset3)
   note    <- length(subset2$log10_SS)
   growth <- coef(mod)
   Var     <- (summary(mod)$sigma)**2
@@ -306,18 +308,20 @@ for (i in 1:LoopLength){
 
 for (i in 1:length(Focus)){
   subset1_S <- subset(surv_dat, Genus_Code == Focus[i])
-  modS      <- glm(survival ~ size, family = "binomial" , data = subset1_S)
+  subset2_S <- subset(subset1_S, Interval == Ints)
+  modS      <- glm(survival ~ size, family = "binomial" , data = subset2_S)
 #  modS      <- glm(survival ~ size*SiteInterval, family = "binomial" , data = subset1_S)
-  smodS <- summary(modS)
-  nullmodS  <- glm(survival ~ 1, family = "binomial", data = subset1_S)
+  smodS     <- summary(modS)
+  nullmodS  <- glm(survival ~ 1, family = "binomial", data = subset2_S)
   pR2       <- 1-(smodS$deviance/smodS$null.deviance)#1 - logLik(modS) / logLik(nullmodS)#
   Snote     <-  length(subset1_S$size)
   
   survival <- coef(modS)
   aic_S    <- AIC(modS)
-  dfS <- data.frame(Sites = "All Sites", Years = "All Years", Genus_Code = Focus[i],
-                                    s.int = survival[1], s.slp = survival[2], 
-                                    AIC = aic_S, pR2=pR2, SModel.n = Snote) 
+  dfS      <- data.frame(Sites = "All Sites", Years = "All Years", 
+                         Genus_Code = Focus[i], s.int = survival[1], 
+                         s.slp = survival[2], AIC = aic_S, pR2=pR2, 
+                         SModel.n = Snote) 
       
   SurvivalDataFrame <- rbind(SurvivalDataFrame,dfS)
 }
