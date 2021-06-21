@@ -196,8 +196,9 @@ print(mosp$lam)
 ```{r CalculatingLamsSensElas,}
 # Run this chunk to calculate the lambdas and the elas/sens
 
-POSP_lam <- c()
+
 POCS_lam <- c()
+POSP_lam <- c()
 MOSP_lam <- c()
 
 # Change this to save the files as a new name, so they do not overwrite anything
@@ -215,6 +216,7 @@ for (i in 1:nrow(POCS)){
   K <- pocs$K
   Sens<- pocs$sens
   Elas <- pocs$elas
+  sdf <- pocs$v.dot.w
   write.csv(K, sprintf("data/Kernels/%s_Kernel_POCS_%s_%s.csv", 
                        Name,POCS$Sites[i], POCS$Years[i]))
   write.csv(Sens, sprintf("data/Sens/%s_Sens_POCS_%s_%s.csv", 
@@ -472,7 +474,7 @@ plot(y,Survival_kernel,type = 'l', main = 'Survival' )
 y_a <- 2*(sqrt(10^y/pi))
 
 #POCS
-png(filename = "figs/POCS_fullK.png")
+png(filename = "figs/no_2015_POCS_fullK.png")
 image(y_a, y_a, t(pocs$K)^.1,)
 title(GeneraNames[1], line=-1)
 abline(0, 1, lty=2)
@@ -482,7 +484,7 @@ legend("bottomright", bty = "n", lty = c(0,0,2), col = 1,
 dev.off()
 
 #POSP
-png(filename = "figs/POSP_fullK.png")
+png(filename = "figs/no2015_POSP_fullK.png")
 image(y, y, t(posp$K)^.1,)
 title(GeneraNames[2], line=-1)
 abline(0, 1, lty=2)
@@ -492,7 +494,7 @@ legend("bottomright", bty = "n", lty = c(0,0,2), col = 1,
 dev.off()
 
 #MOSP
-png(filename = "figs/MOSP_fullK.png")
+png(filename = "figs/no2015_MOSP_fullK.png")
 image(y, y, t(mosp$K)^.1,)
 title(GeneraNames[3], line=-1)
 abline(0, 1, lty=2)
@@ -503,22 +505,33 @@ dev.off()
 
 
 #Another way to plot full kernel
-image(y, y, t(K)^.1, xlab="Size (t)",ylab="Size (t+1)",col=topo.colors(100), main="Kernel")
-contour(y,y,t(K)^.1, add = TRUE, drawlabels = TRUE )
+png(filename = "figs/no2015_MOSP_alternatefullK.png")
+image(y, y, t(mosp$K)^.1, xlab="Size (t)",ylab="Size (t+1)",col=topo.colors(100), main="MOSP Kernel")
+contour(y,y,t(mosp$K)^.1, add = TRUE, drawlabels = TRUE )
+legend("bottomright", bty = "n", lty = c(0,0,2), col = 1,
+       legend= c(sprintf("recruitment value = %.2f", recvalmp), sprintf("lambda = %.2f",  
+                         round(mosp$lam,2)), "1:1 line"))
+dev.off()
 
 #Plot stable size distribution
-plot(y, stabledist,xlab="Size",type="l",main="Stable size distribution")
+png(filename = "figs/no2015_POCS_stablesizedist.png")
+plot(y, pocs$w,xlab="Size",type="l",main="POCS Stable size distribution")
+dev.off()
 
 #Plot left eigenvector (reproductive value)
 plot(y,reprodvalue,xlab="Size",type="l",main="Reproductive values")
 
 #Plot Elasticity
-image(y,y[I],t(elas[I,])^0.2, xlab="Size (t)",ylab="Size (t+1)",main="Elasticity") #[I] cuts out recruitment
+png(filename = "figs/no2015_POCS_elasticity.png")
+image(y,y[I],t(pocs$elas[I,])^0.2, xlab="Size (t)",ylab="Size (t+1)",main="POCS Elasticity") #[I] cuts out recruitment
 abline(0,1,lwd=3)	# plot 1:1
+dev.off()
 
 #Plot Sensitivity
-image(y,y,t(sens)^0.2, xlab="Size (t)",ylab="Size (t+1)", main="Sensitivity")
+png(filename = "figs/no2015_POCS_sensitivity.png")
+image(y,y,t(pocs$sens)^0.2, xlab="Size (t)",ylab="Size (t+1)", main="POCS Sensitivity")
 abline(0,1,lwd=3)	# plot 1:1
+dev.off()
 
 ```
 
