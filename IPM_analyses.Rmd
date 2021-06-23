@@ -146,7 +146,7 @@ bigmatrix <- function(ModelParameters) {
 }
 
 #load("./data/SiteInterval_allmodfits_noNAs.rdata")
-load("./data/SiteInterval_no2015_allmodfits_noNAs.rdata")
+load("./data/SiteInterval_All_allmodfits_noNAs.rdata")
 POCS <- data[data$Genus_Code == "POCS",]
 POSP <- data[data$Genus_Code == "POSP",]
 MOSP <- data[data$Genus_Code == "MOSP",]
@@ -155,9 +155,20 @@ MOSP <- data[data$Genus_Code == "MOSP",]
 ```{r CalculatingRecVals,}
 # Run this and change the recruitment values until you get a value for each Genera that returns a lambda of 1.000__ (we don't care about the values in the digits after the three zeros)
 
-recvalpc <- 34.169  #excl 2015 #28.55 incl all intervals  
-recvalpp <- 26.259  #excl 2015#24.85 incl all intervals  
-recvalmp <- 30.13  #excl 2015 #25.25 incl all intervals
+# #No 2015
+# recvalpc <- 35.75 #34.169  #excl 2015 #28.55 incl all intervals
+# recvalpp <- 29.1  #26.259  #excl 2015#24.85 incl all intervals
+# recvalmp <- 31.35 #30.13  #excl 2015 #25.25 incl all intervals
+# # 
+# #Yes 2015
+# recvalpc <- 36.07 #34.169  #excl 2015 #28.55 incl all intervals
+# recvalpp <- 34.20 #26.259  #excl 2015#24.85 incl all intervals
+# recvalmp <- 32.65 #30.13  #excl 2015 #25.25 incl all intervals
+
+#All Interval
+recvalpc <- 35.53  #excl 2015 #28.55 incl all intervals
+recvalpp <- 30.61  #excl 2015#24.85 incl all intervals
+recvalmp <- 31.74  #excl 2015 #25.25 incl all intervals
 
 i <- 1
 MP_POCS <- list(rec = recvalpc, 
@@ -195,7 +206,9 @@ print(mosp$lam)
 
 ```{r CalculatingLamsSensElas,}
 # Run this chunk to calculate the lambdas and the elas/sens
-
+######
+#Tom Ran this with all Intervals, set to No2015 Recruitment
+######
 
 POCS_lam <- c()
 POSP_lam <- c()
@@ -274,7 +287,7 @@ L_MOSP <- data.frame(Sites = MOSP$Sites, Years = MOSP$Years,
                      Genus_Code = MOSP$Genus_Code, Lambdas = MOSP_lam)
 
 Lambdas <- rbind(L_POCS, L_POSP, L_MOSP)
-save(Lambdas, file = sprintf("data/%s_all_Lambdas.rdata"),Name)
+save(Lambdas, file = sprintf("data/%s_all_Lambdas.rdata",Name))
 
 
 ```
@@ -474,7 +487,7 @@ plot(y,Survival_kernel,type = 'l', main = 'Survival' )
 y_a <- 2*(sqrt(10^y/pi))
 
 #POCS
-png(filename = "figs/no_2015_POCS_fullK.png")
+png(filename = "figs/AllInt_POCS_fullK.png")
 image(y_a, y_a, t(pocs$K)^.1,)
 title(GeneraNames[1], line=-1)
 abline(0, 1, lty=2)
@@ -484,7 +497,7 @@ legend("bottomright", bty = "n", lty = c(0,0,2), col = 1,
 dev.off()
 
 #POSP
-png(filename = "figs/no2015_POSP_fullK.png")
+png(filename = "figs/AllInt_POSP_fullK.png")
 image(y, y, t(posp$K)^.1,)
 title(GeneraNames[2], line=-1)
 abline(0, 1, lty=2)
@@ -494,7 +507,7 @@ legend("bottomright", bty = "n", lty = c(0,0,2), col = 1,
 dev.off()
 
 #MOSP
-png(filename = "figs/no2015_MOSP_fullK.png")
+png(filename = "figs/AllInt_MOSP_fullK.png")
 image(y, y, t(mosp$K)^.1,)
 title(GeneraNames[3], line=-1)
 abline(0, 1, lty=2)
@@ -505,7 +518,7 @@ dev.off()
 
 
 #Another way to plot full kernel
-png(filename = "figs/no2015_MOSP_alternatefullK.png")
+png(filename = "figs/AllInt_MOSP_alternatefullK.png")
 image(y, y, t(mosp$K)^.1, xlab="Size (t)",ylab="Size (t+1)",col=topo.colors(100), main="MOSP Kernel")
 contour(y,y,t(mosp$K)^.1, add = TRUE, drawlabels = TRUE )
 legend("bottomright", bty = "n", lty = c(0,0,2), col = 1,
@@ -514,7 +527,7 @@ legend("bottomright", bty = "n", lty = c(0,0,2), col = 1,
 dev.off()
 
 #Plot stable size distribution
-png(filename = "figs/no2015_POCS_stablesizedist.png")
+png(filename = "figs/AllInt_POCS_stablesizedist.png")
 plot(y, pocs$w,xlab="Size",type="l",main="POCS Stable size distribution")
 dev.off()
 
@@ -522,13 +535,13 @@ dev.off()
 plot(y,reprodvalue,xlab="Size",type="l",main="Reproductive values")
 
 #Plot Elasticity
-png(filename = "figs/no2015_POCS_elasticity.png")
+png(filename = "figs/AllInt_POCS_elasticity.png")
 image(y,y[I],t(pocs$elas[I,])^0.2, xlab="Size (t)",ylab="Size (t+1)",main="POCS Elasticity") #[I] cuts out recruitment
 abline(0,1,lwd=3)	# plot 1:1
 dev.off()
 
 #Plot Sensitivity
-png(filename = "figs/no2015_POCS_sensitivity.png")
+png(filename = "figs/AllInt_POCS_sensitivity.png")
 image(y,y,t(pocs$sens)^0.2, xlab="Size (t)",ylab="Size (t+1)", main="POCS Sensitivity")
 abline(0,1,lwd=3)	# plot 1:1
 dev.off()
