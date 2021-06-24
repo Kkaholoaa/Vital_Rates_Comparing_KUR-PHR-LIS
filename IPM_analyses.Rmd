@@ -215,7 +215,7 @@ POSP_lam <- c()
 MOSP_lam <- c()
 
 # Change this to save the files as a new name, so they do not overwrite anything
-Name <- "No_2015"
+Name <- "AllInterval_RecruitTunedAll_"
 for (i in 1:nrow(POCS)){ 
   MP_POCS <- list(rec = recvalpc, 
                   g.int = POCS$g.int[i], 
@@ -294,6 +294,9 @@ save(Lambdas, file = sprintf("data/%s_all_Lambdas.rdata",Name))
 
 The next chunk is for the plots Tom made
 ```{r TomsPlots,}
+Name=""
+load(file = sprintf("data/%s_all_Lambdas.rdata",Name))
+
 AllD=merge(data,Lambdas)
 AllD$AY=c(T,T,T,rep(F,nrow(AllD)-3))
 AllD$Island=substr(AllD$Sites,1,3)
@@ -476,11 +479,11 @@ MOSP_S <- subset(dS, Genus_Code == "MOSP")
 #Plot IPM results
 ```{r}
 #plot growth kernel
-image(y,y,t(Growth_kernel), main='growth kernel')
-abline(0,1,lwd=3)	# plot 1:1, which represents stasis
+#image(y,y,t(Growth_kernel), main='growth kernel')
+#abline(0,1,lwd=3)	# plot 1:1, which represents stasis
 
 #plot survival kernel
-plot(y,Survival_kernel,type = 'l', main = 'Survival' )
+#plot(y,Survival_kernel,type = 'l', main = 'Survival' )
 #this looks kinda weird...shouldn't it be more logistic reg shaped?
 
 #Plot full kernel
@@ -496,6 +499,29 @@ legend("bottomright", bty = "n", lty = c(0,0,2), col = 1,
                          round(pocs$lam,2)), "1:1 line"))
 dev.off()
 
+#Another way to plot full kernel
+png(filename = "figs/AllInt_MOSP_alternatefullK.png")
+image(y, y, t(mosp$K)^.1, xlab="Size (t)",ylab="Size (t+1)",col=topo.colors(100), main="MOSP Kernel")
+contour(y,y,t(mosp$K)^.1, add = TRUE, drawlabels = TRUE )
+legend("bottomright", bty = "n", lty = c(0,0,2), col = 1,
+       legend= c(sprintf("recruitment value = %.2f", recvalmp), sprintf("lambda = %.2f",  
+                         round(mosp$lam,2)), "1:1 line"))
+dev.off()
+
+
+#Plot Elasticity
+png(filename = "figs/AllInt_POCS_elasticity.png")
+image(y,y[I],t(pocs$elas[I,])^0.2, xlab="Size (t)",ylab="Size (t+1)",main="POCS Elasticity") #[I] cuts out recruitment
+abline(0,1,lwd=3)	# plot 1:1
+dev.off()
+
+#Plot Sensitivity
+png(filename = "figs/AllInt_POCS_sensitivity.png")
+image(y,y,t(pocs$sens)^0.2, xlab="Size (t)",ylab="Size (t+1)", main="POCS Sensitivity")
+abline(0,1,lwd=3)	# plot 1:1
+dev.off()
+
+
 #POSP
 png(filename = "figs/AllInt_POSP_fullK.png")
 image(y, y, t(posp$K)^.1,)
@@ -505,6 +531,28 @@ legend("bottomright", bty = "n", lty = c(0,0,2), col = 1,
        legend= c(sprintf("recruitment value = %.2f", recvalpp), sprintf("lambda = %.2f",  
                          round(posp$lam,2)), "1:1 line"))
 dev.off()
+
+#Another way to plot full kernel
+png(filename = "figs/AllInt_MOSP_alternatefullK.png")
+image(y, y, t(mosp$K)^.1, xlab="Size (t)",ylab="Size (t+1)",col=topo.colors(100), main="MOSP Kernel")
+contour(y,y,t(mosp$K)^.1, add = TRUE, drawlabels = TRUE )
+legend("bottomright", bty = "n", lty = c(0,0,2), col = 1,
+       legend= c(sprintf("recruitment value = %.2f", recvalmp), sprintf("lambda = %.2f",  
+                         round(mosp$lam,2)), "1:1 line"))
+dev.off()
+
+#Plot Elasticity
+png(filename = "figs/AllInt_POCS_elasticity.png")
+image(y,y[I],t(pocs$elas[I,])^0.2, xlab="Size (t)",ylab="Size (t+1)",main="POCS Elasticity") #[I] cuts out recruitment
+abline(0,1,lwd=3)	# plot 1:1
+dev.off()
+
+#Plot Sensitivity
+png(filename = "figs/AllInt_POCS_sensitivity.png")
+image(y,y,t(pocs$sens)^0.2, xlab="Size (t)",ylab="Size (t+1)", main="POCS Sensitivity")
+abline(0,1,lwd=3)	# plot 1:1
+dev.off()
+
 
 #MOSP
 png(filename = "figs/AllInt_MOSP_fullK.png")
@@ -526,14 +574,6 @@ legend("bottomright", bty = "n", lty = c(0,0,2), col = 1,
                          round(mosp$lam,2)), "1:1 line"))
 dev.off()
 
-#Plot stable size distribution
-png(filename = "figs/AllInt_POCS_stablesizedist.png")
-plot(y, pocs$w,xlab="Size",type="l",main="POCS Stable size distribution")
-dev.off()
-
-#Plot left eigenvector (reproductive value)
-plot(y,reprodvalue,xlab="Size",type="l",main="Reproductive values")
-
 #Plot Elasticity
 png(filename = "figs/AllInt_POCS_elasticity.png")
 image(y,y[I],t(pocs$elas[I,])^0.2, xlab="Size (t)",ylab="Size (t+1)",main="POCS Elasticity") #[I] cuts out recruitment
@@ -545,6 +585,15 @@ png(filename = "figs/AllInt_POCS_sensitivity.png")
 image(y,y,t(pocs$sens)^0.2, xlab="Size (t)",ylab="Size (t+1)", main="POCS Sensitivity")
 abline(0,1,lwd=3)	# plot 1:1
 dev.off()
+
+#Plot stable size distribution
+#png(filename = "figs/AllInt_POCS_stablesizedist.png")
+#plot(y, pocs$w,xlab="Size",type="l",main="POCS Stable size distribution")
+#dev.off()
+
+#Plot left eigenvector (reproductive value)
+#plot(y,reprodvalue,xlab="Size",type="l",main="Reproductive values")
+
 
 ```
 
