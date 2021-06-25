@@ -82,14 +82,12 @@ growth_function <- function(y, x, g.int, g.slp, g.var) {
 ###### The reproduction model ##################################################
 ################################################################################
 
-reproduction_function <- function(y, x, rec, rec.size=rec.size,ind = TRUE) {
-  # 2*sqrt((10^-2.5)/pi)  # approx 6 cm  diameter coral
+reproduction_function <- function(y, x, rec, rec.size=rec.size, ind=TRUE) {
+  # ind corrsponds to size independent reproduction (a uniform reproduction distribution)
   if (ind == TRUE){
-    out <- rep(0,length(x)) #changed
-    out[1:4] <- rec/4} #changed
+    out <- rep(0,length(x)) 
+    out[1:4] <- rec/4} 
   
-    #out[x < rec.size | y >= rec.size] <- 0}
-
   if (ind == FALSE){
     out <-  (10^x) * rec
     out[x < rec.size | y >= rec.size] <- 0 #if x is below recruitment size then it doesn't count 
@@ -101,22 +99,22 @@ reproduction_function <- function(y, x, rec, rec.size=rec.size,ind = TRUE) {
 ################################################################################
 ########## ... Running the IPM ... #############################################
 ################################################################################
-bigmatrix <- function() {
-  # rec <- ModelParameters$rec
-  # g.int <- ModelParameters$g.int
-  # g.slp <- ModelParameters$g.slp
-  # g.var <- ModelParameters$g.var
-  # s.int <- ModelParameters$s.int
-  # s.slp <- ModelParameters$s.slp
+bigmatrix <- function(ModelParameters, RepoType=TRUE) {
+  
+  rec   <- ModelParameters$rec
+  g.int <- ModelParameters$g.int
+  g.slp <- ModelParameters$g.slp
+  g.var <- ModelParameters$g.var
+  s.int <- ModelParameters$s.int
+  s.slp <- ModelParameters$s.slp
   
   Reproduction_kernel <- delta_size * outer(y, y, 
-                                          reproduction_function, rec = rec)
+                                          reproduction_function, rec = rec, 
+                                          rec.size=rec.size,
+                                          ind=RepoType)
 
   Growth_kernel <- delta_size * outer(y, y, growth_function, g.int=g.int, 
                                     g.slp=g.slp, g.var=g.var)
-  ## Growth Kernel
-  # only works inside the function or if you have done this by had
-  #image(y,y,t(Growth_kernel))
   
   Survival_kernel <- survival_function(y, s.int=s.int, s.slp=s.slp)
   
@@ -132,12 +130,6 @@ bigmatrix <- function() {
   stabledist <- w/sum(w) # right eigenvector/stable distribution
   v.eigen <- Re(eigen(t(K))$vectors[,1]) #left eigenvector
   reprodvalue <- v.eigen/v.eigen[1] #reproductive value
-  
-  # lam <- Re(eigen(K)$values[1])
-  # w <- Re(eigen(K)$vectors[,1])
-  # stabledist <- w/sum(w) # right eigenvector/stable distribution
-  # v.eigen <- Re(eigen(t(K))$vectors[,1]) #left eigenvector
-  # reprodvalue <- v.eigen/v.eigen[1] #reproductive value
 
   #compute sensitivity and elasticity matrices using the eigenvectors and eigenvalue
   v.dot.w <- sum(stabledist * reprodvalue) * delta_size
@@ -194,39 +186,56 @@ if(Scenario=="All"){
 }
 
 i <- 1
-MP_POCS <- list(rec = recvalpc, 
+# You need to include the type of repoduction that the model is going to use
+# Only two options at the moment w/ TRUE or FALSE 
+StableSizeRepo <- FALSE
+UniformRepo    <- TRUE
+
+MP_POCS    <- list(rec = recvalpc, 
                   g.int = POCS$g.int[i], 
                   g.slp = POCS$g.slp[i], 
                   g.var = POCS$g.var[i], 
                   s.int = POCS$s.int[i], 
                   s.slp = POCS$s.slp[i])
   
-pocs        <- bigmatrix(MP_POCS)
+pocs       <- bigmatrix(MP_POCS, RepoType=UniformRepo)
+pocs_ssd   <- bigmatrix(MP_POCS, RepoType=StableSizeRepo)
+
 print(pocs$lam)
-  
-MP_POSP <- list(rec = recvalpp, 
+print(pocs_ssd$lam)  
+
+MP_POSP     <- list(rec = recvalpp, 
                   g.int = POSP$g.int[i], 
                   g.slp = POSP$g.slp[i], 
                   g.var = POSP$g.var[i], 
                   s.int = POSP$s.int[i], 
                   s.slp = POSP$s.slp[i])
-posp        <- bigmatrix(MP_POSP)  
-print(posp$lam)
 
-MP_MOSP <- list(rec = recvalmp, 
+posp        <- bigmatrix(MP_POSP, RepoType = UniformRepo)  
+posp_ssd    <- bigmatrix(MP_POSP, RepoType = StableSizeRepo)  
+
+print(posp$lam)
+print(posp_ssd$lam)
+
+MP_MOSP    <- list(rec = recvalmp, 
                   g.int = MOSP$g.int[i], 
                   g.slp = MOSP$g.slp[i], 
                   g.var = MOSP$g.var[i], 
                   s.int = MOSP$s.int[i], 
                   s.slp = MOSP$s.slp[i])
   
-mosp        <- bigmatrix(MP_MOSP)
+mosp        <- bigmatrix(MP_MOSP, RepoType = UniformRepo)
+mosp_ssd    <- bigmatrix(MP_MOSP, RepoType = StableSizeRepo)
+
 print(mosp$lam)
+print(mosp_ssd$lam)
 
 # Continue onto the next chunk to calculate the change in lambdas at the different site/intervals
 ```
 
 # Josh
+
+>>> Devynn changed the bigmatrix function back to what it was (with local variables instead of global) so this next chunk may not run the way that it is currently written. Sorry, Josh!
 
 ```{r}
 
@@ -488,6 +497,7 @@ MOSP_lam <- c()
 
 # Change this to save the files as a new name, so they do not overwrite anything
 Name <- Scenario
+Reproduction_Type <- TRUE
 for (i in 1:nrow(POCS)){ 
   MP_POCS <- list(rec = recvalpc, 
                   g.int = POCS$g.int[i], 
@@ -496,12 +506,12 @@ for (i in 1:nrow(POCS)){
                   s.int = POCS$s.int[i], 
                   s.slp = POCS$s.slp[i])
   
-  pocs        <- bigmatrix(MP_POCS)
+  pocs        <- bigmatrix(MP_POCS, RepoType = Reproduction_Type)
   POCS_lam[i] <- pocs$lam
-  K <- pocs$K
-  Sens<- pocs$sens
+  K    <- pocs$K
+  Sens <- pocs$sens
   Elas <- pocs$elas
-  sdf <- pocs$v.dot.w
+  sdf  <- pocs$v.dot.w
   write.csv(K, sprintf("data/Kernels/%s_Kernel_POCS_%s_%s.csv", 
                        Name,POCS$Sites[i], POCS$Years[i]))
   write.csv(Sens, sprintf("data/Sens/%s_Sens_POCS_%s_%s.csv", 
@@ -520,7 +530,7 @@ for (i in 1:nrow(POSP)){
                   g.var = POSP$g.var[i], 
                   s.int = POSP$s.int[i], 
                   s.slp = POSP$s.slp[i])
-  posp        <- bigmatrix(MP_POSP)
+  posp        <- bigmatrix(MP_POSP, RepoType = Reproduction_Type)
   POSP_lam[i] <- posp$lam
   K    <- posp$K
   Sens <- posp$sens
@@ -543,7 +553,7 @@ for (i in 1:nrow(MOSP)){
                   s.int = MOSP$s.int[i], 
                   s.slp = MOSP$s.slp[i])
   
-  mosp        <- bigmatrix(MP_MOSP)
+  mosp        <- bigmatrix(MP_MOSP, RepoType = Reproduction_Type)
   MOSP_lam[i] <- mosp$lam
   K    <- mosp$K
   Sens <- mosp$sens
