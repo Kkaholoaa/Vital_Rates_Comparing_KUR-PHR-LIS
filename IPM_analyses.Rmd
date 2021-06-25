@@ -15,6 +15,7 @@ knitr::opts_chunk$set(cache = FALSE)
 ```{r}
 ## Loading libraries
 library(ggplot2)
+library(scales)
 library(plyr)
 library(dplyr)
 library(tidyr)
@@ -148,7 +149,7 @@ bigmatrix <- function() {
 }
 
 ########################################################################
-Scenario="Yes2015" # "All" # "No2015" # 
+Scenario="All" # "No2015" # "Yes2015" # 
 ########################################################################
 
 if(Scenario=="All"){
@@ -370,7 +371,7 @@ y_a <- 2*(sqrt(10^y/pi))
 
 #POCS
 png(filename = paste0("figs/",Name,"_POCS_fullK.png"))
-image(y_a, y_a, t(pocs$K)^.1, main="Pocillopora Kernel")
+image(y, y, t(pocs$K)^.1, main="Pocillopora Kernel")
 title(GeneraNames[1], line=-1)
 abline(0, 1, lty=2)
 legend("bottomright", bty = "n", lty = c(0,0,2), col = 1,
@@ -467,8 +468,8 @@ dev.off()
 
 #Plot stable size distribution
 #png(filename = "figs/AllInt_POCS_stablesizedist.png")
-#plot(y, pocs$w,xlab="Size",type="l",main="POCS Stable size distribution")
-#dev.off()
+plot(y, posp$w,xlab="Size",type="l",main="POCS Stable size distribution")
+subset(ColonyLevel$Genus_Code=="POSP")#dev.off()
 
 #Plot left eigenvector (reproductive value)
 #plot(y,reprodvalue,xlab="Size",type="l",main="Reproductive values")
@@ -568,7 +569,7 @@ save(Lambdas, file = sprintf("data/%s_all_Lambdas.rdata",Name))
 
 The next chunk is for the plots Tom made
 ```{r TomsPlots,}
-Name=""
+Name=Scenario
 load(file = sprintf("data/%s_all_Lambdas.rdata",Name))
 
 AllD=merge(data,Lambdas)
@@ -579,19 +580,76 @@ AllD$Sites=factor(AllD$Sites,levels=
   sort(unique(AllD$Sites))[c(1,9,16,2,3,14,15,10:13,4:8)])
 AllD$Years=factor(AllD$Years,levels=
   sort(unique(AllD$Years)))
-AllD$EndYear=as.numeric(substr(AllD$Years,4,5))
-AllD$EndYear[AllD$Years=="All Years"]=20
-AllD$StartYear=as.numeric(substr(AllD$Years,1,2))
-AllD$StartYear[AllD$Years=="All Years"]=12
-
-
-ggplot(AllD,aes(x=R.sqd,y=pR2,size=GModel.n,fill=log2(Lambdas)))+
-  geom_point(aes(shape=AY),color="black",alpha=.65)+
-  facet_grid(.~Genus_Code)+
-  scale_fill_gradient2(midpoint = 0)+
-  scale_shape_manual(values = c(22,21))+
-  coord_equal()+
+AllD$EndYear=2000+as.numeric(substr(AllD$Years,4,5))
+AllD$EndYear[AllD$Years=="All Years"]=2019.5
+AllD$StartYear=2000+as.numeric(substr(AllD$Years,1,2))
+AllD$StartYear[AllD$Years=="All Years"]=2012.5
+AllD$Island=factor(AllD$Island,levels=c("All","HAW","MAI","OAH","FFS","KUR"))
+GeneraLU=c("Porites sp.","Monitpora sp.","Pocillopora sp.")
+names(GeneraLU)=c("POSP","MOSP","POCS")
+AllD$Genus=GeneraLU[AllD$Genus_Code]
+#subset(AllD,Island%in%c("All","HAW","MAI","OAH"))
+mycolors <- colorRampPalette(brewer.pal(8, "Set1"))(length(unique(AllD$Sites)))
+LambdaBySite=ggplot(subset(AllD,Sites!="All Sites"),aes(x=EndYear,y=log2(Lambdas),size=GModel.n,fill=log2(Lambdas)))+
+  geom_segment(aes(xend=StartYear,yend=log2(Lambdas)),alpha=.5,size=1.5)+
+  #geom_path(aes(color=Sites),size=1)+
+  geom_point(aes(shape=Island),color="black")+
+  geom_hline(yintercept = 0)+
+  geom_vline(xintercept = 2014.75,color="orange")+
+  geom_vline(xintercept = 2015.75,color="red")+
+  geom_vline(xintercept = 2019.75,color="orange")+
+  facet_wrap(Genus~Sites)+
+  scale_color_manual(name="Site",values = mycolors)+
+  scale_fill_gradient2(name="Lambda",midpoint = 0,breaks = log2(seq(.8,1.5,by=.1)),labels = seq(.8,1.5,by=.1))+
+  scale_size_binned(name="N Colonies",trans = "log10")+
+  scale_y_continuous(breaks = log2(seq(.8,1.5,by=.05)),labels = seq(.8,1.5,by=.05),name="Lambda - Const. Region Recruitment")+
+  scale_shape_manual(name="Island",values = c(20:25))+
   theme_bw()
+LambdaBySite
+ggsave(filename = "./figs/LambdasBySitePlots.jpg",plot = LambdaBySite,width=8,height=8)
+
+LambdaByIsland=ggplot(AllD,aes(x=EndYear,y=log2(Lambdas),size=GModel.n,fill=log2(Lambdas)))+
+  geom_segment(aes(xend=StartYear,yend=log2(Lambdas)),alpha=.5,size=1.5)+
+  geom_path(aes(color=Sites),size=1)+
+  geom_point(aes(shape=Island),color="black")+
+  geom_hline(yintercept = 0)+
+  geom_vline(xintercept = 2014.75,color="orange")+
+  geom_vline(xintercept = 2015.75,color="red")+
+  geom_vline(xintercept = 2019.75,color="orange")+
+  facet_grid(Island~Genus)+
+  scale_color_manual(name="Site",values = mycolors)+
+  scale_fill_gradient2(name="Lambda",midpoint = 0,breaks = log2(seq(.8,1.5,by=.1)),labels = seq(.8,1.5,by=.1))+
+  scale_size_binned(name="N Colonies",trans = "log10")+
+  scale_y_continuous(breaks = log2(seq(.8,1.5,by=.05)),labels = seq(.8,1.5,by=.05),name="Lambda - Const. Region Recruitment")+
+  scale_shape_manual(name="Island",values = c(20:25))+
+  theme_bw()
+LambdaByIsland
+ggsave(filename = "./figs/LambdaByIslandPlots.jpg",plot = LambdaByIsland,width=8,height=8)
+
+
+LambdaAll=ggplot(AllD,aes(x=EndYear,y=log2(Lambdas),size=GModel.n,fill=log2(Lambdas)))+
+  geom_segment(aes(xend=StartYear,yend=log2(Lambdas)),alpha=.5,size=1.5)+
+  #geom_path(aes(color=Sites),size=1)+
+  geom_point(aes(shape=Island),color="black")+
+  geom_hline(yintercept = 0)+
+  geom_vline(xintercept = 2014.75,color="orange")+
+  geom_vline(xintercept = 2015.75,color="red")+
+  geom_vline(xintercept = 2019.75,color="orange")+
+  facet_grid(.~Genus)+
+  scale_color_manual(name="Site",values = mycolors)+
+  scale_fill_gradient2(name="Lambda",midpoint = 0,breaks = log2(seq(.8,1.5,by=.1)),labels = seq(.8,1.5,by=.1))+
+  scale_size_binned(name="N Colonies",trans = "log10")+
+  scale_y_continuous(breaks = log2(seq(.8,1.5,by=.05)),labels = seq(.8,1.5,by=.05),name="Lambda - Const. Region Recruitment")+
+  scale_shape_manual(name="Island",values = c(20:25))+
+  theme_bw()
+LambdaAll
+ggsave(filename = "./figs/LambdasAllPlots.jpg",plot = LambdaAll,width=12,height=6)
+
+names(AllD)
+demo=AllD[,c("Sites","Years","StartYear","EndYear","Genus","g.int","g.slp","g.var","s.int","s.slp","Lambdas")]
+library(vegan)
+ORD=decorana(demo)
+
 
 library(scales)
 ggplot(AllD,aes(group=Genus_Code))+

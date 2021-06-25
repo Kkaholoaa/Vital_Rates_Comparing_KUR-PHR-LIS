@@ -115,8 +115,8 @@ for (i in 1:nrow(ColonyLevel)){
 }
 
 # Change these file names when saving data to refect the new changes
-save(ColonyLevel, file="data/Colony_Data_20210622_edited.rdata")
-save(surv_dat, file="data/Colony_Data_20210622_edited_survival.rdata")
+#save(ColonyLevel, file="data/Colony_Data_20210622_edited.rdata")
+#save(surv_dat, file="data/Colony_Data_20210622_edited_survival.rdata")
 ```
 
 
