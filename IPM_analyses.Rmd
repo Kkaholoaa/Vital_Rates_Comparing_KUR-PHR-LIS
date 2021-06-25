@@ -82,7 +82,7 @@ growth_function <- function(y, x, g.int, g.slp, g.var) {
 ###### The reproduction model ##################################################
 ################################################################################
 
-reproduction_function <- function(y, x, rec, rec.size=rec.size,ind = TRUE) {
+reproduction_function <- function(y, x, rec, rec.size=rec.size,ind = FALSE) {
   # 2*sqrt((10^-2.5)/pi)  # approx 6 cm  diameter coral
   if (ind == TRUE){
     out <- rep(0,length(x)) #changed
@@ -222,6 +222,10 @@ MP_MOSP <- list(rec = recvalmp,
   
 mosp        <- bigmatrix(MP_MOSP)
 print(mosp$lam)
+
+hist(subset(ColonyLevel,Genus_Code=="POCS")$log10_ESc)
+hist(subset(ColonyLevel,Genus_Code=="POSP")$log10_ESc)
+hist(subset(ColonyLevel,Genus_Code=="MOSP")$log10_ESc)
 
 # Continue onto the next chunk to calculate the change in lambdas at the different site/intervals
 ```
@@ -519,10 +523,45 @@ LambdaAll
 ggsave(filename = "./figs/LambdasAllPlots.jpg",plot = LambdaAll,width=12,height=6)
 
 names(AllD)
-demo=AllD[,c("Sites","Years","StartYear","EndYear","Genus","g.int","g.slp","g.var","s.int","s.slp","Lambdas")]
-library(vegan)
-ORD=decorana(demo)
+demo=AllD[,c("Island","Sites","Years","StartYear","EndYear","Genus","GModel.n","g.int","g.slp","g.var","s.int","s.slp","Lambdas")]
+demo_num=demo[,8:12]
 
+library(vegan)
+library(ggfortify)
+pca_res <- prcomp(demo_num, scale = TRUE)
+demo=cbind(demo,pca_res$x)
+sc=4
+arrow_pca=as.data.frame(pca_res$rotation)
+arrow_pca$name=row.names(arrow_pca)
+hc=hclust(dist(demo_num))
+
+h2k=function(hc,hrange){
+  h2k_out=data.frame(h=hrange,k=NA)
+  for(i in 1:length(hrange)){
+    h2k_out$k[i]=length(unique(cutree(hc,h=hrange[i])))
+  }
+  return(h2k_out)
+}
+hr=seq(0,40,by=.1)
+k=h2k(hc,hr)
+sort(table(k$k),decreasing = T)
+
+ID=cutree(hc,k = 4)
+demo$ClustID=factor(ID)
+plot(hc)
+abline(h = 4.5,col="red")
+demo$AY=demo$Years=="All Years"
+ggplot(demo,aes(x=PC2,y=PC3))+
+  geom_segment(aes(x = 0,xend=sc*PC2,y=0,yend=sc*PC3),data=arrow_pca,color="gray50")+
+  geom_text(aes(x=sc*PC2,y=sc*PC3,label=name),data=arrow_pca,color="gray50")+
+  geom_point(data=subset(demo,AY==T),aes(color=Genus),size=5,pch=1)+
+  geom_text(aes(shape=ClustID,color=Genus,label=ClustID,size=Lambdas))+
+  scale_shape_manual(values=1:15)+
+  scale_color_discrete()+
+  theme_bw()+facet_grid("Genus")
+
+plot(log10(demo$Lambdas)~demo$ClustID)
+abline(h=0)
 
 library(scales)
 ggplot(AllD,aes(group=Genus_Code))+
