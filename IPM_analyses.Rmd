@@ -3,6 +3,8 @@ title: "IPM_analyses"
 author: "Caroline Rodriguez"
 date: "6/7/2021"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -98,13 +100,13 @@ reproduction_function <- function(y, x, rec, rec.size=rec.size,ind = TRUE) {
 ################################################################################
 ########## ... Running the IPM ... #############################################
 ################################################################################
-bigmatrix <- function(ModelParameters) {
-  rec <- ModelParameters$rec
-  g.int <- ModelParameters$g.int
-  g.slp <- ModelParameters$g.slp
-  g.var <- ModelParameters$g.var
-  s.int <- ModelParameters$s.int
-  s.slp <- ModelParameters$s.slp
+bigmatrix <- function() {
+  # rec <- ModelParameters$rec
+  # g.int <- ModelParameters$g.int
+  # g.slp <- ModelParameters$g.slp
+  # g.var <- ModelParameters$g.var
+  # s.int <- ModelParameters$s.int
+  # s.slp <- ModelParameters$s.slp
   
   Reproduction_kernel <- delta_size * outer(y, y, 
                                           reproduction_function, rec = rec)
@@ -142,7 +144,7 @@ bigmatrix <- function(ModelParameters) {
   elas <- matrix(as.vector(sens) * as.vector(K) / lam, nrow = n)
   
   return(list(K=K, lam=lam, w=stabledist, v=reprodvalue,
-              v.dot.w=v.dot.w, sens=sens, elas=elas))
+              v.dot.w=v.dot.w, sens=sens, elas=elas, G=Growth_kernel, P=P))
 }
 
 ########################################################################
@@ -223,6 +225,133 @@ print(mosp$lam)
 # Continue onto the next chunk to calculate the change in lambdas at the different site/intervals
 ```
 
+# Josh
+
+```{r}
+
+# Fitting functions
+library(stats4)
+
+rec.ll <- function(x) {
+  cnt <- size.dist$count[II] # non-recruits
+  rec <<- x[1]
+  mod <- bigmatrix()
+  eig.vec <- mod$w[II]/sum(mod$w[II])
+  return(-sum(cnt * log(eig.vec), na.rm=TRUE)) 
+} # log-likelihood 
+
+rec.ss <- function(x) {
+  cnt <- size.dist$count[II] # non-recruits
+  cnt <- cnt / sum(cnt)
+  rec <<- x[1]
+  mod <- bigmatrix()
+  eig.vec <- mod$w[II]/sum(mod$w[II])
+  return(sum((cnt - eig.vec)^2)) 
+} # sums of squares 
+
+pdf("figs/ss_fit_josh.pdf", height=8, width=5)
+
+par(mfrow=c(3,1))
+
+# Parameters
+II <- I
+g.int <- MP_POSP$g.int
+g.slp <- MP_POSP$g.slp
+g.var <- MP_POSP$g.var
+s.int <- MP_POSP$s.int
+s.slp <- MP_POSP$s.slp
+
+size.dist <- hist(ColonyLevel$log10_SS[ColonyLevel$Genus_Code=="POSP" & ColonyLevel$log10_SS > rec.size & ColonyLevel$log10_SS < max.size], breaks=bin_size, freq=FALSE, border="lightgrey", main="POSP", xlab="Size", ylim=c(0,1))
+
+rec <- recvalpp
+mod <- bigmatrix()
+lines(y[II], mod$w[II]/sum(mod$w[II]) / delta_size, lty=1)
+
+rec.fit <- mle(rec.ll, start = list(x = 10), method="Brent", lower = 0, upper=1000)
+rec.fit <- optimise(rec.ll, c(0, 1000))
+rec <- rec.fit$minimum
+mod <- bigmatrix()
+lam2 <- round(mod$lam, 2)
+lines(y[II], mod$w[II]/sum(mod$w[II]) / delta_size, lty=2)
+
+II[1:10] <- FALSE
+rec.fit <- optimise(rec.ll, c(0, 1000))
+rec <- rec.fit$minimum
+mod <- bigmatrix()
+lam3 <- round(mod$lam, 2)
+lines(y[II], mod$w[II]/sum(mod$w[II]) / delta_size, lty=3)
+
+legend("topright", legend=c("lam=1", paste0("SS fit all (lam=", lam2, ")"), paste0("SS fit trunc (lam=", lam3, ")")), lty=c(1, 2, 3), bty="n", cex=1)
+
+#
+
+
+# Parameters
+II <- I
+g.int <- MP_POCS$g.int
+g.slp <- MP_POCS$g.slp
+g.var <- MP_POCS$g.var
+s.int <- MP_POCS$s.int
+s.slp <- MP_POCS$s.slp
+
+size.dist <- hist(ColonyLevel$log10_SS[ColonyLevel$Genus_Code=="POCS" & ColonyLevel$log10_SS > rec.size & ColonyLevel$log10_SS < max.size], breaks=bin_size, freq=FALSE, border="lightgrey", main="POCS", xlab="Size", ylim=c(0,1))
+
+rec <- recvalpc
+mod <- bigmatrix()
+lines(y[II], mod$w[II]/sum(mod$w[II]) / delta_size, lty=1)
+
+rec.fit <- mle(rec.ll, start = list(x = 10), method="Brent", lower = 0, upper=1000)
+rec.fit <- optimise(rec.ll, c(0, 1000))
+rec <- rec.fit$minimum
+mod <- bigmatrix()
+lam2 <- round(mod$lam, 2)
+lines(y[II], mod$w[II]/sum(mod$w[II]) / delta_size, lty=2)
+
+II[1:20] <- FALSE
+rec.fit <- optimise(rec.ll, c(0, 1000))
+rec <- rec.fit$minimum
+mod <- bigmatrix()
+lam3 <- round(mod$lam, 2)
+lines(y[II], mod$w[II]/sum(mod$w[II]) / delta_size, lty=3)
+
+legend("topright", legend=c("lam=1", paste0("SS fit all (lam=", lam2, ")"), paste0("SS fit trunc (lam=", lam3, ")")), lty=c(1, 2, 3), bty="n", cex=1)
+
+#
+
+
+# Parameters
+II <- I
+g.int <- MP_MOSP$g.int
+g.slp <- MP_MOSP$g.slp
+g.var <- MP_MOSP$g.var
+s.int <- MP_MOSP$s.int
+s.slp <- MP_MOSP$s.slp
+
+size.dist <- hist(ColonyLevel$log10_SS[ColonyLevel$Genus_Code=="MOSP" & ColonyLevel$log10_SS > rec.size & ColonyLevel$log10_SS < max.size], breaks=bin_size, freq=FALSE, border="lightgrey", main="MOSP", xlab="Size")
+
+rec <- recvalmp
+mod <- bigmatrix()
+lines(y[II], mod$w[II]/sum(mod$w[II]) / delta_size, lty=1)
+
+rec.fit <- mle(rec.ll, start = list(x = 10), method="Brent", lower = 0, upper=1000)
+rec.fit <- optimise(rec.ll, c(0, 1000))
+rec <- rec.fit$minimum
+mod <- bigmatrix()
+lam2 <- round(mod$lam, 2)
+lines(y[II], mod$w[II]/sum(mod$w[II]) / delta_size, lty=2)
+
+II[1:10] <- FALSE
+rec.fit <- optimise(rec.ll, c(0, 1000))
+rec <- rec.fit$minimum
+mod <- bigmatrix()
+lam3 <- round(mod$lam, 2)
+lines(y[II], mod$w[II]/sum(mod$w[II]) / delta_size, lty=3)
+
+legend("topright", legend=c("lam=1", paste0("SS fit all (lam=", lam2, ")"), paste0("SS fit trunc (lam=", lam3, ")")), lty=c(1, 2, 3), bty="n", cex=1)
+
+dev.off()
+
+```
 
 #Plot IPM results
 ```{r}
