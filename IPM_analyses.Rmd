@@ -15,7 +15,9 @@ knitr::opts_chunk$set(cache = FALSE)
 ```{r}
 ## Loading libraries
 library(ggplot2)
+library(patchwork)
 library(scales)
+library(RColorBrewer)
 library(plyr)
 library(dplyr)
 library(tidyr)
@@ -40,7 +42,7 @@ options(stringsAsFactors=FALSE)
 
 #min.size <- 0.9*min(c(ColonyLevel$log10_SS, ColonyLevel$log10_ES), na.rm = T)
 max.size <- 1.1*max(c(log10(ColonyLevel$StartingSize), log10(ColonyLevel$EndingSize)), na.rm = T)
-
+# max ~ 3.75 m colony diameter
 n = 50 #mesh size / number of cells in the discretized kernel
 rec.size <- -0.1  # 2*sqrt((10^-0.1)/pi)  # approx 5 cm  diameter coral
 #max.size <- 2     # 2*sqrt((10^2)/pi)     # approx 11 m diameter coral (ridiculous, but avoids boundary issues)
@@ -98,6 +100,12 @@ reproduction_function <- function(y, x, rec, rec.size=rec.size,ind = FALSE) {
 }
 
 
+reproduction_function_josh <- function(y, x) {
+    out <-  (10^x) * rec
+    out[x < rec.size | y >= rec.size] <- 0
+  return(out)
+}
+
 ################################################################################
 ########## ... Running the IPM ... #############################################
 ################################################################################
@@ -110,7 +118,7 @@ bigmatrix <- function(ModelParameters) {
   s.slp <- ModelParameters$s.slp
   
   Reproduction_kernel <- delta_size * outer(y, y, 
-                                          reproduction_function, rec = rec)
+                                          reproduction_function_josh)
 
   Growth_kernel <- delta_size * outer(y, y, growth_function, g.int=g.int, 
                                     g.slp=g.slp, g.var=g.var)
@@ -144,12 +152,12 @@ bigmatrix <- function(ModelParameters) {
   sens <- outer(reprodvalue,stabledist) / v.dot.w
   elas <- matrix(as.vector(sens) * as.vector(K) / lam, nrow = n)
   
-  return(list(K=K, lam=lam, w=stabledist, v=reprodvalue,
+  return(list(K=K, Gk=Growth_kernel,Sk=Survival_kernel,Pk=P,lam=lam, w=stabledist, v=reprodvalue,
               v.dot.w=v.dot.w, sens=sens, elas=elas))
 }
 
 ########################################################################
-Scenario="All" # "No2015" # "Yes2015" # 
+Scenario="All" # "BadLambda" # "GoodLambda" # 
 ########################################################################
 
 if(Scenario=="All"){
@@ -172,9 +180,9 @@ MOSP <- data[data$Genus_Code == "MOSP",]
 
 
 if(Scenario=="All"){
-  recvalpc <- 35.53
-  recvalpp <- 30.61
-  recvalmp <- 31.74 
+  recvalpc <- 0.32599#35.53
+  recvalpp <- 2.229822#30.61
+  recvalmp <- 0.1669464#31.74 
 }else if (Scenario=="No2015"){
   recvalpc <- 35.75 
   recvalpp <- 29.1  
@@ -192,6 +200,13 @@ if(Scenario=="All"){
   # recvalpp <- 37.66  #excl 2015#24.85 incl all intervals
   # recvalmp <- 244.8  #excl 2015 #25.25 incl all intervals
 }
+# 
+# # #Speedy rec fitter
+# rec_i=seq(0.32598,0.325999,length.out = 1000)
+# lam=rep(NA,100)
+# for(i in 1:length(rec_i)){rec=rec_i[i];lam[i]=bigmatrix(MP_POCS)$lam}
+# rec_i[which.min(abs(lam-1))]
+
 
 i <- 1
 MP_POCS <- list(rec = recvalpc, 
@@ -200,7 +215,7 @@ MP_POCS <- list(rec = recvalpc,
                   g.var = POCS$g.var[i], 
                   s.int = POCS$s.int[i], 
                   s.slp = POCS$s.slp[i])
-  
+rec=  MP_POCS$rec
 pocs        <- bigmatrix(MP_POCS)
 print(pocs$lam)
   
@@ -210,6 +225,7 @@ MP_POSP <- list(rec = recvalpp,
                   g.var = POSP$g.var[i], 
                   s.int = POSP$s.int[i], 
                   s.slp = POSP$s.slp[i])
+rec=MP_POSP$rec
 posp        <- bigmatrix(MP_POSP)  
 print(posp$lam)
 
@@ -219,7 +235,7 @@ MP_MOSP <- list(rec = recvalmp,
                   g.var = MOSP$g.var[i], 
                   s.int = MOSP$s.int[i], 
                   s.slp = MOSP$s.slp[i])
-  
+rec=MP_MOSP$rec
 mosp        <- bigmatrix(MP_MOSP)
 print(mosp$lam)
 
@@ -245,107 +261,275 @@ Name <- Scenario
 
 #Plot full kernel
 y_a <- 2*(sqrt(10^y/pi))
-
+#####################################################################
 #POCS
-png(filename = paste0("figs/",Name,"_POCS_fullK.png"))
-image(y, y, t(pocs$K)^.1, main="Pocillopora Kernel")
-title(GeneraNames[1], line=-1)
-abline(0, 1, lty=2)
-legend("bottomright", bty = "n", lty = c(0,0,2), col = 1,
+#####################################################################
+#PLOT growth kernel
+
+##Growth KERNEL
+png(filename = paste0("figs/",Name,"_POCS_GrowthK.png"))
+image(y, y, t(pocs$Gk)^.1, main="Pocillopora Growth Kernel",
+      xlab="Colony Area T (cm^2)",ylab="Colony Area T+1 (cm^2)",xaxt="n",yaxt="n")
+axis(1, at = seq(0, 5, 1), labels = c("1","10","100","1,000","10,000","100,000"))
+axis(2, at = seq(0, 5, 1), labels = c("1","10","100","1,000","10,000","100,000"))
+#title(GeneraNames[1], line=-1)
+abline(0, 1, lty=2,lwd=3,col="black")
+legend("topleft", bty = "n", lty = c(0,0,2), col = 1,
+       legend= c(sprintf("recruitment value = %.2f", recvalpc),
+                 sprintf("lambda = %.2f",round(pocs$lam,2)),
+                 "1:1 line"))
+dev.off()
+
+##Surival KERNEL
+png(filename = paste0("figs/",Name,"_POCS_SurvK.png"))
+plot(y, pocs$Sk, main="Pocillopora Survivorship",type="l",
+      xlab="Colony Area T (cm^2)",ylab="Prob. of Survival",ylim=c(0,1),xaxt="n")
+axis(1, at = seq(0, 5, 1), labels = c("1","10","100","1,000","10,000","100,000"))
+#title(GeneraNames[1], line=-1)
+#abline(0, 1, lty=2)
+legend("topleft", bty = "n", lty = c(0,0), col = 1,
+       legend= c(sprintf("recruitment value = %.2f", recvalpc),
+                 sprintf("lambda = %.2f",round(pocs$lam,2))))
+dev.off()
+
+##Growth + Survivorship KERNEL
+png(filename = paste0("figs/",Name,"_POCS_PK.png"))
+image(y, y, t(pocs$Pk)^.1, main="Pocillopora Growth & Survivorship Kernel",
+      xlab="Colony Area T (cm^2)",ylab="Colony Area T+1 (cm^2)",xaxt="n",yaxt="n")
+axis(1, at = seq(0, 5, 1), labels = c("1","10","100","1,000","10,000","100,000"))
+axis(2, at = seq(0, 5, 1), labels = c("1","10","100","1,000","10,000","100,000"))
+#title(GeneraNames[1], line=-1)
+abline(0, 1, lty=2,lwd=3,col="black")
+legend("topleft", bty = "n", lty = c(0,0,2), col = 1,
        legend= c(sprintf("recruitment value = %.2f", recvalpc), sprintf("lambda = %.2f",  
                          round(pocs$lam,2)), "1:1 line"))
 dev.off()
 
-#Another way to plot full kernel
-png(filename = paste0("figs/",Name,"_POCS_alternatefullK.png"))
-image(y, y, t(pocs$K)^.1, xlab="Size (t)",ylab="Size (t+1)",col=topo.colors(100), main="Pocillopora Kernel")
-contour(y,y,t(pocs$K)^.1, add = TRUE, drawlabels = TRUE )
-legend("bottomright", bty = "n", lty = c(0,0,2), col = 1,
-       legend= c(sprintf("recruitment value = %.2f", recvalmp), sprintf("lambda = %.2f",  
+##FULL KERNEL
+png(filename = paste0("figs/",Name,"_POCS_fullK.png"))
+image(y, y, t(pocs$K)^.1, main="Pocillopora Full IPM Kernel",
+      xlab="Colony Area T (cm^2)",ylab="Colony Area T+1 (cm^2)",xaxt="n",yaxt="n")
+axis(1, at = seq(0, 5, 1), labels = c("1","10","100","1,000","10,000","100,000"))
+axis(2, at = seq(0, 5, 1), labels = c("1","10","100","1,000","10,000","100,000"))
+#title(GeneraNames[1], line=-1)
+abline(0, 1, lty=2,lwd=3,col="black")
+legend("topleft", bty = "n", lty = c(0,0,2), col = 1,
+       legend= c(sprintf("recruitment value = %.2f", recvalpc), sprintf("lambda = %.2f",  
                          round(pocs$lam,2)), "1:1 line"))
 dev.off()
+# 
+# #Another way to plot full kernel
+# png(filename = paste0("figs/",Name,"_POCS_alternatefullK.png"))
+# image(y, y, t(pocs$K)^.1, xlab="Size (t)",ylab="Size (t+1)",col=topo.colors(100), main="Pocillopora Kernel")
+# contour(y,y,t(pocs$K)^.1, add = TRUE, drawlabels = TRUE )
+# legend("bottomright", bty = "n", lty = c(0,0,2), col = 1,
+#        legend= c(sprintf("recruitment value = %.2f", recvalmp), sprintf("lambda = %.2f",  
+#                          round(pocs$lam,2)), "1:1 line"))
+# dev.off()
 
 
 #Plot Elasticity
 png(filename = paste0("figs/",Name,"_POCS_elasticity.png"))
-image(y,y[I],t(pocs$elas[I,])^0.2, xlab="Size (t)",ylab="Size (t+1)",main="Pocillopora Elasticity") #[I] cuts out recruitment
-abline(0,1,lwd=3)	# plot 1:1
+#toggle having or dropping the I y[] --> y[I],pocs$elas[,]-->pocs$elas[I,]
+image(y,y[],t(pocs$elas[,])^0.2, xlab="Size (t)",ylab="Size (t+1)",main="Pocillopora Elasticity",xaxt="n",yaxt="n")
+axis(1, at = seq(0, 5, 1), labels = c("1","10","100","1,000","10,000","100,000"))
+axis(2, at = seq(0, 5, 1), labels = c("1","10","100","1,000","10,000","100,000")) #[I] cuts out recruitment
+abline(0,1,lwd=3,lty=2)	# plot 1:1
 dev.off()
 
 #Plot Sensitivity
 png(filename = paste0("figs/",Name,"_POCS_sensitivity.png"))
-image(y,y,t(pocs$sens)^0.2, xlab="Size (t)",ylab="Size (t+1)", main="Pocillopora Sensitivity")
-abline(0,1,lwd=3)	# plot 1:1
+image(y,y,t(pocs$sens)^0.2, xlab="Size (t)",ylab="Size (t+1)", main="Pocillopora Sensitivity",xaxt="n",yaxt="n")
+axis(1, at = seq(0, 5, 1), labels = c("1","10","100","1,000","10,000","100,000"))
+axis(2, at = seq(0, 5, 1), labels = c("1","10","100","1,000","10,000","100,000"))
+abline(0,1,lwd=3,lty=2)	# plot 1:1
 dev.off()
 
 
+#####################################################################
 #POSP
+#####################################################################
+##Growth KERNEL
+png(filename = paste0("figs/",Name,"_POSP_GrowthK.png"))
+image(y, y, t(posp$Gk)^.1, main="Porites Growth Kernel",
+      xlab="Colony Area T (cm^2)",ylab="Colony Area T+1 (cm^2)",xaxt="n",yaxt="n")
+axis(1, at = seq(0, 5, 1), labels = c("1","10","100","1,000","10,000","100,000"))
+axis(2, at = seq(0, 5, 1), labels = c("1","10","100","1,000","10,000","100,000"))
+#title(GeneraNames[1], line=-1)
+abline(0, 1, lty=2,lwd=3)
+legend("topleft", bty = "n", lty = c(0,0,2), col = 1,
+       legend= c(sprintf("recruitment value = %.2f", recvalpp),
+                 sprintf("lambda = %.2f",round(posp$lam,2)),
+                 "1:1 line"))
+dev.off()
+
+##Surival KERNEL
+png(filename = paste0("figs/",Name,"_POSP_SurvK.png"))
+plot(y, posp$Sk, main="Porites Survivorship",type="l",
+      xlab="Colony Area T (cm^2)",ylab="Prob. of Survival",ylim=c(0,1),xaxt="n")
+axis(1, at = seq(0, 5, 1), labels = c("1","10","100","1,000","10,000","100,000"))
+#title(GeneraNames[1], line=-1)
+#abline(0, 1, lty=2)
+legend("topleft", bty = "n", lty = c(0,0), col = 1,
+       legend= c(sprintf("recruitment value = %.2f", recvalpp),
+                 sprintf("lambda = %.2f",round(posp$lam,2))))
+dev.off()
+
+##Growth + Survivorship KERNEL
+png(filename = paste0("figs/",Name,"_POSP_PK.png"))
+image(y, y, t(posp$Pk)^.1, main="Porites Growth & Survivorship Kernel",
+      xlab="Colony Area T (cm^2)",ylab="Colony Area T+1 (cm^2)",xaxt="n",yaxt="n")
+axis(1, at = seq(0, 5, 1), labels = c("1","10","100","1,000","10,000","100,000"))
+axis(2, at = seq(0, 5, 1), labels = c("1","10","100","1,000","10,000","100,000"))
+#title(GeneraNames[1], line=-1)
+abline(0, 1, lty=2,lwd=3)
+legend("topleft", bty = "n", lty = c(0,0,2), col = 1,
+       legend= c(sprintf("recruitment value = %.2f", recvalpp),
+                 sprintf("lambda = %.2f",round(posp$lam,2)),
+                 "1:1 line"))
+dev.off()
+
+##FULL KERNEL
 png(filename = paste0("figs/",Name,"_POSP_fullK.png"))
-image(y, y, t(posp$K)^.1,main="Porites Kernel")
-title(GeneraNames[2], line=-1)
-abline(0, 1, lty=2)
-legend("bottomright", bty = "n", lty = c(0,0,2), col = 1,
+image(y, y, t(posp$K)^.1,main="Porites Full IPM Kernel",
+      xlab="Colony Area T (cm^2)",ylab="Colony Area T+1 (cm^2)",xaxt="n",yaxt="n")
+axis(1, at = seq(0, 5, 1), labels = c("1","10","100","1,000","10,000","100,000"))
+axis(2, at = seq(0, 5, 1), labels = c("1","10","100","1,000","10,000","100,000"))
+#title(GeneraNames[2], line=-1)
+abline(0, 1, lty=2,lwd=3)
+legend("topleft", bty = "n", lty = c(0,0,2), col = 1,
        legend= c(sprintf("recruitment value = %.2f", recvalpp), sprintf("lambda = %.2f",  
                          round(posp$lam,2)), "1:1 line"))
 dev.off()
-
-#Another way to plot full kernel
-png(filename = paste0("figs/",Name,"_POSP_alternatefullK.png"))
-image(y, y, t(posp$K)^.1, xlab="Size (t)",ylab="Size (t+1)",col=topo.colors(100), main="Porites Kernel")
-contour(y,y,t(posp$K)^.1, add = TRUE, drawlabels = TRUE )
-legend("bottomright", bty = "n", lty = c(0,0,2), col = 1,
-       legend= c(sprintf("recruitment value = %.2f", recvalmp), sprintf("lambda = %.2f",  
-                         round(posp$lam,2)), "1:1 line"))
-dev.off()
+# 
+# #Another way to plot full kernel
+# png(filename = paste0("figs/",Name,"_POSP_alternatefullK.png"))
+# image(y, y, t(posp$K)^.1, xlab="Size (t)",ylab="Size (t+1)",col=topo.colors(100), main="Porites Kernel")
+# contour(y,y,t(posp$K)^.1, add = TRUE, drawlabels = TRUE )
+# legend("bottomright", bty = "n", lty = c(0,0,2), col = 1,
+#        legend= c(sprintf("recruitment value = %.2f", recvalmp), sprintf("lambda = %.2f",  
+#                          round(posp$lam,2)), "1:1 line"))
+# dev.off()
 
 #Plot Elasticity
 png(filename = paste0("figs/",Name,"_POSP_elasticity.png"))
-image(y,y[I],t(posp$elas[I,])^0.2, xlab="Size (t)",ylab="Size (t+1)",main="Porites Elasticity") #[I] cuts out recruitment
+#toggle having or dropping the I y[] --> y[I],pocs$elas[,]-->pocs$elas[I,]
+image(y,y[],t(posp$elas[,])^0.2, xlab="Size (t)",ylab="Size (t+1)",main="Porites Elasticity",xaxt="n",yaxt="n")
+axis(1, at = seq(0, 5, 1), labels = c("1","10","100","1,000","10,000","100,000"))
+axis(2, at = seq(0, 5, 1), labels = c("1","10","100","1,000","10,000","100,000")) #[I] cuts out recruitment
 abline(0,1,lwd=3)	# plot 1:1
 dev.off()
 
 #Plot Sensitivity
 png(filename = paste0("figs/",Name,"_POSP_sensitivity.png"))
-image(y,y,t(posp$sens)^0.2, xlab="Size (t)",ylab="Size (t+1)", main="Porites Sensitivity")
-abline(0,1,lwd=3)	# plot 1:1
+image(y,y,t(posp$sens)^0.2, xlab="Size (t)",ylab="Size (t+1)", main="Porites Sensitivity",xaxt="n",yaxt="n")
+axis(1, at = seq(0, 5, 1), labels = c("1","10","100","1,000","10,000","100,000"))
+axis(2, at = seq(0, 5, 1), labels = c("1","10","100","1,000","10,000","100,000"))
+abline(0,1,lwd=3,lty=2)	# plot 1:1
 dev.off()
 
 
+#####################################################################
 #MOSP
+#####################################################################
+##Growth KERNEL
+png(filename = paste0("figs/",Name,"_MOSP_GrowthK.png"))
+image(y, y, t(mosp$Gk)^.1, main="Montipora Growth Kernel",
+      xlab="Colony Area T (cm^2)",ylab="Colony Area T+1 (cm^2)",xaxt="n",yaxt="n")
+axis(1, at = seq(0, 5, 1), labels = c("1","10","100","1,000","10,000","100,000"))
+axis(2, at = seq(0, 5, 1), labels = c("1","10","100","1,000","10,000","100,000"))
+#title(GeneraNames[1], line=-1)
+abline(0, 1, lty=2,lwd=3)
+legend("topleft", bty = "n", lty = c(0,0,2), col = 1,
+       legend= c(sprintf("recruitment value = %.2f", recvalmp),
+                 sprintf("lambda = %.2f",round(mosp$lam,2)),
+                 "1:1 line"))
+dev.off()
+
+##Surival KERNEL
+png(filename = paste0("figs/",Name,"_MOSP_SurvK.png"))
+plot(y, mosp$Sk, main="Montipora Survivorship",type="l",
+      xlab="Colony Area T (cm^2)",ylab="Prob. of Survival",ylim=c(0,1),xaxt="n")
+axis(1, at = seq(0, 5, 1), labels = c("1","10","100","1,000","10,000","100,000"))
+#title(GeneraNames[1], line=-1)
+#abline(0, 1, lty=2)
+legend("topleft", bty = "n", lty = c(0,0), col = 1,
+       legend= c(sprintf("recruitment value = %.2f", recvalmp),
+                 sprintf("lambda = %.2f",round(mosp$lam,2))))
+dev.off()
+
+##Growth + Survivorship KERNEL
+png(filename = paste0("figs/",Name,"_MOSP_PK.png"))
+image(y, y, t(mosp$Pk)^.1, main="Montipora Growth & Survivorship Kernel",
+      xlab="Colony Area T (cm^2)",ylab="Colony Area T+1 (cm^2)",xaxt="n",yaxt="n")
+axis(1, at = seq(0, 5, 1), labels = c("1","10","100","1,000","10,000","100,000"))
+axis(2, at = seq(0, 5, 1), labels = c("1","10","100","1,000","10,000","100,000"))
+#title(GeneraNames[1], line=-1)
+abline(0, 1, lty=2,lwd=3)
+legend("topleft", bty = "n", lty = c(0,0,2), col = 1,
+       legend= c(sprintf("recruitment value = %.2f", recvalmp),
+                 sprintf("lambda = %.2f",round(mosp$lam,2)),
+                 "1:1 line"))
+dev.off()
+
+##FULL KERNEL
 png(filename = paste0("figs/",Name,"_MOSP_fullK.png"))
-image(y, y, t(mosp$K)^.1,main="Montipora Kernel")
-title(GeneraNames[3], line=-1)
-abline(0, 1, lty=2)
-legend("bottomright", bty = "n", lty = c(0,0,2), col = 1,
+image(y, y, t(mosp$K)^.1,main="Montipora Full IPM Kernel",
+      xlab="Colony Area T (cm^2)",ylab="Colony Area T+1 (cm^2)",xaxt="n",yaxt="n")
+axis(1, at = seq(0, 5, 1), labels = c("1","10","100","1,000","10,000","100,000"))
+axis(2, at = seq(0, 5, 1), labels = c("1","10","100","1,000","10,000","100,000"))
+#title(GeneraNames[2], line=-1)
+abline(0, 1, lty=2,lwd=3)
+legend("topleft", bty = "n", lty = c(0,0,2), col = 1,
        legend= c(sprintf("recruitment value = %.2f", recvalmp), sprintf("lambda = %.2f",  
                          round(mosp$lam,2)), "1:1 line"))
 dev.off()
-
-
-#Another way to plot full kernel
-png(filename = paste0("figs/",Name,"_MOSP_alternatefullK.png"))
-image(y, y, t(mosp$K)^.1, xlab="Size (t)",ylab="Size (t+1)",col=topo.colors(100), main="Montipora Kernel")
-contour(y,y,t(mosp$K)^.1, add = TRUE, drawlabels = TRUE )
-legend("bottomright", bty = "n", lty = c(0,0,2), col = 1,
-       legend= c(sprintf("recruitment value = %.2f", recvalmp), sprintf("lambda = %.2f",  
-                         round(mosp$lam,2)), "1:1 line"))
-dev.off()
+# 
+# #Another way to plot full kernel
+# png(filename = paste0("figs/",Name,"_MOSP_alternatefullK.png"))
+# image(y, y, t(mosp$K)^.1, xlab="Size (t)",ylab="Size (t+1)",col=topo.colors(100), main="Montipora Kernel")
+# contour(y,y,t(mosp$K)^.1, add = TRUE, drawlabels = TRUE )
+# legend("bottomright", bty = "n", lty = c(0,0,2), col = 1,
+#        legend= c(sprintf("recruitment value = %.2f", recvalmp), sprintf("lambda = %.2f",  
+#                          round(mosp$lam,2)), "1:1 line"))
+# dev.off()
 
 #Plot Elasticity
 png(filename = paste0("figs/",Name,"_MOSP_elasticity.png"))
-image(y,y[I],t(mosp$elas[I,])^0.2, xlab="Size (t)",ylab="Size (t+1)",main="Montipora Elasticity") #[I] cuts out recruitment
+#toggle having or dropping the I y[] --> y[I],pocs$elas[,]-->pocs$elas[I,]
+image(y,y[],t(mosp$elas[,])^0.2, xlab="Size (t)",ylab="Size (t+1)",main="Montipora Elasticity",xaxt="n",yaxt="n")
+axis(1, at = seq(0, 5, 1), labels = c("1","10","100","1,000","10,000","100,000"))
+axis(2, at = seq(0, 5, 1), labels = c("1","10","100","1,000","10,000","100,000")) #[I] cuts out recruitment
 abline(0,1,lwd=3)	# plot 1:1
 dev.off()
 
 #Plot Sensitivity
 png(filename = paste0("figs/",Name,"_MOSP_sensitivity.png"))
-image(y,y,t(mosp$sens)^0.2, xlab="Size (t)",ylab="Size (t+1)", main="Montipora Sensitivity")
-abline(0,1,lwd=3)	# plot 1:1
+image(y,y,t(mosp$sens)^0.2, xlab="Size (t)",ylab="Size (t+1)", main="Montipora Sensitivity",xaxt="n",yaxt="n")
+axis(1, at = seq(0, 5, 1), labels = c("1","10","100","1,000","10,000","100,000"))
+axis(2, at = seq(0, 5, 1), labels = c("1","10","100","1,000","10,000","100,000"))
+abline(0,1,lwd=3,lty=2)	# plot 1:1
 dev.off()
+
+
+##All Three Surival KERNEL
+png(filename = paste0("figs/",Name,"_POCS_SurvK.png"))
+plot(y, posp$Sk, main="Three Taxa Comparasion: Survivorship",type="l",
+      xlab="Colony Area T (cm^2)",ylab="Prob. of Survival",ylim=c(0,1),xaxt="n",col="darkgreen")
+points(y, mosp$Sk,type="l",col="darkblue")
+points(y, pocs$Sk,type="l",col="darkred")
+axis(1, at = seq(0, 5, 1), labels = c("1","10","100","1,000","10,000","100,000"))
+#title(GeneraNames[1], line=-1)
+#abline(0, 1, lty=2)
+legend("topleft", bty = "n", lty = c(0,0), col = 1,
+       legend= c(sprintf("recruitment value = %.2f", recvalpc),
+                 sprintf("lambda = %.2f",round(pocs$lam,2))))
+dev.off()
+
 
 #Plot stable size distribution
 #png(filename = "figs/AllInt_POCS_stablesizedist.png")
-plot(y, posp$w,xlab="Size",type="l",main="POCS Stable size distribution")
+plot(y, mosp$w,xlab="Size",type="l",main="POCS Stable size distribution")
 subset(ColonyLevel$Genus_Code=="POSP")#dev.off()
 
 #Plot left eigenvector (reproductive value)
@@ -372,7 +556,7 @@ for (i in 1:nrow(POCS)){
                   g.var = POCS$g.var[i], 
                   s.int = POCS$s.int[i], 
                   s.slp = POCS$s.slp[i])
-  
+  rec=MP_POCS$rec
   pocs        <- bigmatrix(MP_POCS)
   POCS_lam[i] <- pocs$lam
   K <- pocs$K
@@ -397,6 +581,7 @@ for (i in 1:nrow(POSP)){
                   g.var = POSP$g.var[i], 
                   s.int = POSP$s.int[i], 
                   s.slp = POSP$s.slp[i])
+  rec=MP_POSP$rec
   posp        <- bigmatrix(MP_POSP)
   POSP_lam[i] <- posp$lam
   K    <- posp$K
@@ -420,6 +605,7 @@ for (i in 1:nrow(MOSP)){
                   s.int = MOSP$s.int[i], 
                   s.slp = MOSP$s.slp[i])
   
+  rec=MP_MOSP$rec
   mosp        <- bigmatrix(MP_MOSP)
   MOSP_lam[i] <- mosp$lam
   K    <- mosp$K
@@ -458,32 +644,39 @@ AllD$Sites=factor(AllD$Sites,levels=
 AllD$Years=factor(AllD$Years,levels=
   sort(unique(AllD$Years)))
 AllD$EndYear=2000+as.numeric(substr(AllD$Years,4,5))
-AllD$EndYear[AllD$Years=="All Years"]=2019.5
+AllD$EndYear[AllD$Years=="All Years"&AllD$Genus_Code=="POSP"]=max(AllD$EndYear[AllD$Genus_Code=="POSP"],na.rm=T)+.5
+AllD$EndYear[AllD$Years=="All Years"&AllD$Genus_Code=="POCS"]=max(AllD$EndYear[AllD$Genus_Code=="POCS"],na.rm=T)+.5
+AllD$EndYear[AllD$Years=="All Years"&AllD$Genus_Code=="MOSP"]=max(AllD$EndYear[AllD$Genus_Code=="MOSP"],na.rm=T)+.5
 AllD$StartYear=2000+as.numeric(substr(AllD$Years,1,2))
-AllD$StartYear[AllD$Years=="All Years"]=2012.5
+AllD$StartYear[AllD$Years=="All Years"&AllD$Genus_Code=="POSP"]=min(AllD$StartYear[AllD$Genus_Code=="POSP"],na.rm=T)-.5
+AllD$StartYear[AllD$Years=="All Years"&AllD$Genus_Code=="POCS"]=min(AllD$StartYear[AllD$Genus_Code=="POCS"],na.rm=T)-.5
+AllD$StartYear[AllD$Years=="All Years"&AllD$Genus_Code=="MOSP"]=min(AllD$StartYear[AllD$Genus_Code=="MOSP"],na.rm=T)-.5
 AllD$Island=factor(AllD$Island,levels=c("All","HAW","MAI","OAH","FFS","KUR"))
-GeneraLU=c("Porites sp.","Monitpora sp.","Pocillopora sp.")
+GeneraLU=c("Porites sp.","Montipora sp.","Pocillopora sp.")
 names(GeneraLU)=c("POSP","MOSP","POCS")
 AllD$Genus=GeneraLU[AllD$Genus_Code]
+AllD$Genus=factor(AllD$Genus,levels=GeneraLU)
 #subset(AllD,Island%in%c("All","HAW","MAI","OAH"))
 mycolors <- colorRampPalette(brewer.pal(8, "Set1"))(length(unique(AllD$Sites)))
+tobelog2Breaks=c(.5,.75,1,1.5,2,3)#seq(.25,3.5,by=.25)
+log2Breaks=log2(tobelog2Breaks)
 LambdaBySite=ggplot(subset(AllD,Sites!="All Sites"),aes(x=EndYear,y=log2(Lambdas),size=GModel.n,fill=log2(Lambdas)))+
   geom_segment(aes(xend=StartYear,yend=log2(Lambdas)),alpha=.5,size=1.5)+
-  #geom_path(aes(color=Sites),size=1)+
+  geom_path(color="gray50",lty=2,size=1)+
   geom_point(aes(shape=Island),color="black")+
   geom_hline(yintercept = 0)+
   geom_vline(xintercept = 2014.75,color="orange")+
   geom_vline(xintercept = 2015.75,color="red")+
   geom_vline(xintercept = 2019.75,color="orange")+
-  facet_wrap(Genus~Sites)+
+  facet_wrap(Genus~Sites,ncol=7)+
   scale_color_manual(name="Site",values = mycolors)+
-  scale_fill_gradient2(name="Lambda",midpoint = 0,breaks = log2(seq(.8,1.5,by=.1)),labels = seq(.8,1.5,by=.1))+
+  scale_fill_gradient2(name="Lambda",midpoint = 0,breaks = log2Breaks,labels = tobelog2Breaks)+
   scale_size_binned(name="N Colonies",trans = "log10")+
-  scale_y_continuous(breaks = log2(seq(.8,1.5,by=.05)),labels = seq(.8,1.5,by=.05),name="Lambda - Const. Region Recruitment")+
+  scale_y_continuous(breaks = log2Breaks,labels = tobelog2Breaks,name="Lambda - Const. Region Recruitment")+
   scale_shape_manual(name="Island",values = c(20:25))+
-  theme_bw()
+  theme_bw()+theme(legend.position = "bottom")
 LambdaBySite
-ggsave(filename = "./figs/LambdasBySitePlots.jpg",plot = LambdaBySite,width=8,height=8)
+ggsave(filename = "./figs/LambdasBySitePlots.jpg",plot = LambdaBySite,width=16,height=9)
 
 LambdaByIsland=ggplot(AllD,aes(x=EndYear,y=log2(Lambdas),size=GModel.n,fill=log2(Lambdas)))+
   geom_segment(aes(xend=StartYear,yend=log2(Lambdas)),alpha=.5,size=1.5)+
@@ -495,9 +688,9 @@ LambdaByIsland=ggplot(AllD,aes(x=EndYear,y=log2(Lambdas),size=GModel.n,fill=log2
   geom_vline(xintercept = 2019.75,color="orange")+
   facet_grid(Island~Genus)+
   scale_color_manual(name="Site",values = mycolors)+
-  scale_fill_gradient2(name="Lambda",midpoint = 0,breaks = log2(seq(.8,1.5,by=.1)),labels = seq(.8,1.5,by=.1))+
+  scale_fill_gradient2(name="Lambda",midpoint = 0,breaks = log2Breaks,labels = tobelog2Breaks)+
   scale_size_binned(name="N Colonies",trans = "log10")+
-  scale_y_continuous(breaks = log2(seq(.8,1.5,by=.05)),labels = seq(.8,1.5,by=.05),name="Lambda - Const. Region Recruitment")+
+  scale_y_continuous(breaks = log2Breaks,labels = tobelog2Breaks,name="Lambda - Const. Region Recruitment")+
   scale_shape_manual(name="Island",values = c(20:25))+
   theme_bw()
 LambdaByIsland
@@ -514,9 +707,9 @@ LambdaAll=ggplot(AllD,aes(x=EndYear,y=log2(Lambdas),size=GModel.n,fill=log2(Lamb
   geom_vline(xintercept = 2019.75,color="orange")+
   facet_grid(.~Genus)+
   scale_color_manual(name="Site",values = mycolors)+
-  scale_fill_gradient2(name="Lambda",midpoint = 0,breaks = log2(seq(.8,1.5,by=.1)),labels = seq(.8,1.5,by=.1))+
+  scale_fill_gradient2(name="Lambda",midpoint = 0,breaks = log2Breaks,labels = tobelog2Breaks)+
   scale_size_binned(name="N Colonies",trans = "log10")+
-  scale_y_continuous(breaks = log2(seq(.8,1.5,by=.05)),labels = seq(.8,1.5,by=.05),name="Lambda - Const. Region Recruitment")+
+  scale_y_continuous(breaks = log2Breaks,labels = tobelog2Breaks,name="Lambda - Const. Region Recruitment")+
   scale_shape_manual(name="Island",values = c(20:25))+
   theme_bw()
 LambdaAll
