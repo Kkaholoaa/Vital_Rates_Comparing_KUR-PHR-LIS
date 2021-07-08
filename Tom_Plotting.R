@@ -27,7 +27,7 @@ Rec.S_T.A$Rec.m2=Rec.S_T.A$Nrec/Rec.S_T.A$A.Surv.m2
 Rec.S_T.A$Rec.Ad_cm2=Rec.S_T.A$Nrec/Rec.S_T.A$A.adult_cm2
 
 hist(Rec.S_T.A$Rec.Ad_cm2)
-ggplot(Rec.S_T.A,aes(Rec.Ad_cm2))+geom_histogram()+facet_grid("Genus_Code")+xlim(c(0,.3))
+FIX=ggplot(Rec.S_T.A,aes(Rec.Ad_cm2))+geom_histogram()+facet_grid("Genus_Code")+xlim(c(0,.3))
 
 #Juv Data, Cover Data
 juv <- read.csv("T:/Benthic/Data/REA Coral Demography & Cover/Summary Data/Sector/BenthicREA_sectordata_GENUS.csv")
@@ -74,6 +74,23 @@ sec$JuvColDen.mn_cm2=sec$Mean_JuvColDen/10000
 sec$juv_mod.mn.pcm2=sec$JuvColDen.mn_cm2/(sec$coverP.mn)
 sec$juv_mod.var.pcm2=sec$juv_mod.mn.pcm2*sqrt((sec$juv.var/sec$Mean_JuvColDen)^2+(sec$coverP.var/sec$coverP.mn)^2)
 sec$juv_mod.se.pcm2=sqrt(sec$juv_mod.var)/sqrt(sec$N.juv)
+
+
+REA=ggplot(sec,aes(x = juv_mod.mn.pcm2))+
+  geom_histogram()+
+  #geom_errorbar()+
+  facet_grid(GENUS_CODE~.)+
+  xlab("Juvenile Density per Adult cm^2 area")+xlim(c(0,.3))
+
+FIX+REA
+
+
+
+ggplot(sec,aes(x = ANALYSIS_SEC,y =juv_mod.mn.pcm2,ymin =juv_mod.mn.pcm2-juv_mod.se.pcm2,ymax =juv_mod.mn.pcm2+juv_mod.se.pcm2,fill=ISLAND))+
+  geom_point()+
+  #geom_errorbar()+
+  facet_grid(.~GENUS_CODE)+
+  theme(axis.text.x = element_text(angle=90))+ylab("Juvenile Density per Adult cm^2 area")+ylim(c(0,.3))
 
 ggplot(sec,aes(mean = juv_mod.mn.pcm2, sd = sqrt(juv_mod.var.pcm2),fill=ISLAND))+
   stat_function(fun = dnorm, geom = "area", 
