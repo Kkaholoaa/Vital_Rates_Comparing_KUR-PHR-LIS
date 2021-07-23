@@ -117,6 +117,8 @@ bigmatrix <- function(ModelParameters) {
   s.int <- ModelParameters$s.int
   s.slp <- ModelParameters$s.slp
   
+  #Reproduction_kernel <- delta_size * outer(y, y, 
+                                          #reproduction_function, rec)
   Reproduction_kernel <- delta_size * outer(y, y, 
                                           reproduction_function_josh)
 
@@ -248,7 +250,7 @@ hist(subset(ColonyLevel,Genus_Code=="MOSP")$log10_ESc)
 
 
 #Plot IPM results
-```{r}
+```{r PlottingIPMresults,}
 #plot growth kernel
 #image(y,y,t(Growth_kernel), main='growth kernel')
 #abline(0,1,lwd=3)	# plot 1:1, which represents stasis
@@ -537,6 +539,55 @@ subset(ColonyLevel$Genus_Code=="POSP")#dev.off()
 
 
 ```
+
+
+Currently not working because all of the VR functions are inside the bigmatrix function. Not sure how to call each VR function (Growth_kernel, etc)
+```{r PerturbationAnalysis, }
+#Assessing the sensitivity of each component model parameter individually, by adjusting each coefficient 
+# by +/-1%, and see how it affect the population growth rate (lambda)
+
+#change parameter list to dataframe
+df_MP_POSP <- ldply(MP_POSP, data.frame)
+modparam_POSP <- spread(df_MP_POSP, key = .id, value = X..i.. )
+
+nparams <- length(modparam_POSP) #total number of component model parameters
+lam.sn <- matrix(ncol = nparams, nrow = 2, data = NA)  #matrix where every row
+all.params.orig <- modparam_POSP
+
+for (p in 1:nparams) { #tweak each parameter in turn
+  for (j in 1:2) {     #by 1% down and then 1% up
+    all.params <- all.params.orig
+    all.params[p] <- all.params[p]*(1+2*(j-1.5)/100)
+    BG <- bigmatrix(all.params)
+    lam.sn[j,p] <-BG$lam
+  }
+}
+lam.sn #top row is decr by 1%, bottom row is incr
+
+
+#loop above not working. Going to perturb manually for -0.1 and then +0.1:
+
+all.params <- all.params.orig
+all.params[10] <- -0.01
+growth2 <- delta_size * outer(y, y, growth_function, g.int=POSP$g.int[1],   #growth kernel
+                                    g.slp=POSP$g.slp[1], g.var=POSP$g.var[1])
+survival2 <- survival_function(y, s.int=POSP$s.int[1], s.slp=POSP$s.slp[1])     #survival kernel
+P2 <- Growth_kernel    #placeholder
+z <- 1:n
+P2[,z] <- Growth_kernel[,z]*Survival_kernel[z]    #growth/survival kernel
+# P2 <- growth2 * survival2
+# for (z in 1:n) {
+#   P2[,z] <- growth2[,z]*survival2[z]
+#   }
+Repro2 <- delta_size * outer(y, y, reproduction_function_josh)    #reproduction kernel
+K2 <- P2 + Repro2
+lam_new <- Re(eigen(K2)$values[1])
+lam.sn[21] <- lam_new
+
+```
+
+
+
 
 ```{r CalculatingLamsSensElas,}
 # Run this chunk to calculate the lambdas and the elas/sens
