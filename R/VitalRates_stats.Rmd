@@ -5,6 +5,11 @@ date: "11/11/2020"
 output: html_document
 ---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(cache = FALSE)
+```
+
 #Libraries
 ```{r}
 library(ggplot2)
@@ -19,10 +24,9 @@ library(sjPlot) #used to visualize mixed-effects models
 ```
 
 #Set up (change path for your computer)
-```{r}
-setwd("/Users/c-rod/Documents/R_data/VitalRates/")
+```{r Load,}
 #load in .rdata file
-load("/Users/c-rod/Documents/GitHub/Patch-To-Transition/Patch_And_Colony_Data_20210402.rdata")
+load("data/Patch_And_Colony_Data_20210730.rdata")
 #View both tables saved in the .rdata
 View(ColonyLevel)
 #View(PatchLevel)
